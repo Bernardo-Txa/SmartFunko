@@ -50,29 +50,33 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative z-10 min-h-[380px]">
-            <Image
-              src="/brand/products/spider-man-black-light.png"
-              alt="Funko Pop Spider-Man Black Light"
-              width={600}
-              height={600}
-              preload
-              className="absolute left-[18%] top-0 z-20 w-[54%] max-w-[390px] drop-shadow-[0_34px_30px_rgba(0,0,0,0.48)]"
-            />
-            <Image
-              src="/brand/products/stitch-tiki.png"
-              alt="Funko Pop Stitch Tiki"
-              width={600}
-              height={600}
-              className="absolute bottom-4 left-0 z-10 w-[38%] max-w-[240px] rotate-[-7deg] drop-shadow-[0_28px_24px_rgba(0,0,0,0.44)]"
-            />
-            <Image
-              src="/brand/products/cinderella-diamond.png"
-              alt="Funko Pop Cinderella Diamond"
-              width={600}
-              height={600}
-              className="absolute bottom-0 right-0 z-10 w-[38%] max-w-[245px] rotate-[8deg] drop-shadow-[0_28px_24px_rgba(0,0,0,0.44)]"
-            />
+          <div className="relative z-10 min-h-[380px]" aria-hidden="true">
+            <div className="absolute left-[18%] top-6 z-20 flex h-72 w-56 rotate-[-3deg] flex-col justify-between rounded-[28px] border border-cyan-200/24 bg-slate-950/72 p-5 shadow-[0_34px_30px_rgba(0,0,0,0.48)] backdrop-blur">
+              <span className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-3xl font-black leading-none text-slate-950">
+                POP
+              </span>
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">
+                  Smart seleção
+                </p>
+                <strong className="mt-2 block text-6xl font-black leading-none text-white">
+                  #1607
+                </strong>
+              </div>
+            </div>
+            <div className="absolute bottom-10 left-2 z-10 flex h-52 w-40 rotate-[7deg] flex-col justify-between rounded-[24px] border border-yellow-200/20 bg-yellow-300/12 p-4 shadow-[0_28px_24px_rgba(0,0,0,0.42)] backdrop-blur">
+              <span className="text-3xl font-black text-white">POP</span>
+              <span className="rounded-full bg-[var(--yellow)] px-3 py-1 text-xs font-black text-slate-950">
+                Pre-venda
+              </span>
+            </div>
+            <div className="absolute bottom-2 right-4 z-10 flex h-56 w-44 rotate-[-8deg] flex-col justify-between rounded-[24px] border border-pink-200/20 bg-pink-500/14 p-4 shadow-[0_28px_24px_rgba(0,0,0,0.42)] backdrop-blur">
+              <span className="text-3xl font-black text-white">POP</span>
+              <span className="rounded-full bg-cyan-300 px-3 py-1 text-xs font-black text-slate-950">
+                Chase
+              </span>
+            </div>
+            <div className="absolute inset-x-16 bottom-0 h-20 rounded-full bg-cyan-300/20 blur-3xl" />
           </div>
         </div>
       </section>

@@ -15,7 +15,6 @@ export type Product = {
   status: ProductStatus;
   description: string;
   tone: "teal" | "pink" | "amber" | "indigo";
-  imageUrl: string;
 };
 
 export type CustomerOrder = {
@@ -59,7 +58,6 @@ export const products: Product[] = [
     description:
       "Figura colecionavel com caixa original. Unidade pronta para reserva pelo atendimento.",
     tone: "teal",
-    imageUrl: "/brand/products/zoro-chase.png",
   },
   {
     id: "prod-002",
@@ -76,7 +74,6 @@ export const products: Product[] = [
     description:
       "Item sob consulta com fornecedor nacional. Prazo e disponibilidade confirmados pelo WhatsApp.",
     tone: "pink",
-    imageUrl: "/brand/products/spider-man-black-light.png",
   },
   {
     id: "prod-003",
@@ -93,7 +90,6 @@ export const products: Product[] = [
     description:
       "Pre-venda acompanhada pela Smart Funkos, com status atualizado na conta do cliente.",
     tone: "amber",
-    imageUrl: "/brand/products/stitch-tiki.png",
   },
   {
     id: "prod-004",
@@ -111,7 +107,6 @@ export const products: Product[] = [
     description:
       "Unidade rara com detalhe informado na caixa. Fotos finais devem ser confirmadas no atendimento.",
     tone: "indigo",
-    imageUrl: "/brand/products/darth-vader.png",
   },
 ];
 

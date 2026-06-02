@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 import type { Product } from "@/lib/mock-data";
@@ -19,17 +18,29 @@ export function ProductArtwork({ product }: { product: Product }) {
       className={`relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br ${toneClass[product.tone]} p-4 text-white shadow-[inset_0_0_0_1px_rgba(125,211,252,0.18)]`}
       aria-label={product.name}
     >
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[length:28px_28px]" />
       <div className="absolute inset-x-8 bottom-5 h-12 rounded-full bg-cyan-300/25 blur-2xl" />
       <div className="absolute left-4 top-4 rounded-full border border-cyan-200/20 bg-slate-950/54 px-3 py-1 text-xs font-bold text-cyan-100 backdrop-blur">
         #{product.funkoNumber}
       </div>
-      <Image
-        src={product.imageUrl}
-        alt={product.name}
-        width={600}
-        height={600}
-        className="relative z-10 h-[82%] w-[82%] object-contain drop-shadow-[0_24px_22px_rgba(0,0,0,0.42)]"
-      />
+      <div className="relative z-10 flex h-[72%] w-[68%] flex-col justify-between rounded-[22px] border border-cyan-200/24 bg-slate-950/68 p-4 shadow-[0_26px_28px_rgba(0,0,0,0.34)] backdrop-blur">
+        <div>
+          <span className="inline-flex rounded-full bg-white px-3 py-1 text-xl font-black leading-none text-slate-950">
+            POP
+          </span>
+          <p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
+            {product.franchise}
+          </p>
+        </div>
+        <div>
+          <strong className="block text-5xl font-black leading-none text-white">
+            {product.funkoNumber}
+          </strong>
+          <span className="mt-2 inline-flex rounded-full bg-[var(--yellow)] px-2 py-1 text-xs font-black text-slate-950">
+            {product.type}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
