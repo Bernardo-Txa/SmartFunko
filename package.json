@@ -1,0 +1,26 @@
+{
+  "name": "smartfunkos",
+  "version": "1.0.0",
+  "description": "Projeto da Smart Funkos.",
+  "scripts": {
+    "supabase": "supabase",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link",
+    "supabase:push": "supabase db push",
+    "supabase:status": "supabase status"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bernardo-Txa/SmartFunko.git"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "bugs": {
+    "url": "https://github.com/Bernardo-Txa/SmartFunko/issues"
+  },
+  "homepage": "https://github.com/Bernardo-Txa/SmartFunko#readme",
+  "devDependencies": {
+    "supabase": "^2.104.0"
+  }
+}
