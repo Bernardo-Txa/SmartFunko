@@ -13,3 +13,7 @@ export function hasSupabasePublicEnv() {
 export function hasSupabaseAdminEnv() {
   return Boolean(env.supabaseUrl && env.supabaseServiceRoleKey);
 }
+
+export function isDevelopmentMockAllowed() {
+  return process.env.NODE_ENV !== "production";
+}

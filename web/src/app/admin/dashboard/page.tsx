@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { formatCurrency } from "@/lib/format";
-import { orders, products } from "@/lib/mock-data";
+import { requireAdminPage } from "@/server/auth/require-admin-page";
+import { DashboardService } from "@/server/dashboard/dashboard-service";
 
 export const metadata: Metadata = {
   title: "Dashboard admin",
 };
 
-export default function AdminDashboardPage() {
-  const received = orders.reduce((sum, order) => sum + order.paidAmount, 0);
-  const pending = orders.reduce((sum, order) => sum + order.total - order.paidAmount, 0);
-  const available = products.filter((product) => product.status === "available").length;
+type LatestOrder = {
+  id: string;
+  order_number: string;
+  total: number;
+  customers?: {
+    name?: string;
+  } | null;
+};
+
+export default async function AdminDashboardPage() {
+  await requireAdminPage();
+  const dashboard = await new DashboardService().getAdminDashboard();
+  const latestOrders = dashboard.latestOrders as unknown as LatestOrder[];
 
   return (
     <AdminShell
@@ -18,22 +28,25 @@ export default function AdminDashboardPage() {
       description="Indicadores iniciais da operacao assistida."
     >
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard label="Recebido" value={formatCurrency(received)} detail="Pagamentos registrados" />
-        <MetricCard label="Pendente" value={formatCurrency(pending)} detail="Pedidos aguardando baixa" />
-        <MetricCard label="Disponiveis" value={`${available}`} detail="Produtos prontos no catalogo" />
+        <MetricCard label="Pedidos hoje" value={`${dashboard.ordersToday}`} detail="Criados no dia" />
+        <MetricCard label="Recebido hoje" value={formatCurrency(dashboard.receivedToday)} detail="Entradas de caixa" />
+        <MetricCard label="Pendente" value={formatCurrency(dashboard.pendingTotal)} detail="Pedidos de hoje" />
+        <MetricCard label="Pago" value={`${dashboard.ordersPaid}`} detail="Pedidos pagos hoje" />
+        <MetricCard label="Aguardando" value={`${dashboard.ordersAwaitingPayment}`} detail="Pagamento pendente" />
+        <MetricCard label="Estoque" value={`${dashboard.inventoryAvailable}`} detail={`${dashboard.inventoryReserved} reservado(s)`} />
       </div>
 
       <section className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Pedidos recentes</h2>
         <div className="mt-4 divide-y divide-[var(--border)]">
-          {orders.map((order) => (
+          {latestOrders.map((order) => (
             <div
-              key={order.orderNumber}
+              key={order.id}
               className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
             >
               <div>
-                <strong className="text-sm text-[var(--foreground)]">{order.orderNumber}</strong>
-                <p className="text-sm text-[var(--muted)]">{order.customerName}</p>
+                <strong className="text-sm text-[var(--foreground)]">{order.order_number}</strong>
+                <p className="text-sm text-[var(--muted)]">{order.customers?.name ?? "Cliente"}</p>
               </div>
               <span className="text-sm font-semibold text-[var(--foreground)]">
                 {formatCurrency(order.total)}

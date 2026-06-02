@@ -5,7 +5,7 @@ import { ProductCard } from "@/components/product/product-card";
 import { getCatalogProducts } from "@/lib/catalog";
 
 export default async function Home() {
-  const products = await getCatalogProducts();
+  const products = await getCatalogProducts({ pageSize: 4 });
   const featuredProducts = products.slice(0, 4);
 
   return (

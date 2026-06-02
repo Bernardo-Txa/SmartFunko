@@ -1,6 +1,22 @@
 import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
-import type { CustomerOrder } from "@/lib/mock-data";
+
+export type OrderDetailData = {
+  orderNumber: string;
+  customerName: string;
+  status: string;
+  total: number;
+  paidAmount: number;
+  pendingAmount?: number;
+  updatedAt: string;
+  items: Array<{
+    name: string;
+    sku: string;
+    status: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+};
 
 const labels = {
   pending_payment: "Aguardando pagamento",
@@ -10,8 +26,8 @@ const labels = {
   shipped: "Enviado",
 };
 
-export function OrderDetail({ order }: { order: CustomerOrder }) {
-  const pendingAmount = order.total - order.paidAmount;
+export function OrderDetail({ order }: { order: OrderDetailData }) {
+  const pendingAmount = order.pendingAmount ?? order.total - order.paidAmount;
 
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -21,7 +37,7 @@ export function OrderDetail({ order }: { order: CustomerOrder }) {
             <h1 className="text-2xl font-bold text-[var(--foreground)]">
               {order.orderNumber}
             </h1>
-            <OrderStatusBadge label={labels[order.status]} />
+            <OrderStatusBadge label={labels[order.status as keyof typeof labels] ?? order.status} />
           </div>
           <p className="mt-2 text-sm text-[var(--muted)]">
             {order.customerName} · atualizado em {formatDate(order.updatedAt)}

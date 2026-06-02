@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OrderDetail } from "@/components/product/order-detail";
-import { getOrderByNumber } from "@/lib/mock-data";
+import { OrderService } from "@/server/orders/order-service";
 
 type Props = {
   params: Promise<{ orderNumber: string }>;
@@ -18,9 +18,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PublicOrderPage({ params, searchParams }: Props) {
   const { orderNumber } = await params;
   const { token } = await searchParams;
-  const order = getOrderByNumber(orderNumber);
 
-  if (!order || !token) {
+  if (!token) {
+    notFound();
+  }
+
+  let order;
+
+  try {
+    order = await new OrderService().getPublicOrderByNumberAndToken(orderNumber, token);
+  } catch {
     notFound();
   }
 

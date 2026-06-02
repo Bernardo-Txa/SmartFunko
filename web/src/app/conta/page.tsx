@@ -1,22 +1,44 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Package, UserRound } from "lucide-react";
-import { orders } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
+import { requireUserPage } from "@/server/auth/require-user-page";
+import { OrderService } from "@/server/orders/order-service";
 
 export const metadata: Metadata = {
   title: "Minha conta",
 };
 
-export default function AccountPage() {
-  const totalOpen = orders.reduce((sum, order) => sum + order.total - order.paidAmount, 0);
+type AccountOrder = {
+  total: number;
+  payments?: Array<{
+    amount: number;
+    status: string;
+  }>;
+};
+
+function getPaidAmount(order: AccountOrder) {
+  return (order.payments ?? [])
+    .filter((payment) => payment.status === "paid")
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+}
+
+export default async function AccountPage() {
+  const { customer, profile } = await requireUserPage();
+  const orders = customer
+    ? ((await new OrderService().getCustomerOrders(customer.id)) as unknown as AccountOrder[])
+    : [];
+  const totalOpen = orders.reduce(
+    (sum, order) => sum + Math.max(0, Number(order.total) - getPaidAmount(order)),
+    0,
+  );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[var(--foreground)]">Minha conta</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          Cliente Smart · cliente@smartfunko.com.br
+          {profile.name} · {profile.email}
         </p>
       </div>
 

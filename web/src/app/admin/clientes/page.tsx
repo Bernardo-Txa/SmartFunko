@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { requireAdminPage } from "@/server/auth/require-admin-page";
+import { CustomerService } from "@/server/customers/customer-service";
 
 export const metadata: Metadata = {
   title: "Clientes admin",
 };
 
-const customers = [
-  {
-    name: "Cliente Smart",
-    email: "cliente@smartfunko.com.br",
-    phone: "(11) 99999-9999",
-    status: "active",
-  },
-];
+export default async function AdminCustomersPage() {
+  const admin = await requireAdminPage();
+  const customers = await new CustomerService(undefined, admin.profile.id).listCustomers();
 
-export default function AdminCustomersPage() {
   return (
     <AdminShell title="Clientes" description="Cadastro e vinculo com pedidos do WhatsApp.">
       <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
@@ -33,8 +29,8 @@ export default function AdminCustomersPage() {
                 <td className="px-4 py-3 font-semibold text-[var(--foreground)]">
                   {customer.name}
                 </td>
-                <td className="px-4 py-3 text-[var(--muted)]">{customer.email}</td>
-                <td className="px-4 py-3 text-[var(--muted)]">{customer.phone}</td>
+                <td className="px-4 py-3 text-[var(--muted)]">{customer.email ?? "-"}</td>
+                <td className="px-4 py-3 text-[var(--muted)]">{customer.phone ?? "-"}</td>
                 <td className="px-4 py-3 text-[var(--foreground)]">{customer.status}</td>
               </tr>
             ))}

@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Projeto da Smart Funkos.",
   "scripts": {
+    "catalog:import": "node scripts/import-products-csv.mjs",
+    "catalog:import:dry-run": "node scripts/import-products-csv.mjs --dry-run --skip-invalid",
     "supabase": "supabase",
     "supabase:login": "supabase login",
     "supabase:link": "supabase link",

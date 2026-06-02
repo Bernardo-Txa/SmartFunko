@@ -1,0 +1,177 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
+
+export function ProductCreateForm() {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "");
+    const description = String(formData.get("description") ?? "");
+    const mainImageUrl = String(formData.get("mainImageUrl") ?? "");
+    const sku = String(formData.get("sku") ?? "");
+    const salePrice = Number(formData.get("salePrice") ?? 0);
+    const source = String(formData.get("source") ?? "national");
+    const status = String(formData.get("status") ?? "order_only");
+    const type = String(formData.get("type") ?? "common");
+
+    try {
+      const productResponse = await fetch("/api/v1/admin/products", {
+        body: JSON.stringify({
+          description: description || null,
+          mainImageUrl: mainImageUrl || null,
+          name,
+          status: "active",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      const productBody = await productResponse.json();
+
+      if (!productResponse.ok) {
+        throw new Error(productBody.error?.message ?? "Falha ao criar produto");
+      }
+
+      const variantResponse = await fetch(`/api/v1/admin/products/${productBody.data.id}/variants`, {
+        body: JSON.stringify({
+          condition: "new",
+          salePrice,
+          sku,
+          source,
+          status,
+          type,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      const variantBody = await variantResponse.json();
+
+      if (!variantResponse.ok) {
+        throw new Error(variantBody.error?.message ?? "Produto criado, mas variante falhou");
+      }
+
+      event.currentTarget.reset();
+      setMessage("Produto e variante criados.");
+      router.refresh();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Falha ao criar produto");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+      <h2 className="text-lg font-bold text-[var(--foreground)]">Novo produto rapido</h2>
+      <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Nome</span>
+            <input
+              name="name"
+              required
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Imagem URL</span>
+            <input
+              name="mainImageUrl"
+              type="url"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+        </div>
+        <label className="block">
+          <span className="text-sm font-semibold text-[var(--foreground)]">Descricao</span>
+          <textarea
+            name="description"
+            className="mt-2 min-h-20 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
+          />
+        </label>
+        <div className="grid gap-4 md:grid-cols-5">
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">SKU</span>
+            <input
+              name="sku"
+              required
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Preco</span>
+            <input
+              name="salePrice"
+              required
+              min={0}
+              step="0.01"
+              type="number"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Origem</span>
+            <select
+              name="source"
+              defaultValue="national"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              <option value="own_stock">Pronta-entrega</option>
+              <option value="national">Nacional</option>
+              <option value="international">Importado</option>
+              <option value="preorder">Pre-venda</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Tipo</span>
+            <select
+              name="type"
+              defaultValue="common"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              <option value="common">Comum</option>
+              <option value="exclusive">Exclusivo</option>
+              <option value="chase">Chase</option>
+              <option value="glow">Glow</option>
+              <option value="special">Especial</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Status</span>
+            <select
+              name="status"
+              defaultValue="order_only"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              <option value="available">Disponivel</option>
+              <option value="order_only">Sob encomenda</option>
+              <option value="preorder">Pre-venda</option>
+              <option value="sold_out">Esgotado</option>
+              <option value="hidden">Oculto</option>
+            </select>
+          </label>
+        </div>
+        {message ? <p className="text-sm font-semibold text-[var(--foreground)]">{message}</p> : null}
+        {error ? <p className="text-sm font-semibold text-red-700">{error}</p> : null}
+        <button
+          disabled={isSubmitting}
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
+        >
+          <Plus size={16} />
+          {isSubmitting ? "Criando..." : "Criar produto"}
+        </button>
+      </form>
+    </section>
+  );
+}
