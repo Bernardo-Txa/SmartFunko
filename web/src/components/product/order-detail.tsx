@@ -14,7 +14,7 @@ export function OrderDetail({ order }: { order: CustomerOrder }) {
   const pendingAmount = order.total - order.paidAmount;
 
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+    <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
       <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">

@@ -15,6 +15,7 @@ export type Product = {
   status: ProductStatus;
   description: string;
   tone: "teal" | "pink" | "amber" | "indigo";
+  imageUrl: string;
 };
 
 export type CustomerOrder = {
@@ -38,6 +39,7 @@ export const franchises = [
   { id: "marvel", name: "Marvel", slug: "marvel" },
   { id: "disney", name: "Disney", slug: "disney" },
   { id: "naruto", name: "Naruto", slug: "naruto" },
+  { id: "star-wars", name: "Star Wars", slug: "star-wars" },
 ];
 
 export const products: Product[] = [
@@ -57,6 +59,7 @@ export const products: Product[] = [
     description:
       "Figura colecionavel com caixa original. Unidade pronta para reserva pelo atendimento.",
     tone: "teal",
+    imageUrl: "/brand/products/zoro-chase.png",
   },
   {
     id: "prod-002",
@@ -73,6 +76,7 @@ export const products: Product[] = [
     description:
       "Item sob consulta com fornecedor nacional. Prazo e disponibilidade confirmados pelo WhatsApp.",
     tone: "pink",
+    imageUrl: "/brand/products/spider-man-black-light.png",
   },
   {
     id: "prod-003",
@@ -89,16 +93,17 @@ export const products: Product[] = [
     description:
       "Pre-venda acompanhada pela Smart Funkos, com status atualizado na conta do cliente.",
     tone: "amber",
+    imageUrl: "/brand/products/stitch-tiki.png",
   },
   {
     id: "prod-004",
-    name: "Funko Pop! Naruto Kakashi Anbu",
-    slug: "funko-pop-naruto-kakashi-anbu",
-    sku: "SF-NT-0009",
-    franchise: "Naruto",
-    funkoNumber: "994",
+    name: "Funko Pop! Star Wars Darth Vader Exclusivo",
+    slug: "funko-pop-star-wars-darth-vader-exclusivo",
+    sku: "SF-SW-0009",
+    franchise: "Star Wars",
+    funkoNumber: "157",
     condition: "Caixa avariada",
-    type: "Chase",
+    type: "Exclusivo",
     source: "Pronta-entrega",
     price: 299.9,
     marketPrice: 349.9,
@@ -106,6 +111,7 @@ export const products: Product[] = [
     description:
       "Unidade rara com detalhe informado na caixa. Fotos finais devem ser confirmadas no atendimento.",
     tone: "indigo",
+    imageUrl: "/brand/products/darth-vader.png",
   },
 ];
 

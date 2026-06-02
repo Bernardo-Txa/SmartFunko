@@ -17,7 +17,7 @@ const customers = [
 export default function AdminCustomersPage() {
   return (
     <AdminShell title="Clientes" description="Cadastro e vinculo com pedidos do WhatsApp.">
-      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-white">
+      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>

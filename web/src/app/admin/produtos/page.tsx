@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function AdminProductsPage() {
   return (
     <AdminShell title="Produtos" description="Cadastro, variantes e publicacao no catalogo.">
-      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-white">
+      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>

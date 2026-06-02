@@ -30,7 +30,7 @@ export function AdminShell({
 }) {
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[240px_1fr] lg:px-8">
-      <aside className="rounded-lg border border-[var(--border)] bg-white p-3 lg:self-start">
+      <aside className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 lg:self-start">
         <nav className="grid gap-1" aria-label="Admin">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -69,7 +69,7 @@ export function MetricCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-white p-5">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
       <span className="text-sm font-semibold text-[var(--muted)]">{label}</span>
       <strong className="mt-3 block text-2xl text-[var(--foreground)]">{value}</strong>
       <span className="mt-1 block text-sm text-[var(--muted)]">{detail}</span>

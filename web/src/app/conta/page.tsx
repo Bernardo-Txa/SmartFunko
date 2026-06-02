@@ -21,21 +21,21 @@ export default function AccountPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <UserRound className="text-[var(--accent)]" size={24} />
           <strong className="mt-4 block text-sm">Cadastro</strong>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Nome, e-mail e telefone vinculados aos pedidos manuais.
           </p>
         </section>
-        <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <Package className="text-[var(--pink)]" size={24} />
           <strong className="mt-4 block text-sm">{orders.length} pedidos</strong>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Historico do atendimento pelo WhatsApp.
           </p>
         </section>
-        <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <strong className="block text-2xl text-[var(--foreground)]">
             {formatCurrency(totalOpen)}
           </strong>
@@ -45,7 +45,7 @@ export default function AccountPage() {
 
       <Link
         href="/conta/pedidos"
-        className="mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-[var(--foreground)] px-4 text-sm font-semibold text-white hover:bg-black"
+        className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--yellow)] px-5 text-sm font-black text-[#020617] shadow-[0_0_22px_rgba(250,204,21,0.22)] hover:brightness-110"
       >
         Ver meus pedidos
         <ArrowRight size={17} aria-hidden="true" />

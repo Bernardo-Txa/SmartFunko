@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-[var(--border)] bg-white">
+    <footer className="border-t border-[var(--border)] bg-[#020617]/72">
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm text-[var(--muted)] sm:px-6 md:grid-cols-3 lg:px-8">
         <div>
           <strong className="block text-[var(--foreground)]">Smart Funkos</strong>

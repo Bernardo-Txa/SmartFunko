@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7fb;
-  --foreground: #15161a;
-  --muted: #5f6572;
-  --surface: #ffffff;
-  --surface-strong: #eceff5;
-  --border: #d7dce5;
-  --accent: #0f766e;
-  --accent-strong: #0b5f59;
-  --pink: #c02668;
-  --amber: #b7791f;
+  --background: #020617;
+  --foreground: #e2e8f0;
+  --muted: #94a3b8;
+  --surface: rgba(15, 23, 42, 0.82);
+  --surface-strong: rgba(30, 41, 59, 0.88);
+  --border: rgba(125, 211, 252, 0.22);
+  --accent: #22d3ee;
+  --accent-strong: #0ea5e9;
+  --yellow: #facc15;
+  --pink: #dd2a7b;
+  --amber: #f97316;
+  --purple: #4f46e5;
+  --green: #25d366;
+  --shadow-blue: rgba(14, 165, 233, 0.28);
 }
 
 @theme inline {
@@ -21,9 +25,30 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.18), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(79, 70, 229, 0.26), transparent 28%),
+    radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.1), transparent 36%),
+    linear-gradient(180deg, #020617 0%, #06172b 42%, #020617 100%);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  scroll-behavior: smooth;
+}
+
+body::before {
+  background:
+    linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 25% 25%, rgba(14, 165, 233, 0.08), transparent 26%),
+    radial-gradient(circle at 75% 10%, rgba(37, 99, 235, 0.1), transparent 24%);
+  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
+  content: "";
+  inset: 0;
+  opacity: 0.75;
+  pointer-events: none;
+  position: fixed;
+  z-index: -1;
 }
 
 * {
@@ -39,4 +64,21 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+input,
+textarea,
+select {
+  background: rgba(2, 6, 23, 0.52);
+  color: var(--foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(148, 163, 184, 0.78);
+}
+
+::selection {
+  background: rgba(250, 204, 21, 0.32);
+  color: white;
 }

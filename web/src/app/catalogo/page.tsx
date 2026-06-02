@@ -17,7 +17,7 @@ export default function CatalogPage() {
             Produtos preparados para atendimento pelo WhatsApp.
           </p>
         </div>
-        <label className="flex h-11 min-w-0 items-center gap-2 rounded-md border border-[var(--border)] bg-white px-3 md:w-80">
+        <label className="flex h-11 min-w-0 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 md:w-80">
           <Search size={17} className="text-[var(--muted)]" aria-hidden="true" />
           <input
             type="search"
@@ -28,13 +28,13 @@ export default function CatalogPage() {
       </div>
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
-        <button className="h-9 rounded-md bg-[var(--foreground)] px-3 text-sm font-semibold text-white">
+        <button className="h-9 rounded-full bg-[var(--yellow)] px-4 text-sm font-black text-[#020617]">
           Todos
         </button>
         {franchises.map((franchise) => (
           <button
             key={franchise.id}
-            className="h-9 rounded-md border border-[var(--border)] bg-white px-3 text-sm font-semibold text-[var(--foreground)]"
+            className="h-9 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15"
           >
             {franchise.name}
           </button>

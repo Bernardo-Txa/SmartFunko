@@ -9,10 +9,10 @@ const productStatusLabel: Record<ProductStatus, string> = {
 };
 
 const productStatusClass: Record<ProductStatus, string> = {
-  available: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-  order_only: "bg-sky-50 text-sky-800 ring-sky-200",
-  preorder: "bg-amber-50 text-amber-800 ring-amber-200",
-  sold_out: "bg-zinc-100 text-zinc-700 ring-zinc-200",
+  available: "bg-emerald-400/14 text-emerald-200 ring-emerald-300/28",
+  order_only: "bg-cyan-400/14 text-cyan-100 ring-cyan-300/28",
+  preorder: "bg-yellow-300/14 text-yellow-100 ring-yellow-300/32",
+  sold_out: "bg-slate-300/10 text-slate-300 ring-slate-300/20",
 };
 
 export function ProductStatusBadge({ status }: { status: ProductStatus }) {

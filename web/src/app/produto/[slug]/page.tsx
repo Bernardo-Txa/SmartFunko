@@ -40,7 +40,7 @@ export default async function ProductPage({ params }: Props) {
           <ProductArtwork product={product} />
         </div>
 
-        <section className="rounded-lg border border-[var(--border)] bg-white p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <div className="flex flex-wrap items-center gap-2">
             <ProductStatusBadge status={product.status} />
             <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-xs font-semibold text-[var(--muted)]">
@@ -85,7 +85,7 @@ export default async function ProductPage({ params }: Props) {
             href={createProductWhatsAppUrl(product)}
             target="_blank"
             rel="noreferrer"
-            className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-strong)] sm:w-auto"
+            className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-5 text-sm font-black text-[#052e16] hover:brightness-110 sm:w-auto"
           >
             <MessageCircle size={18} aria-hidden="true" />
             Comprar pelo WhatsApp

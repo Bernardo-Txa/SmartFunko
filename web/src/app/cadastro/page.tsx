@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function RegisterPage() {
   return (
     <div className="mx-auto flex max-w-7xl justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <section className="w-full max-w-md rounded-lg border border-[var(--border)] bg-white p-6">
+      <section className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
         <h1 className="text-2xl font-bold text-[var(--foreground)]">Criar conta</h1>
         <form className="mt-6 space-y-4">
           <label className="block">
@@ -42,7 +42,7 @@ export default function RegisterPage() {
               placeholder="Crie uma senha"
             />
           </label>
-          <button className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--accent-strong)]">
+          <button className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
             <UserPlus size={17} aria-hidden="true" />
             Cadastrar
           </button>

@@ -14,7 +14,7 @@ export default function AdminPaymentsPage() {
         {orders.map((order) => (
           <article
             key={order.orderNumber}
-            className="rounded-lg border border-[var(--border)] bg-white p-4"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>

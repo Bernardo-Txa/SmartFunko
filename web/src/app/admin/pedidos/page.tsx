@@ -19,7 +19,7 @@ const labels = {
 export default function AdminOrdersPage() {
   return (
     <AdminShell title="Pedidos" description="Pedidos manuais criados a partir do WhatsApp.">
-      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-white">
+      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>

@@ -13,7 +13,7 @@ export default function AdminInventoryPage() {
         {products.map((product, index) => (
           <article
             key={product.id}
-            className="rounded-lg border border-[var(--border)] bg-white p-5"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5"
           >
             <span className="text-xs font-semibold text-[var(--muted)]">
               Unidade INV-{String(index + 1).padStart(4, "0")}

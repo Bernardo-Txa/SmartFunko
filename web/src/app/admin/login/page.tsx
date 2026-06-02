@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function AdminLoginPage() {
   return (
     <div className="mx-auto flex max-w-7xl justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <section className="w-full max-w-md rounded-lg border border-[var(--border)] bg-white p-6">
+      <section className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
         <h1 className="text-2xl font-bold text-[var(--foreground)]">Painel admin</h1>
         <form className="mt-6 space-y-4">
           <label className="block">
@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
               placeholder="Senha admin"
             />
           </label>
-          <button className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--foreground)] px-4 text-sm font-semibold text-white hover:bg-black">
+          <button className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
             <ShieldCheck size={17} aria-hidden="true" />
             Entrar no painel
           </button>

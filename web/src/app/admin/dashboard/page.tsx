@@ -23,7 +23,7 @@ export default function AdminDashboardPage() {
         <MetricCard label="Disponiveis" value={`${available}`} detail="Produtos prontos no catalogo" />
       </div>
 
-      <section className="mt-6 rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Pedidos recentes</h2>
         <div className="mt-4 divide-y divide-[var(--border)]">
           {orders.map((order) => (
