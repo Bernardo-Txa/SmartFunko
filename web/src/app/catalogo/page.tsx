@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import { Search } from "lucide-react";
 import { ProductCard } from "@/components/product/product-card";
-import { franchises, products } from "@/lib/mock-data";
+import { getCatalogFranchises, getCatalogProducts } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Catalogo",
 };
 
-export default function CatalogPage() {
+export default async function CatalogPage() {
+  const [franchises, products] = await Promise.all([
+    getCatalogFranchises(),
+    getCatalogProducts(),
+  ]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

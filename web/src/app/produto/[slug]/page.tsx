@@ -4,7 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { ProductArtwork } from "@/components/product/product-card";
 import { ProductStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
-import { getProductBySlug } from "@/lib/mock-data";
+import { getCatalogProductBySlug } from "@/lib/catalog";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getCatalogProductBySlug(slug);
 
   if (!product) {
     return { title: "Produto" };
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const product = await getCatalogProductBySlug(slug);
 
   if (!product) {
     notFound();

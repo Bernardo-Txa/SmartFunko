@@ -2,9 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, MessageCircle, PackageCheck, UserRound } from "lucide-react";
 import { ProductCard } from "@/components/product/product-card";
-import { products } from "@/lib/mock-data";
+import { getCatalogProducts } from "@/lib/catalog";
 
-export default function Home() {
+export default async function Home() {
+  const products = await getCatalogProducts();
   const featuredProducts = products.slice(0, 4);
 
   return (
