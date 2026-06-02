@@ -8,7 +8,6 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { OrderService } from "@/server/orders/order-service";
-import { ProductService } from "@/server/products/product-service";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -65,18 +64,6 @@ type PaymentItem = {
   net_amount: number;
   paid_at: string | null;
   status: string;
-};
-
-type ProductOption = {
-  id: string;
-  name: string;
-  product_variants?: Array<{
-    id: string;
-    sale_price: number;
-    sku: string;
-    source: "own_stock" | "national" | "international" | "preorder";
-    status: string;
-  }>;
 };
 
 type InventoryOption = {
@@ -148,8 +135,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
     notFound();
   }
 
-  const [products, inventory, history, logs] = await Promise.all([
-    new ProductService(undefined, admin.profile.id).listAdminProducts(),
+  const [inventory, history, logs] = await Promise.all([
     new InventoryService(undefined, admin.profile.id).listInventory(),
     orderService.listOrderStatusHistory(id),
     orderService.listOrderAuditLogs(id),
@@ -275,7 +261,6 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           inventory={inventory as unknown as InventoryOption[]}
           items={(order.order_items ?? []).map((item) => ({ id: item.id, status: item.status }))}
           orderId={order.id}
-          products={products as unknown as ProductOption[]}
           publicLink={publicLink}
         />
 

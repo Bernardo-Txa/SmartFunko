@@ -1,23 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Plus } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
-
-type VariantOption = {
-  id: string;
-  sku: string;
-  sale_price: number;
-  source: "own_stock" | "national" | "international" | "preorder";
-  productName: string;
-};
-
-type ProductOption = {
-  id: string;
-  name: string;
-  product_variants?: Array<Omit<VariantOption, "productName">>;
-};
+import {
+  ProductVariantSearchSelect,
+  type ProductVariantSearchOption,
+} from "@/components/admin/product-variant-search-select";
 
 type InventoryOption = {
   id: string;
@@ -36,6 +25,7 @@ type DraftItem = {
   inventoryItemId: string;
   productVariantId: string;
   quantity: number;
+  selectedVariant: ProductVariantSearchOption | null;
   source: "stock" | "national_order" | "international_order" | "preorder";
   unitPrice: number;
 };
@@ -62,7 +52,7 @@ const sourceLabels = {
   stock: "Pronta-entrega",
 };
 
-function mapVariantSource(source: VariantOption["source"]): DraftItem["source"] {
+function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftItem["source"] {
   if (source === "own_stock") {
     return "stock";
   }
@@ -82,13 +72,11 @@ export function OrderDetailActions({
   inventory,
   items,
   orderId,
-  products,
   publicLink,
 }: {
   inventory: InventoryOption[];
   items: OrderItemOption[];
   orderId: string;
-  products: ProductOption[];
   publicLink: string;
 }) {
   const router = useRouter();
@@ -103,6 +91,7 @@ export function OrderDetailActions({
     inventoryItemId: "",
     productVariantId: "",
     quantity: 1,
+    selectedVariant: null,
     source: "national_order",
     unitPrice: 0,
   });
@@ -110,17 +99,6 @@ export function OrderDetailActions({
     Object.fromEntries(items.map((item) => [item.id, item.status])),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const variants = useMemo(
-    () =>
-      products.flatMap((product) =>
-        (product.product_variants ?? []).map((variant) => ({
-          ...variant,
-          productName: product.name,
-        })),
-      ),
-    [products],
-  );
 
   const availableInventory = inventory.filter(
     (entry) => entry.product_variant_id === draftItem.productVariantId && entry.status === "available",
@@ -132,14 +110,14 @@ export function OrderDetailActions({
     router.refresh();
   }
 
-  function handleVariantChange(productVariantId: string) {
-    const variant = variants.find((entry) => entry.id === productVariantId);
+  function handleVariantChange(variant: ProductVariantSearchOption | null) {
     setDraftItem((current) => ({
       ...current,
       inventoryItemId: "",
-      productVariantId,
+      productVariantId: variant?.id ?? "",
+      selectedVariant: variant,
       source: variant ? mapVariantSource(variant.source) : current.source,
-      unitPrice: variant ? Number(variant.sale_price) : current.unitPrice,
+      unitPrice: variant ? Number(variant.salePrice) : current.unitPrice,
     }));
   }
 
@@ -183,6 +161,13 @@ export function OrderDetailActions({
 
   async function addItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!draftItem.productVariantId) {
+      setMessage("");
+      setError("Selecione um produto");
+      return;
+    }
+
     await submitJson(`/api/v1/admin/orders/${orderId}/items`, "POST", {
       inventoryItemId: draftItem.source === "stock" ? draftItem.inventoryItemId || null : null,
       productVariantId: draftItem.productVariantId,
@@ -194,6 +179,7 @@ export function OrderDetailActions({
       inventoryItemId: "",
       productVariantId: "",
       quantity: 1,
+      selectedVariant: null,
       source: "national_order",
       unitPrice: 0,
     });
@@ -292,22 +278,10 @@ export function OrderDetailActions({
         <h2 className="text-lg font-bold text-[var(--foreground)]">Adicionar item</h2>
         <form onSubmit={addItem} className="mt-4 grid gap-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
-            <label className="block">
-              <span className="text-sm font-semibold text-[var(--foreground)]">Produto/variante</span>
-              <select
-                value={draftItem.productVariantId}
-                onChange={(event) => handleVariantChange(event.target.value)}
-                required
-                className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-              >
-                <option value="">Selecione</option>
-                {variants.map((variant) => (
-                  <option key={variant.id} value={variant.id}>
-                    {variant.productName} - {variant.sku} - {formatCurrency(variant.sale_price)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ProductVariantSearchSelect
+              selected={draftItem.selectedVariant}
+              onSelect={handleVariantChange}
+            />
             <label className="block">
               <span className="text-sm font-semibold text-[var(--foreground)]">Origem</span>
               <select

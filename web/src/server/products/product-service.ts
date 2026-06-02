@@ -39,6 +39,46 @@ type EntityWithId = {
   id: string;
 };
 
+type ProductRelation = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type VariantSearchRow = {
+  id: string;
+  product_id: string;
+  sku: string;
+  source: CreateProductVariantInput["source"];
+  sale_price: number;
+  status: CreateProductVariantInput["status"];
+  products?: ProductRelation | ProductRelation[] | null;
+};
+
+type ProductSearchRow = {
+  id: string;
+  name: string;
+  slug: string;
+  product_variants?: Array<{
+    id: string;
+    sku: string;
+    source: CreateProductVariantInput["source"];
+    sale_price: number;
+    status: CreateProductVariantInput["status"];
+  }> | null;
+};
+
+export type ProductVariantSearchResult = {
+  id: string;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  salePrice: number;
+  sku: string;
+  source: CreateProductVariantInput["source"];
+  status: CreateProductVariantInput["status"];
+};
+
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -54,6 +94,18 @@ function productSelect() {
     franchises(id,name,slug),
     product_variants(id,sku,condition,type,source,sale_price,market_price,estimated_cost,status,created_at,updated_at)
   `;
+}
+
+function firstRelation<T>(relation: T | T[] | null | undefined) {
+  if (Array.isArray(relation)) {
+    return relation[0] ?? null;
+  }
+
+  return relation ?? null;
+}
+
+function escapeSearch(value: string) {
+  return value.replaceAll("%", "\\%").replaceAll("_", "\\_");
 }
 
 export class ProductService {
@@ -104,6 +156,89 @@ export class ProductService {
     }
 
     return data ?? [];
+  }
+
+  async searchAdminProductVariants(options: { limit?: number; search: string }) {
+    const search = options.search.trim();
+
+    if (search.length < 2) {
+      return [];
+    }
+
+    const limit = Math.min(30, Math.max(1, options.limit ?? 20));
+    const productLimit = Math.min(12, limit);
+    const safeSearch = escapeSearch(search);
+    const productVariantSelect = "id,sku,source,sale_price,status";
+
+    const [productResult, skuResult] = await Promise.all([
+      this.supabase
+        .from("products")
+        .select(`id,name,slug,product_variants(${productVariantSelect})`)
+        .eq("status", "active")
+        .or(`name.ilike.%${safeSearch}%,slug.ilike.%${safeSearch}%,external_catalog_code.ilike.%${safeSearch}%`)
+        .order("name", { ascending: true })
+        .limit(productLimit),
+      this.supabase
+        .from("product_variants")
+        .select(`id,product_id,sku,source,sale_price,status,products!inner(id,name,slug)`)
+        .ilike("sku", `%${safeSearch}%`)
+        .order("sku", { ascending: true })
+        .limit(limit),
+    ]);
+
+    if (productResult.error) {
+      throwQueryError(productResult.error, "Falha ao buscar produtos");
+    }
+
+    if (skuResult.error) {
+      throwQueryError(skuResult.error, "Falha ao buscar variantes");
+    }
+
+    const results = new Map<string, ProductVariantSearchResult>();
+
+    for (const product of (productResult.data ?? []) as unknown as ProductSearchRow[]) {
+      for (const variant of product.product_variants ?? []) {
+        if (variant.status === "hidden" || results.size >= limit) {
+          continue;
+        }
+
+        results.set(variant.id, {
+          id: variant.id,
+          productId: product.id,
+          productName: product.name,
+          productSlug: product.slug,
+          salePrice: Number(variant.sale_price),
+          sku: variant.sku,
+          source: variant.source,
+          status: variant.status,
+        });
+      }
+    }
+
+    for (const variant of (skuResult.data ?? []) as unknown as VariantSearchRow[]) {
+      if (variant.status === "hidden" || results.has(variant.id) || results.size >= limit) {
+        continue;
+      }
+
+      const product = firstRelation(variant.products);
+
+      if (!product) {
+        continue;
+      }
+
+      results.set(variant.id, {
+        id: variant.id,
+        productId: variant.product_id,
+        productName: product.name,
+        productSlug: product.slug,
+        salePrice: Number(variant.sale_price),
+        sku: variant.sku,
+        source: variant.source,
+        status: variant.status,
+      });
+    }
+
+    return Array.from(results.values()).slice(0, limit);
   }
 
   async getProductById(id: string) {

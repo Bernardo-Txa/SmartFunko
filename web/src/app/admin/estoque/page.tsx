@@ -3,7 +3,6 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { InventoryCreateForm } from "@/components/admin/inventory-create-form";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { InventoryService } from "@/server/inventory/inventory-service";
-import { ProductService } from "@/server/products/product-service";
 
 export const metadata: Metadata = {
   title: "Estoque admin",
@@ -21,27 +20,14 @@ type InventoryListItem = {
   } | null;
 };
 
-type ProductOption = {
-  id: string;
-  name: string;
-  product_variants?: Array<{
-    id: string;
-    sale_price: number;
-    sku: string;
-  }>;
-};
-
 export default async function AdminInventoryPage() {
   const admin = await requireAdminPage();
-  const [inventory, products] = await Promise.all([
-    new InventoryService(undefined, admin.profile.id).listInventory(),
-    new ProductService(undefined, admin.profile.id).listAdminProducts({ limit: 150 }),
-  ]);
+  const inventory = await new InventoryService(undefined, admin.profile.id).listInventory();
 
   return (
     <AdminShell title="Estoque" description="Controle inicial por unidade e reserva.">
       <div className="mb-5">
-        <InventoryCreateForm products={products as unknown as ProductOption[]} />
+        <InventoryCreateForm />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {(inventory as unknown as InventoryListItem[]).map((item) => (

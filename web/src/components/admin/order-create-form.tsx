@@ -1,8 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
+import {
+  ProductVariantSearchSelect,
+  type ProductVariantSearchOption,
+} from "@/components/admin/product-variant-search-select";
 import { formatCurrency } from "@/lib/format";
 
 type CustomerOption = {
@@ -10,20 +14,6 @@ type CustomerOption = {
   name: string;
   email: string | null;
   phone: string | null;
-  status: string;
-};
-
-type ProductOption = {
-  id: string;
-  name: string;
-  product_variants?: VariantOption[];
-};
-
-type VariantOption = {
-  id: string;
-  sku: string;
-  sale_price: number;
-  source: "own_stock" | "national" | "international" | "preorder";
   status: string;
 };
 
@@ -38,6 +28,7 @@ type InventoryOption = {
 type DraftItem = {
   key: string;
   productVariantId: string;
+  selectedVariant: ProductVariantSearchOption | null;
   source: "stock" | "national_order" | "international_order" | "preorder";
   inventoryItemId: string;
   quantity: number;
@@ -51,7 +42,7 @@ const sourceLabels = {
   stock: "Pronta-entrega",
 };
 
-function mapVariantSource(source: VariantOption["source"]): DraftItem["source"] {
+function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftItem["source"] {
   if (source === "own_stock") {
     return "stock";
   }
@@ -73,6 +64,7 @@ function emptyItem(): DraftItem {
     key: crypto.randomUUID(),
     productVariantId: "",
     quantity: 1,
+    selectedVariant: null,
     source: "national_order",
     unitPrice: 0,
   };
@@ -81,11 +73,9 @@ function emptyItem(): DraftItem {
 export function OrderCreateForm({
   customers,
   inventory,
-  products,
 }: {
   customers: CustomerOption[];
   inventory: InventoryOption[];
-  products: ProductOption[];
 }) {
   const router = useRouter();
   const [customerMode, setCustomerMode] = useState<"existing" | "new">("existing");
@@ -99,17 +89,6 @@ export function OrderCreateForm({
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const variants = useMemo(
-    () =>
-      products.flatMap((product) =>
-        (product.product_variants ?? []).map((variant) => ({
-          ...variant,
-          productName: product.name,
-        })),
-      ),
-    [products],
-  );
-
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
   const total = Math.max(0, subtotal - discount + shippingAmount);
 
@@ -121,14 +100,6 @@ export function OrderCreateForm({
         }
 
         const next = { ...item, ...patch };
-        if (patch.productVariantId) {
-          const variant = variants.find((entry) => entry.id === patch.productVariantId);
-          if (variant) {
-            next.source = mapVariantSource(variant.source);
-            next.unitPrice = Number(variant.sale_price);
-            next.inventoryItemId = "";
-          }
-        }
 
         if (patch.source && patch.source !== "stock") {
           next.inventoryItemId = "";
@@ -136,6 +107,23 @@ export function OrderCreateForm({
 
         return next;
       }),
+    );
+  }
+
+  function updateItemVariant(key: string, variant: ProductVariantSearchOption | null) {
+    setItems((current) =>
+      current.map((item) =>
+        item.key === key
+          ? {
+              ...item,
+              inventoryItemId: "",
+              productVariantId: variant?.id ?? "",
+              selectedVariant: variant,
+              source: variant ? mapVariantSource(variant.source) : item.source,
+              unitPrice: variant ? Number(variant.salePrice) : item.unitPrice,
+            }
+          : item,
+      ),
     );
   }
 
@@ -319,21 +307,10 @@ export function OrderCreateForm({
                   ) : null}
                 </div>
                 <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
-                  <label className="block">
-                    <span className="text-sm font-semibold text-[var(--foreground)]">Produto/variante</span>
-                    <select
-                      value={item.productVariantId}
-                      onChange={(event) => updateItem(item.key, { productVariantId: event.target.value })}
-                      className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-                    >
-                      <option value="">Selecione</option>
-                      {variants.map((variant) => (
-                        <option key={variant.id} value={variant.id}>
-                          {variant.productName} - {variant.sku} - {formatCurrency(variant.sale_price)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <ProductVariantSearchSelect
+                    selected={item.selectedVariant}
+                    onSelect={(variant) => updateItemVariant(item.key, variant)}
+                  />
                   <label className="block">
                     <span className="text-sm font-semibold text-[var(--foreground)]">Origem</span>
                     <select

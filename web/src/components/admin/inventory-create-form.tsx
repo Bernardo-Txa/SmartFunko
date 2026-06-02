@@ -1,35 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import {
+  ProductVariantSearchSelect,
+  type ProductVariantSearchOption,
+} from "@/components/admin/product-variant-search-select";
 
-type ProductOption = {
-  id: string;
-  name: string;
-  product_variants?: Array<{
-    id: string;
-    sale_price: number;
-    sku: string;
-  }>;
-};
-
-export function InventoryCreateForm({ products }: { products: ProductOption[] }) {
+export function InventoryCreateForm() {
   const router = useRouter();
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariantSearchOption | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const variants = useMemo(
-    () =>
-      products.flatMap((product) =>
-        (product.product_variants ?? []).map((variant) => ({
-          ...variant,
-          productName: product.name,
-        })),
-      ),
-    [products],
-  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,12 +24,16 @@ export function InventoryCreateForm({ products }: { products: ProductOption[] })
     const formData = new FormData(event.currentTarget);
 
     try {
+      if (!selectedVariant) {
+        throw new Error("Selecione um produto");
+      }
+
       const response = await fetch("/api/v1/admin/inventory", {
         body: JSON.stringify({
           landedCost: Number(formData.get("landedCost") || 0) || null,
           location: String(formData.get("location") ?? "") || null,
           notes: String(formData.get("notes") ?? "") || null,
-          productVariantId: String(formData.get("productVariantId") ?? ""),
+          productVariantId: selectedVariant.id,
           purchaseCost: Number(formData.get("purchaseCost") || 0) || null,
           sku: String(formData.get("sku") ?? ""),
           status: String(formData.get("status") ?? "available"),
@@ -60,6 +48,7 @@ export function InventoryCreateForm({ products }: { products: ProductOption[] })
       }
 
       event.currentTarget.reset();
+      setSelectedVariant(null);
       setMessage("Unidade de estoque criada.");
       router.refresh();
     } catch (submitError) {
@@ -74,21 +63,11 @@ export function InventoryCreateForm({ products }: { products: ProductOption[] })
       <h2 className="text-lg font-bold text-[var(--foreground)]">Adicionar unidade</h2>
       <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
         <div className="grid gap-4 md:grid-cols-[1.5fr_1fr_1fr]">
-          <label className="block">
-            <span className="text-sm font-semibold text-[var(--foreground)]">Produto/variante</span>
-            <select
-              name="productVariantId"
-              required
-              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-            >
-              <option value="">Selecione</option>
-              {variants.map((variant) => (
-                <option key={variant.id} value={variant.id}>
-                  {variant.productName} - {variant.sku} - {formatCurrency(variant.sale_price)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ProductVariantSearchSelect
+            name="productVariantId"
+            selected={selectedVariant}
+            onSelect={setSelectedVariant}
+          />
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">SKU unidade</span>
             <input

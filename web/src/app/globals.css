@@ -24,12 +24,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  background: #020617;
+}
+
 body {
-  background:
-    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.18), transparent 30%),
-    radial-gradient(circle at 88% 8%, rgba(79, 70, 229, 0.26), transparent 28%),
-    radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.1), transparent 36%),
-    linear-gradient(180deg, #020617 0%, #06172b 42%, #020617 100%);
+  background: #020617;
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
@@ -38,17 +38,25 @@ body {
 
 body::before {
   background:
+    radial-gradient(circle at 12% 0%, rgba(14, 165, 233, 0.18), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(79, 70, 229, 0.22), transparent 28%),
+    radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.1), transparent 36%),
     linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px),
     linear-gradient(0deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-    radial-gradient(circle at 25% 25%, rgba(14, 165, 233, 0.08), transparent 26%),
-    radial-gradient(circle at 75% 10%, rgba(37, 99, 235, 0.1), transparent 24%);
-  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
+    linear-gradient(180deg, #020617 0%, #06172b 48%, #020617 100%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 42px 42px, 42px 42px, 100% 100%;
   content: "";
   inset: 0;
   opacity: 0.75;
   pointer-events: none;
   position: fixed;
-  z-index: -1;
+  z-index: 0;
+}
+
+body > div {
+  isolation: isolate;
+  position: relative;
+  z-index: 1;
 }
 
 * {

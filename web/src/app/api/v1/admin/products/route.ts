@@ -7,10 +7,16 @@ export async function GET(request: Request) {
   return handleApi(async () => {
     const searchParams = new URL(request.url).searchParams;
     const admin = await requireAdmin();
+    const search = searchParams.get("q")?.trim() ?? "";
+
+    if (search.length < 2) {
+      return jsonOk([]);
+    }
+
     const products = await new ProductService(undefined, admin.profile.id).listAdminProducts({
-      limit: Number(searchParams.get("limit") ?? 150),
+      limit: Number(searchParams.get("limit") ?? 50),
       page: Number(searchParams.get("page") ?? 1),
-      search: searchParams.get("q") ?? undefined,
+      search,
     });
     return jsonOk(products);
   });
