@@ -19,7 +19,7 @@ export default function Home() {
               alt="Smart Funkos"
               width={300}
               height={105}
-              priority
+              preload
               className="mb-5 h-auto w-56 drop-shadow-[0_0_26px_rgba(34,211,238,0.42)] sm:w-72"
             />
             <p className="text-sm font-bold uppercase tracking-[0.22em] text-[var(--yellow)]">
@@ -56,7 +56,7 @@ export default function Home() {
               alt="Funko Pop Spider-Man Black Light"
               width={600}
               height={600}
-              priority
+              preload
               className="absolute left-[18%] top-0 z-20 w-[54%] max-w-[390px] drop-shadow-[0_34px_30px_rgba(0,0,0,0.48)]"
             />
             <Image

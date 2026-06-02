@@ -18,7 +18,7 @@ export function SiteHeader() {
             alt="Smart Funkos"
             width={160}
             height={56}
-            priority
+            preload
             className="h-12 w-auto drop-shadow-[0_0_18px_rgba(34,211,238,0.42)]"
           />
         </Link>
