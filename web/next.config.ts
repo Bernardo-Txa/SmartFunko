@@ -3,6 +3,7 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   images: {
+    qualities: [72, 75],
     remotePatterns: [
       {
         hostname: "cdn.awsli.com.br",

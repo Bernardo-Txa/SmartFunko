@@ -106,7 +106,7 @@ const CATALOG_DETAIL_REVALIDATE_SECONDS = 300;
 const CATALOG_OPTIONS_REVALIDATE_SECONDS = 900;
 
 const catalogListSelect =
-  "id,name,slug,franchise_id,funko_number,category_name,subcategory_name,main_image_url,status,franchises(name,slug),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,funko_number,category_name,subcategory_name,main_image_url,status,franchises(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 const catalogDetailSelect =
   "id,name,slug,franchise_id,funko_number,category_name,subcategory_name,description,main_image_url,status,franchises(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
@@ -202,7 +202,7 @@ function variantMatchesFilter(variant: VariantRow, filter: CatalogProductFilter)
   }
 
   if (filter === "specials") {
-    return variant.type !== "common" || (variant.special_tags ?? []).length > 0;
+    return variant.type !== "common" || Boolean(variant.special_label) || (variant.special_tags ?? []).length > 0;
   }
 
   return true;
@@ -269,7 +269,7 @@ function mapProduct(row: ProductRow, index: number, filter: CatalogProductFilter
     imageAlt: row.name,
     images,
     imageUrl: images[0],
-    isSpecial: variant ? variant.type !== "common" || specialTags.length > 0 : false,
+    isSpecial: variant ? variant.type !== "common" || Boolean(variant.special_label) || specialTags.length > 0 : false,
     marketPrice: variant?.market_price ? Number(variant.market_price) : undefined,
     name: row.name,
     price: Number(variant?.sale_price ?? 0),
@@ -336,7 +336,12 @@ function fallbackProductMatchesFilter(product: Product, filter: CatalogProductFi
   }
 
   if (filter === "specials") {
-    return product.isSpecial === true || product.type !== "Comum" || Boolean(product.specialTags?.length);
+    return (
+      product.isSpecial === true ||
+      product.type !== "Comum" ||
+      Boolean(product.specialLabel) ||
+      Boolean(product.specialTags?.length)
+    );
   }
 
   return true;
@@ -517,7 +522,7 @@ async function getCatalogProductsPageUncached(
   }
 
   if (filters.filter === "specials") {
-    query = query.or("type.in.(exclusive,chase,glow,special)", {
+    query = query.or("type.in.(exclusive,chase,glow,special),special_label.not.is.null", {
       referencedTable: "product_variants",
     });
   }

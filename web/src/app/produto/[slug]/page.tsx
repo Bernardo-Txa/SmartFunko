@@ -21,15 +21,18 @@ const statusLabels = {
 };
 
 function getSpecialPills(product: {
+  specialLabel?: string;
   specialTags?: string[];
   type: string;
 }) {
-  if (product.specialTags?.length) {
-    return product.specialTags;
-  }
+  const pills = [
+    product.specialLabel,
+    ...(product.specialTags ?? []),
+    product.type !== "Comum" ? product.type : undefined,
+  ].filter(Boolean) as string[];
 
-  if (product.type !== "Comum") {
-    return [product.type];
+  if (pills.length > 0) {
+    return Array.from(new Set(pills));
   }
 
   return [];
@@ -58,11 +61,17 @@ export default async function ProductPage({ params }: Props) {
   }
 
   const specialPills = getSpecialPills(product);
+  const isSpecial = product.isSpecial || specialPills.length > 0;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
         <div className="max-w-xl">
+          {isSpecial ? (
+            <div className="mb-3 inline-flex rounded-full bg-yellow-300 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_14px_30px_rgba(250,204,21,0.2)]">
+              Produto Special
+            </div>
+          ) : null}
           <ProductMedia
             product={product}
             priority
@@ -91,7 +100,12 @@ export default async function ProductPage({ params }: Props) {
           ) : null}
         </div>
 
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <section
+          className={clsx(
+            "rounded-lg border bg-[var(--surface)] p-5",
+            isSpecial ? "border-yellow-300/50 shadow-[0_20px_60px_rgba(250,204,21,0.12)]" : "border-[var(--border)]",
+          )}
+        >
           <div className="flex flex-wrap items-center gap-2">
             {specialPills.map((label) => (
               <span

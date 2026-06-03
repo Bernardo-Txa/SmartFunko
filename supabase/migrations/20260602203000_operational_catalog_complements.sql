@@ -68,8 +68,6 @@ alter table public.products
 create index if not exists products_external_catalog_code_idx
 on public.products(external_catalog_code);
 
-alter type public.profile_role add value if not exists 'staff' after 'customer';
-
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid references public.profiles(id) on delete cascade,

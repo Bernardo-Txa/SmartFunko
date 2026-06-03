@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { MessageCircle } from "lucide-react";
+import { SafeProductImage } from "@/components/product/safe-product-image";
 import type { Product } from "@/types/product";
 import { formatCurrency } from "@/lib/format";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
@@ -15,12 +15,14 @@ const toneClass: Record<Product["tone"], string> = {
 };
 
 function getSpecialPills(product: Product) {
-  if (product.specialTags?.length) {
-    return product.specialTags.slice(0, 3);
-  }
+  const pills = [
+    product.specialLabel,
+    ...(product.specialTags ?? []),
+    product.type !== "Comum" ? product.type : undefined,
+  ].filter(Boolean) as string[];
 
-  if (product.type !== "Comum") {
-    return [product.type];
+  if (pills.length > 0) {
+    return Array.from(new Set(pills)).slice(0, 3);
   }
 
   return [];
@@ -72,17 +74,13 @@ export function ProductMedia({
   }
 
   return (
-    <div className="relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-[14px] bg-slate-50 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.05)]">
-      <Image
-        src={product.imageUrl}
-        alt={product.imageAlt ?? product.name}
-        fill
-        priority={priority}
-        quality={72}
-        sizes={sizes}
-        className="object-contain p-4"
-      />
-    </div>
+    <SafeProductImage
+      src={product.imageUrl}
+      alt={product.imageAlt ?? product.name}
+      fallback={<ProductArtwork product={product} />}
+      priority={priority}
+      sizes={sizes}
+    />
   );
 }
 
@@ -94,9 +92,23 @@ export function ProductCard({
   product: Product;
 }) {
   const specialPills = getSpecialPills(product);
+  const isSpecial = product.isSpecial || specialPills.length > 0;
 
   return (
-    <article className="flex h-full flex-col rounded-2xl border border-cyan-400/20 bg-[#030816] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.26)]">
+    <article
+      className={clsx(
+        "relative flex h-full flex-col rounded-2xl border bg-[#030816] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.26)]",
+        isSpecial
+          ? "border-yellow-300/55 shadow-[0_20px_54px_rgba(250,204,21,0.16)]"
+          : "border-cyan-400/20",
+      )}
+    >
+      {isSpecial ? (
+        <div className="absolute right-3 top-3 z-20 rounded-full bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_10px_22px_rgba(250,204,21,0.22)]">
+          Special
+        </div>
+      ) : null}
+
       <Link href={`/produto/${product.slug}`} prefetch={false} aria-label={product.name}>
         <ProductMedia product={product} priority={priority} />
       </Link>

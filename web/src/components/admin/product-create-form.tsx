@@ -20,22 +20,39 @@ export function ProductCreateForm() {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
+    const categoryName = String(formData.get("categoryName") ?? "").trim();
     const name = String(formData.get("name") ?? "");
     const description = String(formData.get("description") ?? "");
+    const externalCatalogCode = String(formData.get("externalCatalogCode") ?? "").trim();
+    const funkoNumber = String(formData.get("funkoNumber") ?? "").trim();
     const mainImageUrl = String(formData.get("mainImageUrl") ?? "").trim();
+    const slug = String(formData.get("slug") ?? "").trim();
     const sku = String(formData.get("sku") ?? "");
+    const subcategoryName = String(formData.get("subcategoryName") ?? "").trim();
     const salePrice = Number(formData.get("salePrice") ?? 0);
+    const marketPrice = Number(formData.get("marketPrice") || 0);
+    const estimatedCost = Number(formData.get("estimatedCost") || 0);
     const source = String(formData.get("source") ?? "national");
     const status = String(formData.get("status") ?? "order_only");
     const type = String(formData.get("type") ?? "common");
+    const specialLabel = String(formData.get("specialLabel") ?? "").trim();
+    const specialTags = specialLabel
+      .split("|")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
 
     try {
       const productResponse = await fetch("/api/v1/admin/products", {
         body: JSON.stringify({
+          categoryName: categoryName || null,
           description: description || null,
+          externalCatalogCode: externalCatalogCode || sku || null,
+          funkoNumber: funkoNumber || null,
           mainImageUrl: mainImageUrl || null,
           name,
+          slug: slug || undefined,
           status: "active",
+          subcategoryName: subcategoryName || null,
         }),
         headers: { "content-type": "application/json" },
         method: "POST",
@@ -49,9 +66,13 @@ export function ProductCreateForm() {
       const variantResponse = await fetch(`/api/v1/admin/products/${productBody.data.id}/variants`, {
         body: JSON.stringify({
           condition: "new",
+          estimatedCost: estimatedCost || null,
+          marketPrice: marketPrice || null,
           salePrice,
           sku,
           source,
+          specialLabel: specialLabel || null,
+          specialTags,
           status,
           type,
         }),
@@ -94,6 +115,37 @@ export function ProductCreateForm() {
               name="mainImageUrl"
               onChange={(event) => setMainImagePreview(event.target.value.trim())}
               type="url"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Slug</span>
+            <input
+              name="slug"
+              placeholder="opcional"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Numero Funko</span>
+            <input
+              name="funkoNumber"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Categoria</span>
+            <input
+              name="categoryName"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Linha</span>
+            <input
+              name="subcategoryName"
               className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             />
           </label>
@@ -142,6 +194,35 @@ export function ProductCreateForm() {
             />
           </label>
           <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Mercado</span>
+            <input
+              name="marketPrice"
+              min={0}
+              step="0.01"
+              type="number"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Custo</span>
+            <input
+              name="estimatedCost"
+              min={0}
+              step="0.01"
+              type="number"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Codigo catalogo</span>
+            <input
+              name="externalCatalogCode"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Origem</span>
             <select
               name="source"
@@ -181,6 +262,14 @@ export function ProductCreateForm() {
               <option value="sold_out">Esgotado</option>
               <option value="hidden">Oculto</option>
             </select>
+          </label>
+          <label className="block md:col-span-2">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Special</span>
+            <input
+              name="specialLabel"
+              placeholder="Exclusivo | Chase | Glow"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
           </label>
         </div>
         {message ? <p className="text-sm font-semibold text-[var(--foreground)]">{message}</p> : null}

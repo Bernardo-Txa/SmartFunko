@@ -34,8 +34,8 @@
 
 ## Regras implementadas
 
-- Rotas admin exigem usuario com role `admin` ou `owner`.
-- Rotas de caixa exigem role `owner`.
+- Rotas internas exigem usuario com role `owner`.
+- A role `admin` fica reservada/legada no banco e nao deve ser usada para novos usuarios internos.
 - Rotas `/me` exigem usuario autenticado e cliente vinculado.
 - Pagamento manual gera pagamento, entrada de caixa, log administrativo e atualiza status financeiro.
 - Reserva de estoque impede reservar unidade que nao esteja `available`.
@@ -59,7 +59,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 1. Aplicar migrations do Supabase.
 2. Criar um usuario pelo cadastro ou pelo Supabase Auth.
-3. Ajustar o role do profile para `admin` ou `owner` no Supabase.
+3. Ajustar o role do profile para `owner` no Supabase.
 4. Entrar em `/admin/login`.
 5. Criar cliente via `POST /api/v1/admin/customers`.
 6. Criar pedido via `POST /api/v1/admin/orders`.
@@ -74,7 +74,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 - Checkout proprio.
 - Lotes internacionais completos.
 - Wishlist avancada.
-- Notificacoes.
+- Notificacoes automaticas.
 - Flutter mobile.
 - Leiloes.
 - BI avancado.

@@ -259,8 +259,9 @@ Campos minimos:
 Roles:
 
 - `customer`
-- `admin`
 - `owner`
+
+Observacao: `admin` pode existir como valor legado/reservado no banco, mas a V1 operacional usa `owner` para usuarios internos.
 
 ### 7.2 customers
 
@@ -606,7 +607,7 @@ Campos minimos:
 
 ### 8.4 Pagamento
 
-- Pagamento manual exige usuario admin ou owner.
+- Pagamento manual exige usuario `owner`.
 - Pagamento confirmado gera `cash_entry`.
 - Pagamento parcial atualiza pedido para `partially_paid`.
 - Pagamento total atualiza pedido para `paid`.
@@ -780,7 +781,7 @@ smartfunko/
 - Configurar variaveis de ambiente.
 - Criar migrations iniciais.
 - Configurar Supabase Auth.
-- Criar roles customer, admin e owner.
+- Criar roles customer e owner.
 - Criar cadastro e login base.
 - Criar layout publico.
 - Criar layout admin.

@@ -18,11 +18,15 @@ export class DashboardService {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const [ordersResult, cashResult, inventoryResult, latestOrdersResult] = await Promise.all([
+    const [ordersResult, allOrdersResult, cashResult, inventoryResult, latestOrdersResult] = await Promise.all([
       this.supabase
         .from("orders")
         .select("id,total,status,created_at,payments(amount,status)")
         .gte("created_at", startOfToday.toISOString()),
+      this.supabase
+        .from("orders")
+        .select("id,total,status,payments(amount,status)")
+        .not("status", "in", "(cancelled,refunded,delivered)"),
       this.supabase
         .from("cash_entries")
         .select("amount,type,occurred_at")
@@ -41,6 +45,10 @@ export class DashboardService {
       throwQueryError(ordersResult.error, "Falha ao carregar pedidos do dashboard");
     }
 
+    if (allOrdersResult.error) {
+      throwQueryError(allOrdersResult.error, "Falha ao carregar pendencias do dashboard");
+    }
+
     if (cashResult.error) {
       throwQueryError(cashResult.error, "Falha ao carregar caixa do dashboard");
     }
@@ -54,6 +62,7 @@ export class DashboardService {
     }
 
     const ordersToday = (ordersResult.data ?? []) as DashboardOrder[];
+    const activeOrders = (allOrdersResult.data ?? []) as DashboardOrder[];
     const cashToday = cashResult.data ?? [];
     const inventory = inventoryResult.data ?? [];
 
@@ -61,7 +70,7 @@ export class DashboardService {
     const receivedToday = cashToday
       .filter((entry) => entry.type === "income")
       .reduce((sum, entry) => sum + Number(entry.amount), 0);
-    const pendingTotal = ordersToday.reduce((sum, order) => {
+    const pendingTotal = activeOrders.reduce((sum, order) => {
       const paid = (order.payments ?? [])
         .filter((payment) => payment.status === "paid")
         .reduce((paymentSum, payment) => paymentSum + Number(payment.amount), 0);
@@ -72,8 +81,10 @@ export class DashboardService {
       inventoryAvailable: inventory.filter((item) => item.status === "available").length,
       inventoryReserved: inventory.filter((item) => item.status === "reserved").length,
       latestOrders: latestOrdersResult.data ?? [],
-      ordersAwaitingPayment: ordersToday.filter((order) => order.status === "pending_payment").length,
-      ordersPaid: ordersToday.filter((order) => order.status === "paid").length,
+      ordersAwaitingPayment: activeOrders.filter((order) =>
+        ["pending_payment", "partially_paid"].includes(order.status),
+      ).length,
+      ordersPaid: activeOrders.filter((order) => order.status === "paid").length,
       ordersToday: ordersToday.length,
       pendingTotal,
       receivedToday,

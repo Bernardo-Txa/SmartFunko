@@ -71,6 +71,13 @@ export type CreateOrderItemInput = z.infer<typeof createOrderItemSchema>;
 export type CreateManualOrderInput = z.infer<typeof createManualOrderSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
 
+export type OrderListFilters = {
+  channel?: string;
+  limit?: number;
+  search?: string;
+  status?: string;
+};
+
 type OrderRow = {
   id: string;
   order_number: string;
@@ -149,6 +156,10 @@ function createOrderNumber() {
   return `SF-${date}-${time}-${suffix}`;
 }
 
+function escapeIlike(value: string) {
+  return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_").trim();
+}
+
 export class OrderService {
   private readonly audit: AuditLogService;
   private readonly inventory: InventoryService;
@@ -161,11 +172,52 @@ export class OrderService {
     this.inventory = new InventoryService(this.supabase, actorId);
   }
 
-  async listOrders() {
-    const { data, error } = await this.supabase
+  async listOrders(filters: OrderListFilters = {}) {
+    const limit = Math.min(200, Math.max(1, Number(filters.limit ?? 100)));
+    const search = filters.search?.trim();
+    let customerIds: string[] = [];
+
+    if (search) {
+      const safeSearch = escapeIlike(search);
+      const { data: customers, error: customerError } = await this.supabase
+        .from("customers")
+        .select("id")
+        .ilike("name", `%${safeSearch}%`)
+        .limit(100);
+
+      if (customerError) {
+        throwQueryError(customerError, "Falha ao buscar clientes para filtro de pedidos");
+      }
+
+      customerIds = (customers ?? []).map((customer) => customer.id);
+    }
+
+    let query = this.supabase
       .from("orders")
       .select(orderSelect())
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    if (filters.channel) {
+      query = query.eq("channel", filters.channel);
+    }
+
+    if (search) {
+      const safeSearch = escapeIlike(search);
+      const clauses = [`order_number.ilike.%${safeSearch}%`];
+
+      if (customerIds.length > 0) {
+        clauses.push(`customer_id.in.(${customerIds.join(",")})`);
+      }
+
+      query = query.or(clauses.join(","));
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throwQueryError(error, "Falha ao listar pedidos");

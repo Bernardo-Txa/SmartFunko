@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CatalogCategoryFilter } from "@/components/product/catalog-category-filter";
 import { ProductCard } from "@/components/product/product-card";
-import { getCatalogCategories, getCatalogProductsPage } from "@/lib/catalog";
+import { getCatalogCategories, getCatalogProductsPage, type CatalogProductFilter } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Catalogo",
@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 type Props = {
   searchParams: Promise<{
     category?: string;
+    filter?: CatalogProductFilter;
     page?: string;
     q?: string;
     subcategory?: string;
@@ -33,6 +34,7 @@ function catalogHref(params: Record<string, string | number | undefined>) {
 export default async function CatalogPage({ searchParams }: Props) {
   const params = await searchParams;
   const category = params.category ?? "";
+  const filter = params.filter ?? "all";
   const page = Number(params.page ?? 1);
   const query = params.q ?? "";
   const subcategory = params.subcategory ?? "";
@@ -40,6 +42,7 @@ export default async function CatalogPage({ searchParams }: Props) {
     getCatalogCategories(),
     getCatalogProductsPage({
       category,
+      filter,
       page,
       pageSize: 24,
       query,
@@ -56,6 +59,7 @@ export default async function CatalogPage({ searchParams }: Props) {
         <CatalogCategoryFilter
           categories={categories}
           currentCategory={category}
+          currentFilter={filter}
           currentSubcategory={subcategory}
           query={query}
         />
@@ -75,6 +79,7 @@ export default async function CatalogPage({ searchParams }: Props) {
         <Link
           href={catalogHref({
             category,
+            filter,
             page: Math.max(1, meta.page - 1),
             q: query,
             subcategory,
@@ -91,6 +96,7 @@ export default async function CatalogPage({ searchParams }: Props) {
         <Link
           href={catalogHref({
             category,
+            filter,
             page: Math.min(meta.totalPages, meta.page + 1),
             q: query,
             subcategory,

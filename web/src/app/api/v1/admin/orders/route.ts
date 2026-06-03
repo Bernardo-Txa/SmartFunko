@@ -3,10 +3,15 @@ import { handleApi, jsonCreated, jsonOk } from "@/server/http/responses";
 import { createManualOrderSchema, OrderService } from "@/server/orders/order-service";
 import { parseJsonBody } from "@/server/validation/parse-json";
 
-export async function GET() {
+export async function GET(request: Request) {
   return handleApi(async () => {
+    const searchParams = new URL(request.url).searchParams;
     const admin = await requireAdmin();
-    const orders = await new OrderService(undefined, admin.profile.id).listOrders();
+    const orders = await new OrderService(undefined, admin.profile.id).listOrders({
+      channel: searchParams.get("channel") ?? undefined,
+      search: searchParams.get("q") ?? undefined,
+      status: searchParams.get("status") ?? undefined,
+    });
     return jsonOk(orders);
   });
 }

@@ -20,6 +20,7 @@ Na V1, as vendas continuam pelo WhatsApp, mas o sistema passa a controlar:
 
 - [MVP Operacional V1](./MVP_OPERACIONAL_V1.md)
 - [Operacao do MVP](./docs/OPERACAO_MVP.md)
+- [Divida tecnica](./docs/TECH_DEBT.md)
 - [Documento Tecnico Inicial](./Smart%20Funkos%20-%20Documento%20T%C3%A9cnico%20Inicial.pdf)
 
 ## Estrutura
@@ -68,7 +69,7 @@ npm run build
 
 ## APIs V1
 
-A V1 possui endpoints publicos de catalogo, endpoints `/me` para cliente autenticado e endpoints `/api/v1/admin/*` protegidos por role administrativa.
+A V1 possui endpoints publicos de catalogo, endpoints `/me` para cliente autenticado e endpoints `/api/v1/admin/*` protegidos por role `owner`.
 
 Principais fluxos:
 
@@ -94,4 +95,4 @@ Importacao real:
 npm run catalog:import -- --skip-invalid
 ```
 
-O importador usa `Smartfunkos(Produtos).csv` por padrao, preserva metadados de categoria/especial e e idempotente por slug de produto, SKU de variante e URL de imagem.
+O importador usa `Smartfunkos(Produtos).csv` por padrao, preserva metadados de categoria/especial, grava `main_image_url` e `product_images`, e e idempotente por slug de produto, SKU de variante e URL de imagem.

@@ -27,11 +27,12 @@ export default async function AdminDashboardPage() {
       title="Dashboard"
       description="Indicadores iniciais da operacao assistida."
     >
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <MetricCard label="Pedidos hoje" value={`${dashboard.ordersToday}`} detail="Criados no dia" />
+        <MetricCard label="Vendido hoje" value={formatCurrency(dashboard.soldToday)} detail="Total em pedidos" />
         <MetricCard label="Recebido hoje" value={formatCurrency(dashboard.receivedToday)} detail="Entradas de caixa" />
-        <MetricCard label="Pendente" value={formatCurrency(dashboard.pendingTotal)} detail="Pedidos de hoje" />
-        <MetricCard label="Pago" value={`${dashboard.ordersPaid}`} detail="Pedidos pagos hoje" />
+        <MetricCard label="Pendente total" value={formatCurrency(dashboard.pendingTotal)} detail="Pedidos ativos" />
+        <MetricCard label="Pagos" value={`${dashboard.ordersPaid}`} detail="Pedidos ativos pagos" />
         <MetricCard label="Aguardando" value={`${dashboard.ordersAwaitingPayment}`} detail="Pagamento pendente" />
         <MetricCard label="Estoque" value={`${dashboard.inventoryAvailable}`} detail={`${dashboard.inventoryReserved} reservado(s)`} />
       </div>

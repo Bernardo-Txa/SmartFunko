@@ -12,6 +12,9 @@ export const createProductSchema = z.object({
   slug: z.string().trim().min(2).optional(),
   franchiseId: z.string().uuid().optional().nullable(),
   funkoNumber: z.string().trim().optional().nullable(),
+  categoryName: z.string().trim().optional().nullable(),
+  subcategoryName: z.string().trim().optional().nullable(),
+  externalCatalogCode: z.string().trim().optional().nullable(),
   description: z.string().trim().optional().nullable(),
   mainImageUrl: z.string().url().optional().nullable(),
   status: productStatusSchema.default("active"),
@@ -28,6 +31,8 @@ export const createProductVariantSchema = z.object({
   salePrice: z.number().nonnegative(),
   marketPrice: z.number().nonnegative().optional().nullable(),
   estimatedCost: z.number().nonnegative().optional().nullable(),
+  specialLabel: z.string().trim().optional().nullable(),
+  specialTags: z.array(z.string().trim().min(1)).optional().default([]),
   status: z.enum(["available", "order_only", "preorder", "sold_out", "hidden"]).default("available"),
 });
 
@@ -91,8 +96,9 @@ function slugify(value: string) {
 function productSelect() {
   return `
     id,name,slug,franchise_id,funko_number,description,main_image_url,status,created_at,updated_at,
+    category_name,subcategory_name,external_catalog_code,
     franchises(id,name,slug),
-    product_variants(id,sku,condition,type,source,sale_price,market_price,estimated_cost,status,created_at,updated_at)
+    product_variants(id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at)
   `;
 }
 
@@ -282,13 +288,16 @@ export class ProductService {
     const { data, error } = await this.supabase
       .from("products")
       .insert({
+        category_name: input.categoryName ?? null,
         description: input.description ?? null,
+        external_catalog_code: input.externalCatalogCode ?? null,
         franchise_id: input.franchiseId ?? null,
         funko_number: input.funkoNumber ?? null,
         main_image_url: input.mainImageUrl ?? null,
         name: input.name,
         slug,
         status: input.status,
+        subcategory_name: input.subcategoryName ?? null,
       })
       .select(productSelect())
       .single();
@@ -314,12 +323,15 @@ export class ProductService {
     const current = await this.getProductById(id);
     const patch = {
       description: input.description,
+      category_name: input.categoryName,
+      external_catalog_code: input.externalCatalogCode,
       franchise_id: input.franchiseId,
       funko_number: input.funkoNumber,
       main_image_url: input.mainImageUrl,
       name: input.name,
       slug: input.slug ? slugify(input.slug) : undefined,
       status: input.status,
+      subcategory_name: input.subcategoryName,
     };
 
     const { data, error } = await this.supabase
@@ -348,7 +360,7 @@ export class ProductService {
   async listVariants(productId: string) {
     const { data, error } = await this.supabase
       .from("product_variants")
-      .select("id,product_id,sku,condition,type,source,sale_price,market_price,estimated_cost,status,created_at,updated_at")
+      .select("id,product_id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at")
       .eq("product_id", productId)
       .order("created_at", { ascending: false });
 
@@ -370,10 +382,12 @@ export class ProductService {
         sale_price: input.salePrice,
         sku: input.sku,
         source: input.source,
+        special_label: input.specialLabel ?? null,
+        special_tags: input.specialTags ?? [],
         status: input.status,
         type: input.type,
       })
-      .select("id,product_id,sku,condition,type,source,sale_price,market_price,estimated_cost,status,created_at,updated_at")
+      .select("id,product_id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at")
       .single();
 
     if (error) {

@@ -8,16 +8,21 @@ import type { ProductStatus } from "@/types/product";
 import { ProductStatusBadge } from "@/components/ui/status-badge";
 
 type AdminProduct = {
+  category_name?: string | null;
   id: string;
   main_image_url?: string | null;
   name: string;
+  subcategory_name?: string | null;
   franchises?: {
     name?: string;
   } | null;
   product_variants?: Array<{
     sale_price: number;
+    special_label?: string | null;
+    special_tags?: string[] | null;
     sku: string;
     status: "available" | "order_only" | "preorder" | "sold_out" | "hidden";
+    type?: "common" | "exclusive" | "chase" | "glow" | "special";
   }>;
 };
 
@@ -133,6 +138,7 @@ export function AdminProductSearch() {
                 <th className="px-4 py-3">Produto</th>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Franquia</th>
+                <th className="px-4 py-3">Categoria</th>
                 <th className="px-4 py-3">Preco</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
@@ -158,11 +164,22 @@ export function AdminProductSearch() {
                             <span className="text-[10px] font-bold text-[var(--muted)]">POP</span>
                           )}
                         </div>
-                        <span className="font-semibold text-[var(--foreground)]">{product.name}</span>
+                        <div>
+                          <span className="font-semibold text-[var(--foreground)]">{product.name}</span>
+                          {variant?.type && variant.type !== "common" ? (
+                            <span className="mt-1 inline-flex rounded-full bg-yellow-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-950">
+                              {variant.special_label ?? variant.type}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-[var(--muted)]">{variant?.sku ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">{product.franchises?.name ?? "-"}</td>
+                    <td className="px-4 py-3 text-[var(--muted)]">
+                      {product.category_name ?? "-"}
+                      {product.subcategory_name ? ` / ${product.subcategory_name}` : ""}
+                    </td>
                     <td className="px-4 py-3 text-[var(--foreground)]">
                       {variant ? formatCurrency(variant.sale_price) : "-"}
                     </td>
