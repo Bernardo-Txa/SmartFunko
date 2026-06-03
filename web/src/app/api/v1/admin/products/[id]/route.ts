@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/server/auth/require-admin";
 import { handleApi, jsonOk } from "@/server/http/responses";
 import { ProductService, updateProductSchema } from "@/server/products/product-service";
@@ -22,6 +23,8 @@ export async function PATCH(request: Request, { params }: Params) {
     const admin = await requireAdmin();
     const input = await parseJsonBody(request, updateProductSchema);
     const product = await new ProductService(undefined, admin.profile.id).updateProduct(id, input);
+    revalidateTag("catalog-products", "max");
+    revalidateTag("catalog-options", "max");
     return jsonOk(product);
   });
 }

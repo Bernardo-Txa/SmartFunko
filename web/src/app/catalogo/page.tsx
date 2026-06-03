@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { CatalogCategoryFilter } from "@/components/product/catalog-category-filter";
 import { ProductCard } from "@/components/product/product-card";
-import { getCatalogFranchises, getCatalogProductsPage } from "@/lib/catalog";
+import { getCatalogCategories, getCatalogProductsPage } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Catalogo",
@@ -10,20 +10,12 @@ export const metadata: Metadata = {
 
 type Props = {
   searchParams: Promise<{
-    franchise?: string;
+    category?: string;
     page?: string;
     q?: string;
-    status?: string;
+    subcategory?: string;
   }>;
 };
-
-const statusOptions = [
-  { label: "Todos os status", value: "all" },
-  { label: "Disponivel", value: "available" },
-  { label: "Sob encomenda", value: "order_only" },
-  { label: "Pre-venda", value: "preorder" },
-  { label: "Esgotado", value: "sold_out" },
-];
 
 function catalogHref(params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams();
@@ -40,104 +32,54 @@ function catalogHref(params: Record<string, string | number | undefined>) {
 
 export default async function CatalogPage({ searchParams }: Props) {
   const params = await searchParams;
+  const category = params.category ?? "";
   const page = Number(params.page ?? 1);
   const query = params.q ?? "";
-  const status = params.status ?? "all";
-  const franchise = params.franchise ?? "";
-  const [franchises, productPage] = await Promise.all([
-    getCatalogFranchises(),
+  const subcategory = params.subcategory ?? "";
+  const [categories, productPage] = await Promise.all([
+    getCatalogCategories(),
     getCatalogProductsPage({
-      franchise,
+      category,
       page,
       pageSize: 24,
       query,
-      status: status as "all",
+      subcategory,
     }),
   ]);
   const { data: products, meta } = productPage;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">Catalogo</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Produtos preparados para atendimento pelo WhatsApp.
-          </p>
-        </div>
-        <form className="grid min-w-0 gap-2 md:w-[520px] md:grid-cols-[1fr_170px_auto]">
-          <label className="flex h-11 min-w-0 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3">
-            <Search size={17} className="text-[var(--muted)]" aria-hidden="true" />
-            <input
-              defaultValue={query}
-              name="q"
-              type="search"
-              placeholder="Buscar produto"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-            />
-          </label>
-          <select
-            defaultValue={status}
-            name="status"
-            className="h-11 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold outline-none focus:border-[var(--accent)]"
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {franchise ? <input type="hidden" name="franchise" value={franchise} /> : null}
-          <button className="h-11 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
-            Buscar
-          </button>
-        </form>
-      </div>
+      <section className="mb-8 pt-1">
+        <h1 className="sr-only">Catalogo Smart Funkos</h1>
 
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
-        <Link
-          href={catalogHref({ q: query, status })}
-          className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-black ${
-            franchise
-              ? "border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)]"
-              : "bg-[var(--yellow)] text-[#020617]"
-          }`}
-        >
-          Todos
-        </Link>
-        {franchises.map((item) => (
-          <Link
-            key={item.id}
-            href={catalogHref({ franchise: item.slug, q: query, status })}
-            className={`inline-flex h-9 items-center rounded-full border border-[var(--border)] px-4 text-sm font-bold hover:bg-cyan-400/15 ${
-              franchise === item.slug
-                ? "bg-[var(--accent)] text-[#020617]"
-                : "bg-[var(--surface)] text-[var(--foreground)]"
-            }`}
-          >
-            {item.name}
-          </Link>
-        ))}
-      </div>
+        <CatalogCategoryFilter
+          categories={categories}
+          currentCategory={category}
+          currentSubcategory={subcategory}
+          query={query}
+        />
+      </section>
 
       <p className="mb-4 text-sm text-[var(--muted)]">
         {meta.total} produto(s) encontrado(s). Pagina {meta.page} de {meta.totalPages}.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
+        {products.map((product, index) => (
+          <ProductCard key={product.id} priority={index < 4} product={product} />
         ))}
       </div>
 
       <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Paginacao">
         <Link
           href={catalogHref({
-            franchise,
+            category,
             page: Math.max(1, meta.page - 1),
             q: query,
-            status,
+            subcategory,
           })}
+          prefetch={false}
           aria-disabled={meta.page <= 1}
           className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"
         >
@@ -148,11 +90,12 @@ export default async function CatalogPage({ searchParams }: Props) {
         </span>
         <Link
           href={catalogHref({
-            franchise,
+            category,
             page: Math.min(meta.totalPages, meta.page + 1),
             q: query,
-            status,
+            subcategory,
           })}
+          prefetch={false}
           aria-disabled={meta.page >= meta.totalPages}
           className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"
         >

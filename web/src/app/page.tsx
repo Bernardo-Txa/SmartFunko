@@ -36,6 +36,7 @@ export default async function Home() {
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/catalogo"
+                prefetch={false}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--yellow)] px-5 text-sm font-black text-[#020617] shadow-[0_0_26px_rgba(250,204,21,0.28)] hover:brightness-110"
               >
                 <PackageCheck size={17} aria-hidden="true" />
@@ -94,6 +95,7 @@ export default async function Home() {
           </div>
           <Link
             href="/catalogo"
+            prefetch={false}
             className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15"
           >
             Abrir
@@ -103,7 +105,7 @@ export default async function Home() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.id} priority product={product} />
           ))}
         </div>
       </section>

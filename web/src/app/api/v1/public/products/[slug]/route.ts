@@ -12,7 +12,14 @@ export async function GET(_request: Request, { params }: Params) {
     return Response.json({ error: "Product not found" }, { status: 404 });
   }
 
-  return Response.json({
-    data: product,
-  });
+  return Response.json(
+    {
+      data: product,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
+    },
+  );
 }

@@ -1,13 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import type { ProductStatus } from "@/lib/mock-data";
+import type { ProductStatus } from "@/types/product";
 import { ProductStatusBadge } from "@/components/ui/status-badge";
 
 type AdminProduct = {
   id: string;
+  main_image_url?: string | null;
   name: string;
   franchises?: {
     name?: string;
@@ -141,7 +143,24 @@ export function AdminProductSearch() {
 
                 return (
                   <tr key={product.id}>
-                    <td className="px-4 py-3 font-semibold text-[var(--foreground)]">{product.name}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--border)] bg-slate-950/60">
+                          {product.main_image_url ? (
+                            <Image
+                              src={product.main_image_url}
+                              alt={product.name}
+                              fill
+                              sizes="48px"
+                              className="object-contain p-1"
+                            />
+                          ) : (
+                            <span className="text-[10px] font-bold text-[var(--muted)]">POP</span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-[var(--foreground)]">{product.name}</span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-[var(--muted)]">{variant?.sku ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">{product.franchises?.name ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--foreground)]">

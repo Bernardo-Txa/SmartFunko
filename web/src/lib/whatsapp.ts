@@ -1,4 +1,4 @@
-import type { Product } from "@/lib/mock-data";
+import type { Product } from "@/types/product";
 import { formatCurrency } from "@/lib/format";
 
 const fallbackPhone = "5511999999999";

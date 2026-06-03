@@ -1,41 +1,53 @@
-import { unstable_noStore as noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
+import type { Product } from "@/types/product";
 import { env, hasSupabasePublicEnv, isDevelopmentMockAllowed } from "@/lib/env";
 import {
   franchises as fallbackFranchises,
   getProductBySlug,
   products as fallbackProducts,
-  type Product,
 } from "@/lib/mock-data";
 
+type VariantRow = {
+  condition: "new" | "used" | "damaged_box";
+  market_price: number | string | null;
+  sale_price: number | string;
+  sku: string;
+  special_label: string | null;
+  special_tags: string[] | null;
+  source: "own_stock" | "national" | "international" | "preorder";
+  status: "available" | "order_only" | "preorder" | "sold_out" | "hidden";
+  type: "common" | "exclusive" | "chase" | "glow" | "special";
+};
+
 type ProductRow = {
+  category_name?: string | null;
+  description?: string | null;
+  franchise_id?: string | null;
+  franchises?: { name: string; slug: string } | { name: string; slug: string }[] | null;
+  funko_number?: string | null;
   id: string;
+  main_image_url?: string | null;
   name: string;
   slug: string;
-  funko_number: string | null;
-  description: string | null;
-  status: string;
-  franchises: { name: string; slug: string } | { name: string; slug: string }[] | null;
-  product_variants: Array<{
-    sku: string;
-    condition: "new" | "used" | "damaged_box";
-    type: "common" | "exclusive" | "chase" | "glow" | "special";
-    source: "own_stock" | "national" | "international" | "preorder";
-    sale_price: number;
-    market_price: number | null;
-    status: "available" | "order_only" | "preorder" | "sold_out" | "hidden";
-  }>;
+  status?: string;
+  subcategory_name?: string | null;
+  product_images?: Array<{
+    image_url: string;
+    sort_order: number | null;
+  }> | null;
+  product_variants?: VariantRow[] | null;
 };
 
 const toneByIndex: Product["tone"][] = ["teal", "pink", "amber", "indigo"];
 
-const conditionLabel: Record<ProductRow["product_variants"][number]["condition"], Product["condition"]> = {
+const conditionLabel: Record<VariantRow["condition"], Product["condition"]> = {
   damaged_box: "Caixa avariada",
   new: "Novo",
   used: "Usado",
 };
 
-const typeLabel: Record<ProductRow["product_variants"][number]["type"], Product["type"]> = {
+const typeLabel: Record<VariantRow["type"], Product["type"]> = {
   chase: "Chase",
   common: "Comum",
   exclusive: "Exclusivo",
@@ -43,19 +55,23 @@ const typeLabel: Record<ProductRow["product_variants"][number]["type"], Product[
   special: "Especial",
 };
 
-const sourceLabel: Record<ProductRow["product_variants"][number]["source"], Product["source"]> = {
+const sourceLabel: Record<VariantRow["source"], Product["source"]> = {
   international: "Importado",
   national: "Encomenda nacional",
   own_stock: "Pronta-entrega",
   preorder: "Pre-venda",
 };
 
+export type CatalogProductFilter = "all" | "ready" | "order" | "preorder" | "specials";
+
 export type CatalogProductFilters = {
+  category?: string;
+  filter?: CatalogProductFilter;
   franchise?: string;
   page?: number;
   pageSize?: number;
   query?: string;
-  status?: Product["status"] | "all";
+  subcategory?: string;
 };
 
 export type CatalogProductPage = {
@@ -68,12 +84,43 @@ export type CatalogProductPage = {
   };
 };
 
+export type CatalogCategory = {
+  name: string;
+  subcategories: Array<{
+    name: string;
+  }>;
+};
+
+const categoryOrder = [
+  "Disney",
+  "Heróis/Vilões",
+  "Animes",
+  "Filmes e Séries",
+  "Música",
+  "Esporte",
+  "Games",
+];
+
+const CATALOG_LIST_REVALIDATE_SECONDS = 120;
+const CATALOG_DETAIL_REVALIDATE_SECONDS = 300;
+const CATALOG_OPTIONS_REVALIDATE_SECONDS = 900;
+
+const catalogListSelect =
+  "id,name,slug,franchise_id,funko_number,category_name,subcategory_name,main_image_url,status,franchises(name,slug),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+
+const catalogDetailSelect =
+  "id,name,slug,franchise_id,funko_number,category_name,subcategory_name,description,main_image_url,status,franchises(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+
 function getPublicSupabase() {
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
     auth: {
       persistSession: false,
     },
   });
+}
+
+export function shouldUseCatalogFallback() {
+  return isDevelopmentMockAllowed();
 }
 
 function getFranchiseName(franchises: ProductRow["franchises"]) {
@@ -84,29 +131,162 @@ function getFranchiseName(franchises: ProductRow["franchises"]) {
   return franchises?.name;
 }
 
-function mapProduct(row: ProductRow, index: number): Product {
-  const variant = row.product_variants[0];
+function normalizeSlug(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function escapeIlike(value: string) {
+  return value
+    .replace(/[(),]/g, " ")
+    .replaceAll("\\", "\\\\")
+    .replaceAll("%", "\\%")
+    .replaceAll("_", "\\_")
+    .trim();
+}
+
+function uniqueUrls(urls: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+
+  for (const url of urls) {
+    const normalized = url?.trim();
+
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    unique.push(normalized);
+  }
+
+  return unique;
+}
+
+function getProductImages(row: ProductRow) {
+  const additionalImages = (row.product_images ?? [])
+    .slice()
+    .sort((first, second) => (first.sort_order ?? 0) - (second.sort_order ?? 0))
+    .map((image) => image.image_url);
+
+  return uniqueUrls([row.main_image_url, ...additionalImages]);
+}
+
+function isVisibleVariant(variant: VariantRow) {
+  return variant.status !== "hidden";
+}
+
+function variantMatchesFilter(variant: VariantRow, filter: CatalogProductFilter) {
+  if (!isVisibleVariant(variant)) {
+    return false;
+  }
+
+  if (filter === "ready") {
+    return variant.source === "own_stock" || variant.status === "available";
+  }
+
+  if (filter === "order") {
+    return (
+      variant.source === "national" ||
+      variant.source === "international" ||
+      variant.status === "order_only"
+    );
+  }
+
+  if (filter === "preorder") {
+    return variant.source === "preorder" || variant.status === "preorder";
+  }
+
+  if (filter === "specials") {
+    return variant.type !== "common" || (variant.special_tags ?? []).length > 0;
+  }
+
+  return true;
+}
+
+function variantPriority(variant: VariantRow, filter: CatalogProductFilter) {
+  let score = 0;
+
+  if (filter !== "all" && variantMatchesFilter(variant, filter)) {
+    score -= 100;
+  }
+
+  if (filter === "specials" && variant.type !== "common") {
+    score -= 40;
+  }
+
+  if (variant.type !== "common") {
+    score -= 8;
+  }
+
+  if (variant.source === "own_stock") {
+    score -= 6;
+  }
+
+  if (variant.status === "available") {
+    score -= 5;
+  }
+
+  if (variant.status === "sold_out") {
+    score += 20;
+  }
+
+  return score;
+}
+
+function pickVariant(row: ProductRow, filter: CatalogProductFilter) {
+  const variants = (row.product_variants ?? []).filter(isVisibleVariant);
+
+  return variants
+    .slice()
+    .sort((first, second) => variantPriority(first, filter) - variantPriority(second, filter))[0];
+}
+
+function toProductStatus(status: VariantRow["status"] | undefined): Product["status"] {
+  if (!status || status === "hidden") {
+    return "sold_out";
+  }
+
+  return status;
+}
+
+function mapProduct(row: ProductRow, index: number, filter: CatalogProductFilter): Product {
+  const variant = pickVariant(row, filter);
+  const images = getProductImages(row);
+  const specialTags = variant?.special_tags?.filter(Boolean) ?? [];
 
   return {
+    category: row.category_name ?? undefined,
     condition: conditionLabel[variant?.condition ?? "new"],
     description: row.description ?? "Produto Smart Funkos com atendimento pelo WhatsApp.",
     franchise: getFranchiseName(row.franchises) ?? "Smart Funkos",
     funkoNumber: row.funko_number ?? "000",
     id: row.id,
-    marketPrice: variant?.market_price ?? undefined,
+    imageAlt: row.name,
+    images,
+    imageUrl: images[0],
+    isSpecial: variant ? variant.type !== "common" || specialTags.length > 0 : false,
+    marketPrice: variant?.market_price ? Number(variant.market_price) : undefined,
     name: row.name,
     price: Number(variant?.sale_price ?? 0),
     sku: variant?.sku ?? "SF-0000",
     slug: row.slug,
+    specialLabel: variant?.special_label ?? undefined,
+    specialTags,
     source: sourceLabel[variant?.source ?? "own_stock"],
-    status: variant?.status === "hidden" ? "sold_out" : (variant?.status ?? "sold_out"),
+    status: toProductStatus(variant?.status),
+    subcategory: row.subcategory_name ?? undefined,
     tone: toneByIndex[index % toneByIndex.length],
     type: typeLabel[variant?.type ?? "common"],
   };
 }
 
 function fallbackOrThrow<T>(data: T, context: string) {
-  if (isDevelopmentMockAllowed()) {
+  if (shouldUseCatalogFallback()) {
     return data;
   }
 
@@ -114,32 +294,71 @@ function fallbackOrThrow<T>(data: T, context: string) {
 }
 
 function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
-  const page = Math.max(1, Number(filters.page ?? 1));
-  const pageSize = Math.min(60, Math.max(1, Number(filters.pageSize ?? 24)));
+  const validFilters: CatalogProductFilter[] = ["all", "ready", "order", "preorder", "specials"];
+  const category = filters.category?.trim() ?? "";
+  const filter = filters.filter && validFilters.includes(filters.filter) ? filters.filter : "all";
+  const requestedPage = Number(filters.page ?? 1);
+  const requestedPageSize = Number(filters.pageSize ?? 24);
+  const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
+  const pageSize = Number.isFinite(requestedPageSize)
+    ? Math.min(60, Math.max(1, requestedPageSize))
+    : 24;
   const query = filters.query?.trim() ?? "";
   const franchise = filters.franchise?.trim() ?? "";
-  const status = filters.status ?? "all";
+  const subcategory = filters.subcategory?.trim() ?? "";
 
   return {
+    category,
+    filter,
     franchise,
     page,
     pageSize,
     query,
-    status,
+    subcategory,
   };
+}
+
+function fallbackProductMatchesFilter(product: Product, filter: CatalogProductFilter) {
+  if (filter === "ready") {
+    return product.source === "Pronta-entrega" || product.status === "available";
+  }
+
+  if (filter === "order") {
+    return (
+      product.source === "Encomenda nacional" ||
+      product.source === "Importado" ||
+      product.status === "order_only"
+    );
+  }
+
+  if (filter === "preorder") {
+    return product.source === "Pre-venda" || product.status === "preorder";
+  }
+
+  if (filter === "specials") {
+    return product.isSpecial === true || product.type !== "Comum" || Boolean(product.specialTags?.length);
+  }
+
+  return true;
 }
 
 function filterFallbackProducts(filters: ReturnType<typeof normalizeCatalogFilters>) {
   const filtered = fallbackProducts.filter((product) => {
     const matchesQuery = filters.query
-      ? `${product.name} ${product.sku} ${product.franchise}`
+      ? `${product.name} ${product.slug} ${product.sku} ${product.franchise} ${product.funkoNumber} ${product.category ?? ""} ${product.subcategory ?? ""}`
           .toLowerCase()
           .includes(filters.query.toLowerCase())
       : true;
-    const matchesFranchise = filters.franchise ? product.franchise === filters.franchise : true;
-    const matchesStatus = filters.status === "all" ? true : product.status === filters.status;
+    const matchesFranchise = filters.franchise
+      ? normalizeSlug(product.franchise) === filters.franchise
+      : true;
+    const matchesCategory = filters.category ? product.category === filters.category : true;
+    const matchesSubcategory = filters.subcategory
+      ? product.subcategory === filters.subcategory
+      : true;
+    const matchesFilter = fallbackProductMatchesFilter(product, filters.filter);
 
-    return matchesQuery && matchesFranchise && matchesStatus;
+    return matchesQuery && matchesFranchise && matchesCategory && matchesSubcategory && matchesFilter;
   });
   const from = (filters.page - 1) * filters.pageSize;
   const pageItems = filtered.slice(from, from + filters.pageSize);
@@ -155,10 +374,97 @@ function filterFallbackProducts(filters: ReturnType<typeof normalizeCatalogFilte
   };
 }
 
-export async function getCatalogProductsPage(filtersInput: CatalogProductFilters = {}): Promise<CatalogProductPage> {
-  noStore();
-  const filters = normalizeCatalogFilters(filtersInput);
+function rowMatchesFilter(row: ProductRow, filter: CatalogProductFilter) {
+  return (row.product_variants ?? []).some((variant) => variantMatchesFilter(variant, filter));
+}
 
+function sortCatalogProducts(products: Product[], filter: CatalogProductFilter) {
+  return products.sort((first, second) => {
+    if (filter === "specials" && first.isSpecial !== second.isSpecial) {
+      return first.isSpecial ? -1 : 1;
+    }
+
+    const firstReady = first.source === "Pronta-entrega" || first.status === "available";
+    const secondReady = second.source === "Pronta-entrega" || second.status === "available";
+
+    if (firstReady !== secondReady) {
+      return firstReady ? -1 : 1;
+    }
+
+    return first.name.localeCompare(second.name, "pt-BR");
+  });
+}
+
+async function getFranchiseIdBySlug(
+  supabase: ReturnType<typeof getPublicSupabase>,
+  slug: string,
+) {
+  const { data, error } = await supabase
+    .from("franchises")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to resolve catalog franchise", error);
+    return undefined;
+  }
+
+  return data?.id as string | undefined;
+}
+
+async function getSearchRelationIds(
+  supabase: ReturnType<typeof getPublicSupabase>,
+  query: string,
+) {
+  const safeQuery = escapeIlike(query);
+
+  if (!safeQuery) {
+    return {
+      productIds: [],
+      safeQuery,
+    };
+  }
+
+  const variantResult = await supabase
+    .from("product_variants")
+    .select("product_id")
+    .ilike("sku", `%${safeQuery}%`)
+    .limit(500);
+
+  if (variantResult.error) {
+    console.error("Failed to search catalog variants", variantResult.error);
+  }
+
+  return {
+    productIds: Array.from(new Set((variantResult.data ?? []).map((row) => row.product_id as string))),
+    safeQuery,
+  };
+}
+
+function getCatalogSearchOrFilter(input: {
+  productIds: string[];
+  safeQuery: string;
+}) {
+  const clauses = [
+    `name.ilike.%${input.safeQuery}%`,
+    `slug.ilike.%${input.safeQuery}%`,
+    `funko_number.ilike.%${input.safeQuery}%`,
+    `category_name.ilike.%${input.safeQuery}%`,
+    `subcategory_name.ilike.%${input.safeQuery}%`,
+    `external_catalog_code.ilike.%${input.safeQuery}%`,
+  ];
+
+  if (input.productIds.length > 0) {
+    clauses.push(`id.in.(${input.productIds.join(",")})`);
+  }
+
+  return clauses.join(",");
+}
+
+async function getCatalogProductsPageUncached(
+  filters: ReturnType<typeof normalizeCatalogFilters>,
+): Promise<CatalogProductPage> {
   if (!hasSupabasePublicEnv()) {
     return fallbackOrThrow(filterFallbackProducts(filters), "Catalogo publico");
   }
@@ -166,28 +472,70 @@ export async function getCatalogProductsPage(filtersInput: CatalogProductFilters
   const supabase = getPublicSupabase();
   const from = (filters.page - 1) * filters.pageSize;
   const to = from + filters.pageSize - 1;
+  const [franchiseId, searchIds] = await Promise.all([
+    filters.franchise ? getFranchiseIdBySlug(supabase, filters.franchise) : Promise.resolve(undefined),
+    filters.query ? getSearchRelationIds(supabase, filters.query) : Promise.resolve(undefined),
+  ]);
+
+  if (filters.franchise && !franchiseId) {
+    return {
+      data: [],
+      meta: {
+        page: filters.page,
+        pageSize: filters.pageSize,
+        total: 0,
+        totalPages: 1,
+      },
+    };
+  }
 
   let query = supabase
     .from("products")
-    .select(
-      "id,name,slug,funko_number,description,status,franchises!inner(name,slug),product_variants!inner(sku,condition,type,source,sale_price,market_price,status)",
-      { count: "exact" },
-    )
+    .select(catalogListSelect, { count: "planned" })
     .eq("status", "active")
     .order("name", { ascending: true })
     .range(from, to);
 
-  if (filters.query) {
-    const safeQuery = filters.query.replaceAll("%", "\\%").replaceAll("_", "\\_");
-    query = query.or(`name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`);
+  query = query.neq("product_variants.status", "hidden");
+
+  if (filters.filter === "ready") {
+    query = query.or("source.eq.own_stock,status.eq.available", {
+      referencedTable: "product_variants",
+    });
   }
 
-  if (filters.franchise) {
-    query = query.eq("franchises.slug", filters.franchise);
+  if (filters.filter === "order") {
+    query = query.or("source.in.(national,international),status.eq.order_only", {
+      referencedTable: "product_variants",
+    });
   }
 
-  if (filters.status !== "all") {
-    query = query.eq("product_variants.status", filters.status);
+  if (filters.filter === "preorder") {
+    query = query.or("source.eq.preorder,status.eq.preorder", {
+      referencedTable: "product_variants",
+    });
+  }
+
+  if (filters.filter === "specials") {
+    query = query.or("type.in.(exclusive,chase,glow,special)", {
+      referencedTable: "product_variants",
+    });
+  }
+
+  if (franchiseId) {
+    query = query.eq("franchise_id", franchiseId);
+  }
+
+  if (filters.category) {
+    query = query.eq("category_name", filters.category);
+  }
+
+  if (filters.subcategory) {
+    query = query.eq("subcategory_name", filters.subcategory);
+  }
+
+  if (searchIds?.safeQuery) {
+    query = query.or(getCatalogSearchOrFilter(searchIds));
   }
 
   const { count, data, error } = await query;
@@ -197,19 +545,34 @@ export async function getCatalogProductsPage(filtersInput: CatalogProductFilters
     return fallbackOrThrow(filterFallbackProducts(filters), "Catalogo publico");
   }
 
-  const products = (data as unknown as ProductRow[])
-    .filter((row) => row.product_variants.length > 0)
-    .map(mapProduct);
+  const products = (data as unknown as ProductRow[]).map((row, index) =>
+    mapProduct(row, index, filters.filter),
+  );
+  const sortedProducts = sortCatalogProducts(products, filters.filter);
+  const total = Math.max(count ?? sortedProducts.length, from + sortedProducts.length);
 
   return {
-    data: products,
+    data: sortedProducts,
     meta: {
       page: filters.page,
       pageSize: filters.pageSize,
-      total: count ?? products.length,
-      totalPages: Math.max(1, Math.ceil((count ?? products.length) / filters.pageSize)),
+      total,
+      totalPages: Math.max(1, Math.ceil(total / filters.pageSize)),
     },
   };
+}
+
+const getCachedCatalogProductsPage = unstable_cache(
+  getCatalogProductsPageUncached,
+  ["catalog-products-page"],
+  {
+    revalidate: CATALOG_LIST_REVALIDATE_SECONDS,
+    tags: ["catalog-products"],
+  },
+);
+
+export async function getCatalogProductsPage(filtersInput: CatalogProductFilters = {}): Promise<CatalogProductPage> {
+  return getCachedCatalogProductsPage(normalizeCatalogFilters(filtersInput));
 }
 
 export async function getCatalogProducts(filters: CatalogProductFilters = {}) {
@@ -217,7 +580,7 @@ export async function getCatalogProducts(filters: CatalogProductFilters = {}) {
   return page.data;
 }
 
-export async function getCatalogProductBySlug(slug: string) {
+async function getCatalogProductBySlugUncached(slug: string) {
   if (!hasSupabasePublicEnv()) {
     return fallbackOrThrow(getProductBySlug(slug), "Produto publico");
   }
@@ -225,10 +588,9 @@ export async function getCatalogProductBySlug(slug: string) {
   const supabase = getPublicSupabase();
   const { data, error } = await supabase
     .from("products")
-    .select(
-      "id,name,slug,funko_number,description,status,franchises!inner(name,slug),product_variants!inner(sku,condition,type,source,sale_price,market_price,status)",
-    )
+    .select(catalogDetailSelect)
     .eq("status", "active")
+    .neq("product_variants.status", "hidden")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -237,12 +599,29 @@ export async function getCatalogProductBySlug(slug: string) {
     return undefined;
   }
 
-  return mapProduct(data as unknown as ProductRow, 0);
+  const product = data as unknown as ProductRow;
+
+  if (!rowMatchesFilter(product, "all")) {
+    return undefined;
+  }
+
+  return mapProduct(product, 0, "all");
 }
 
-export async function getCatalogFranchises() {
-  noStore();
+const getCachedCatalogProductBySlug = unstable_cache(
+  getCatalogProductBySlugUncached,
+  ["catalog-product-by-slug"],
+  {
+    revalidate: CATALOG_DETAIL_REVALIDATE_SECONDS,
+    tags: ["catalog-products"],
+  },
+);
 
+export async function getCatalogProductBySlug(slug: string) {
+  return getCachedCatalogProductBySlug(slug);
+}
+
+async function getCatalogFranchisesUncached() {
   if (!hasSupabasePublicEnv()) {
     return fallbackOrThrow(fallbackFranchises, "Franquias publicas");
   }
@@ -260,4 +639,151 @@ export async function getCatalogFranchises() {
   }
 
   return data;
+}
+
+const getCachedCatalogFranchises = unstable_cache(
+  getCatalogFranchisesUncached,
+  ["catalog-franchises"],
+  {
+    revalidate: CATALOG_OPTIONS_REVALIDATE_SECONDS,
+    tags: ["catalog-options"],
+  },
+);
+
+export async function getCatalogFranchises() {
+  return getCachedCatalogFranchises();
+}
+
+function buildCatalogCategories(
+  rows: Array<{
+    category_name: string | null;
+    subcategory_name: string | null;
+  }>,
+): CatalogCategory[] {
+  const categoryByName = new Map<string, Set<string>>();
+
+  for (const row of rows) {
+    const category = row.category_name?.trim();
+
+    if (!category) {
+      continue;
+    }
+
+    const subcategory = row.subcategory_name?.trim();
+    const subcategories = categoryByName.get(category) ?? new Set<string>();
+
+    if (subcategory) {
+      subcategories.add(subcategory);
+    }
+
+    categoryByName.set(category, subcategories);
+  }
+
+  return Array.from(categoryByName.entries())
+    .map(([name, subcategories]) => ({
+      name,
+      subcategories: Array.from(subcategories)
+        .sort((first, second) => first.localeCompare(second, "pt-BR"))
+        .map((subcategory) => ({ name: subcategory })),
+    }))
+    .sort((first, second) => {
+      const firstIndex = categoryOrder.indexOf(first.name);
+      const secondIndex = categoryOrder.indexOf(second.name);
+
+      if (firstIndex !== -1 || secondIndex !== -1) {
+        return (
+          (firstIndex === -1 ? Number.MAX_SAFE_INTEGER : firstIndex) -
+          (secondIndex === -1 ? Number.MAX_SAFE_INTEGER : secondIndex)
+        );
+      }
+
+      return first.name.localeCompare(second.name, "pt-BR");
+    });
+}
+
+function getFallbackCatalogCategories() {
+  return buildCatalogCategories(
+    fallbackProducts.map((product) => ({
+      category_name: product.category ?? null,
+      subcategory_name: product.subcategory ?? null,
+    })),
+  );
+}
+
+async function loadCatalogCategoryRowsFromProducts(supabase: ReturnType<typeof getPublicSupabase>) {
+  const rows: Array<{
+    category_name: string | null;
+    subcategory_name: string | null;
+  }> = [];
+  const pageSize = 1000;
+
+  for (let from = 0; from < 30000; from += pageSize) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("category_name,subcategory_name")
+      .eq("status", "active")
+      .not("category_name", "is", null)
+      .order("category_name", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    rows.push(
+      ...((data ?? []) as Array<{
+        category_name: string | null;
+        subcategory_name: string | null;
+      }>),
+    );
+
+    if (!data || data.length < pageSize) {
+      break;
+    }
+  }
+
+  return rows;
+}
+
+async function getCatalogCategoriesUncached() {
+  if (!hasSupabasePublicEnv()) {
+    return fallbackOrThrow(getFallbackCatalogCategories(), "Categorias publicas");
+  }
+
+  const supabase = getPublicSupabase();
+  const { data, error } = await supabase
+    .from("catalog_category_options")
+    .select("category_name,subcategory_name")
+    .order("category_name", { ascending: true })
+    .order("subcategory_name", { ascending: true });
+
+  if (error) {
+    try {
+      const rows = await loadCatalogCategoryRowsFromProducts(supabase);
+      return buildCatalogCategories(rows);
+    } catch (fallbackError) {
+      console.error("Failed to load catalog categories", fallbackError);
+      return fallbackOrThrow(getFallbackCatalogCategories(), "Categorias publicas");
+    }
+  }
+
+  return buildCatalogCategories(
+    (data ?? []) as Array<{
+      category_name: string | null;
+      subcategory_name: string | null;
+    }>,
+  );
+}
+
+const getCachedCatalogCategories = unstable_cache(
+  getCatalogCategoriesUncached,
+  ["catalog-categories"],
+  {
+    revalidate: CATALOG_OPTIONS_REVALIDATE_SECONDS,
+    tags: ["catalog-options"],
+  },
+);
+
+export async function getCatalogCategories() {
+  return getCachedCatalogCategories();
 }

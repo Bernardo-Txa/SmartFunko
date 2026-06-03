@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/server/auth/require-admin";
 import { handleApi, jsonCreated, jsonOk } from "@/server/http/responses";
 import { createProductSchema, ProductService } from "@/server/products/product-service";
@@ -27,6 +28,8 @@ export async function POST(request: Request) {
     const admin = await requireAdmin();
     const input = await parseJsonBody(request, createProductSchema);
     const product = await new ProductService(undefined, admin.profile.id).createProduct(input);
+    revalidateTag("catalog-products", "max");
+    revalidateTag("catalog-options", "max");
     return jsonCreated(product);
   });
 }

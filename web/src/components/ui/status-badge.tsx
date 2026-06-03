@@ -1,25 +1,25 @@
 import { clsx } from "clsx";
-import type { ProductStatus } from "@/lib/mock-data";
+import type { ProductStatus } from "@/types/product";
 
 const productStatusLabel: Record<ProductStatus, string> = {
-  available: "Disponivel",
-  order_only: "Sob encomenda",
-  preorder: "Pre-venda",
-  sold_out: "Esgotado",
+  available: "DISPONIVEL",
+  order_only: "SOB ENCOMENDA",
+  preorder: "PRE-VENDA",
+  sold_out: "ESGOTADO",
 };
 
 const productStatusClass: Record<ProductStatus, string> = {
-  available: "bg-emerald-400/14 text-emerald-200 ring-emerald-300/28",
-  order_only: "bg-cyan-400/14 text-cyan-100 ring-cyan-300/28",
-  preorder: "bg-yellow-300/14 text-yellow-100 ring-yellow-300/32",
-  sold_out: "bg-slate-300/10 text-slate-300 ring-slate-300/20",
+  available: "bg-emerald-500/20 text-emerald-200 ring-emerald-400/40",
+  order_only: "bg-cyan-500/20 text-cyan-100 ring-cyan-400/40",
+  preorder: "bg-yellow-300 text-slate-950 ring-yellow-200/50",
+  sold_out: "bg-slate-500/20 text-slate-300 ring-slate-400/30",
 };
 
 export function ProductStatusBadge({ status }: { status: ProductStatus }) {
   return (
     <span
       className={clsx(
-        "inline-flex h-7 items-center rounded-md px-2 text-xs font-semibold ring-1",
+        "inline-flex h-7 items-center rounded-full px-3 text-[11px] font-black ring-1",
         productStatusClass[status],
       )}
     >

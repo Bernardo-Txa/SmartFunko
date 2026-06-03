@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -8,7 +9,9 @@ export function ProductCreateForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [mainImagePreview, setMainImagePreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canPreviewImage = /^https?:\/\//.test(mainImagePreview);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,7 +22,7 @@ export function ProductCreateForm() {
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "");
     const description = String(formData.get("description") ?? "");
-    const mainImageUrl = String(formData.get("mainImageUrl") ?? "");
+    const mainImageUrl = String(formData.get("mainImageUrl") ?? "").trim();
     const sku = String(formData.get("sku") ?? "");
     const salePrice = Number(formData.get("salePrice") ?? 0);
     const source = String(formData.get("source") ?? "national");
@@ -62,6 +65,7 @@ export function ProductCreateForm() {
       }
 
       event.currentTarget.reset();
+      setMainImagePreview("");
       setMessage("Produto e variante criados.");
       router.refresh();
     } catch (submitError) {
@@ -88,10 +92,27 @@ export function ProductCreateForm() {
             <span className="text-sm font-semibold text-[var(--foreground)]">Imagem URL</span>
             <input
               name="mainImageUrl"
+              onChange={(event) => setMainImagePreview(event.target.value.trim())}
               type="url"
               className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             />
           </label>
+        </div>
+        <div className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 md:grid-cols-[96px_1fr] md:items-center">
+          <div className="relative flex aspect-square w-24 items-center justify-center overflow-hidden rounded-md border border-[var(--border)] bg-slate-950/60">
+            {canPreviewImage ? (
+              <Image
+                src={mainImagePreview}
+                alt="Preview do produto"
+                fill
+                sizes="96px"
+                className="object-contain p-2"
+              />
+            ) : (
+              <span className="text-xs font-semibold text-[var(--muted)]">Sem imagem</span>
+            )}
+          </div>
+          <strong className="text-sm text-[var(--foreground)]">Preview da imagem principal</strong>
         </div>
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Descricao</span>

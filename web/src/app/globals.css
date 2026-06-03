@@ -26,6 +26,8 @@
 
 html {
   background: #020617;
+  scrollbar-color: rgba(250, 204, 21, 0.72) rgba(3, 8, 22, 0.92);
+  scrollbar-width: thin;
 }
 
 body {
@@ -89,4 +91,51 @@ textarea::placeholder {
 ::selection {
   background: rgba(250, 204, 21, 0.32);
   color: white;
+}
+
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(3, 8, 22, 0.9);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(250, 204, 21, 0.76);
+  border: 2px solid rgba(3, 8, 22, 0.9);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(250, 204, 21, 0.96);
+}
+
+.catalog-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.catalog-scroll {
+  scrollbar-color: rgba(250, 204, 21, 0.82) rgba(3, 8, 22, 0.9);
+  scrollbar-width: thin;
+}
+
+.catalog-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.catalog-scroll::-webkit-scrollbar-track {
+  background: rgba(3, 8, 22, 0.9);
+  border-radius: 999px;
+}
+
+.catalog-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(250, 204, 21, 0.95), rgba(34, 211, 238, 0.62));
+  border: 2px solid rgba(3, 8, 22, 0.9);
+  border-radius: 999px;
+}
+
+.catalog-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(250, 204, 21, 1), rgba(34, 211, 238, 0.88));
 }
