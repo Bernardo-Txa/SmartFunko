@@ -60,7 +60,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 1. Aplicar migrations do Supabase.
 2. Criar um usuario pelo cadastro ou pelo Supabase Auth.
 3. Ajustar o role do profile para `owner` no Supabase.
-4. Entrar em `/admin/login`.
+4. Entrar em `/login`; owners sao redirecionados para `/admin/dashboard`.
 5. Criar cliente via `POST /api/v1/admin/customers`.
 6. Criar pedido via `POST /api/v1/admin/orders`.
 7. Adicionar item via `POST /api/v1/admin/orders/[id]/items`.

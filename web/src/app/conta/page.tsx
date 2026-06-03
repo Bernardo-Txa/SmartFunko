@@ -24,7 +24,7 @@ function getPaidAmount(order: AccountOrder) {
 }
 
 export default async function AccountPage() {
-  const { customer, profile } = await requireUserPage();
+  const { customer, profile } = await requireUserPage("/conta");
   const orders = customer
     ? ((await new OrderService().getCustomerOrders(customer.id)) as unknown as AccountOrder[])
     : [];
@@ -43,12 +43,35 @@ export default async function AccountPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 md:col-span-2">
           <UserRound className="text-[var(--accent)]" size={24} />
           <strong className="mt-4 block text-sm">Cadastro</strong>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Nome, e-mail e telefone vinculados aos pedidos manuais.
-          </p>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Nome</dt>
+              <dd className="text-[var(--muted)]">{customer?.name ?? profile.name}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">E-mail</dt>
+              <dd className="text-[var(--muted)]">{customer?.email ?? profile.email}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Telefone</dt>
+              <dd className="text-[var(--muted)]">{customer?.phone ?? "Nao informado"}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">CPF</dt>
+              <dd className="text-[var(--muted)]">{customer?.cpf ?? "Nao informado"}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Instagram</dt>
+              <dd className="text-[var(--muted)]">{customer?.instagram ?? "Nao informado"}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Status</dt>
+              <dd className="text-[var(--muted)]">{customer?.status ?? "Sem cliente vinculado"}</dd>
+            </div>
+          </dl>
         </section>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <Package className="text-[var(--pink)]" size={24} />

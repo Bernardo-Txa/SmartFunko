@@ -2,17 +2,14 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn, ShieldCheck, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
+import { getDefaultAuthenticatedPath, sanitizeNextPath } from "@/lib/auth/redirect";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { ProfileRole } from "@/server/auth/require-user";
 
-type AuthMode = "login" | "register" | "admin";
+type AuthMode = "login" | "register";
 
 const modeCopy = {
-  admin: {
-    button: "Entrar no painel",
-    icon: ShieldCheck,
-    title: "Painel admin",
-  },
   login: {
     button: "Entrar",
     icon: LogIn,
@@ -27,10 +24,10 @@ const modeCopy = {
 
 export function AuthForm({
   mode,
-  redirectTo,
+  nextPath,
 }: {
   mode: AuthMode;
-  redirectTo: string;
+  nextPath?: string | null;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -38,6 +35,32 @@ export function AuthForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const copy = modeCopy[mode];
   const Icon = copy.icon;
+
+  async function getRedirectPathAfterLogin() {
+    const safeNextPath = sanitizeNextPath(nextPath);
+
+    if (safeNextPath) {
+      return safeNextPath;
+    }
+
+    const response = await fetch("/api/v1/me", {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return getDefaultAuthenticatedPath("customer");
+    }
+
+    const body = (await response.json()) as {
+      data?: {
+        profile?: {
+          role?: ProfileRole;
+        };
+      };
+    };
+
+    return getDefaultAuthenticatedPath(body.data?.profile?.role);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,12 +74,16 @@ export function AuthForm({
     const supabase = createSupabaseBrowserClient();
 
     if (mode === "register") {
+      const cpf = String(formData.get("cpf") ?? "");
+      const instagram = String(formData.get("instagram") ?? "");
       const name = String(formData.get("name") ?? "");
       const phone = String(formData.get("phone") ?? "");
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         options: {
           data: {
+            cpf,
+            instagram,
             name,
             phone,
           },
@@ -76,7 +103,7 @@ export function AuthForm({
         return;
       }
 
-      router.push(redirectTo);
+      router.push(await getRedirectPathAfterLogin());
       router.refresh();
       return;
     }
@@ -93,7 +120,7 @@ export function AuthForm({
       return;
     }
 
-    router.push(redirectTo);
+    router.push(await getRedirectPathAfterLogin());
     router.refresh();
   }
 
@@ -120,6 +147,24 @@ export function AuthForm({
                 placeholder="(00) 00000-0000"
               />
             </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">CPF</span>
+                <input
+                  name="cpf"
+                  className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]"
+                  placeholder="000.000.000-00"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">Instagram</span>
+                <input
+                  name="instagram"
+                  className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]"
+                  placeholder="@seuperfil"
+                />
+              </label>
+            </div>
           </>
         ) : null}
 
@@ -130,7 +175,7 @@ export function AuthForm({
             type="email"
             required
             className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]"
-            placeholder={mode === "admin" ? "admin@smartfunko.com.br" : "voce@email.com"}
+            placeholder="voce@email.com"
           />
         </label>
         <label className="block">

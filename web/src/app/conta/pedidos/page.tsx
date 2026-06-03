@@ -28,10 +28,23 @@ type AccountOrder = {
 };
 
 export default async function AccountOrdersPage() {
-  const { customer } = await requireUserPage();
+  const { customer } = await requireUserPage("/conta/pedidos");
   const orders = customer
     ? ((await new OrderService().getCustomerOrders(customer.id)) as unknown as AccountOrder[])
     : [];
+
+  if (!customer) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">Meus pedidos</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Nenhum cadastro de cliente vinculado a este login ainda.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

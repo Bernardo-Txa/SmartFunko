@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function AccountOrderPage({ params }: Props) {
   const { orderNumber } = await params;
-  const { customer } = await requireUserPage();
+  const { customer } = await requireUserPage(`/conta/pedidos/${orderNumber}`);
 
   if (!customer) {
     notFound();

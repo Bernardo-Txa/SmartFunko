@@ -142,7 +142,7 @@ O admin deve permitir:
 Rotas administrativas minimas:
 
 - `/admin`
-- `/admin/login`
+- `/login` unico para clientes e owners
 - `/admin/dashboard`
 - `/admin/produtos`
 - `/admin/produtos/novo`
