@@ -261,7 +261,7 @@ Roles:
 - `customer`
 - `owner`
 
-Observacao: `admin` pode existir como valor legado/reservado no banco, mas a V1 operacional usa `owner` para usuarios internos.
+Observacao: `admin` pode existir como valor legado/reservado no banco. A V1 operacional usa `owner` para novos usuarios internos, e `admin` permanece aceito apenas por compatibilidade temporaria.
 
 ### 7.2 customers
 
@@ -607,7 +607,7 @@ Campos minimos:
 
 ### 8.4 Pagamento
 
-- Pagamento manual exige usuario `owner`.
+- Pagamento manual exige acesso interno; novos usuarios internos devem usar `owner`, com `admin` aceito apenas por compatibilidade legada.
 - Pagamento confirmado gera `cash_entry`.
 - Pagamento parcial atualiza pedido para `partially_paid`.
 - Pagamento total atualiza pedido para `paid`.

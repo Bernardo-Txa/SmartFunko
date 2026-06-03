@@ -34,8 +34,8 @@
 
 ## Regras implementadas
 
-- Rotas internas exigem usuario com role `owner`.
-- A role `admin` fica reservada/legada no banco e nao deve ser usada para novos usuarios internos.
+- Rotas internas usam `owner` como role operacional principal.
+- A role `admin` fica reservada/legada; `requireAdmin()` ainda aceita `admin` temporariamente por compatibilidade, mas novos usuarios internos devem ser `owner`.
 - Rotas `/me` exigem usuario autenticado e cliente vinculado.
 - Pagamento manual gera pagamento, entrada de caixa, log administrativo e atualiza status financeiro.
 - Reserva de estoque impede reservar unidade que nao esteja `available`.

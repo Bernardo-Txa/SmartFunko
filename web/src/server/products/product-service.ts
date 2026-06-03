@@ -7,16 +7,71 @@ import { throwQueryError } from "@/server/supabase/query-error";
 
 export const productStatusSchema = z.enum(["active", "inactive", "archived"]);
 
+function nullableTrimmedText() {
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    },
+    z.string().nullable().optional(),
+  );
+}
+
+function optionalTrimmedText(min = 1) {
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    },
+    z.string().min(min).optional(),
+  );
+}
+
+const nullableUrlSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  },
+  z.string().url().nullable().optional(),
+);
+
+const specialTagsSchema = z.preprocess(
+  (value) => {
+    const rawTags = Array.isArray(value)
+      ? value
+      : typeof value === "string"
+        ? value.split(/[|,]/)
+        : [];
+
+    return rawTags
+      .map((entry) => String(entry).trim())
+      .filter(Boolean);
+  },
+  z.array(z.string()).default([]),
+).transform((tags) => Array.from(new Set(tags)));
+
 export const createProductSchema = z.object({
   name: z.string().trim().min(2),
-  slug: z.string().trim().min(2).optional(),
+  slug: optionalTrimmedText(2),
   franchiseId: z.string().uuid().optional().nullable(),
-  funkoNumber: z.string().trim().optional().nullable(),
-  categoryName: z.string().trim().optional().nullable(),
-  subcategoryName: z.string().trim().optional().nullable(),
-  externalCatalogCode: z.string().trim().optional().nullable(),
-  description: z.string().trim().optional().nullable(),
-  mainImageUrl: z.string().url().optional().nullable(),
+  funkoNumber: nullableTrimmedText(),
+  categoryName: nullableTrimmedText(),
+  subcategoryName: nullableTrimmedText(),
+  externalCatalogCode: nullableTrimmedText(),
+  description: nullableTrimmedText(),
+  mainImageUrl: nullableUrlSchema,
   status: productStatusSchema.default("active"),
 });
 
@@ -31,8 +86,8 @@ export const createProductVariantSchema = z.object({
   salePrice: z.number().nonnegative(),
   marketPrice: z.number().nonnegative().optional().nullable(),
   estimatedCost: z.number().nonnegative().optional().nullable(),
-  specialLabel: z.string().trim().optional().nullable(),
-  specialTags: z.array(z.string().trim().min(1)).optional().default([]),
+  specialLabel: nullableTrimmedText(),
+  specialTags: specialTagsSchema,
   status: z.enum(["available", "order_only", "preorder", "sold_out", "hidden"]).default("available"),
 });
 
@@ -112,6 +167,12 @@ function firstRelation<T>(relation: T | T[] | null | undefined) {
 
 function escapeSearch(value: string) {
   return value.replaceAll("%", "\\%").replaceAll("_", "\\_");
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
 }
 
 export class ProductService {
@@ -321,7 +382,7 @@ export class ProductService {
 
   async updateProduct(id: string, input: UpdateProductInput) {
     const current = await this.getProductById(id);
-    const patch = {
+    const patch = withoutUndefined({
       description: input.description,
       category_name: input.categoryName,
       external_catalog_code: input.externalCatalogCode,
@@ -332,7 +393,7 @@ export class ProductService {
       slug: input.slug ? slugify(input.slug) : undefined,
       status: input.status,
       subcategory_name: input.subcategoryName,
-    };
+    });
 
     const { data, error } = await this.supabase
       .from("products")

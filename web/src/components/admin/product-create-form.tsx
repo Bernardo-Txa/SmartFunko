@@ -33,11 +33,11 @@ export function ProductCreateForm() {
     const marketPrice = Number(formData.get("marketPrice") || 0);
     const estimatedCost = Number(formData.get("estimatedCost") || 0);
     const source = String(formData.get("source") ?? "national");
-    const status = String(formData.get("status") ?? "order_only");
+    const variantStatus = String(formData.get("status") ?? "order_only");
     const type = String(formData.get("type") ?? "common");
     const specialLabel = String(formData.get("specialLabel") ?? "").trim();
-    const specialTags = specialLabel
-      .split("|")
+    const specialTags = String(formData.get("specialTags") ?? "")
+      .split(/[|,]/)
       .map((entry) => entry.trim())
       .filter(Boolean);
 
@@ -47,6 +47,7 @@ export function ProductCreateForm() {
           categoryName: categoryName || null,
           description: description || null,
           externalCatalogCode: externalCatalogCode || sku || null,
+          franchiseId: null,
           funkoNumber: funkoNumber || null,
           mainImageUrl: mainImageUrl || null,
           name,
@@ -73,7 +74,7 @@ export function ProductCreateForm() {
           source,
           specialLabel: specialLabel || null,
           specialTags,
-          status,
+          status: variantStatus,
           type,
         }),
         headers: { "content-type": "application/json" },
@@ -267,7 +268,15 @@ export function ProductCreateForm() {
             <span className="text-sm font-semibold text-[var(--foreground)]">Special</span>
             <input
               name="specialLabel"
-              placeholder="Exclusivo | Chase | Glow"
+              placeholder="Exclusivo"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <label className="block md:col-span-2">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Tags special</span>
+            <input
+              name="specialTags"
+              placeholder="Chase, Glow, Limitado"
               className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             />
           </label>

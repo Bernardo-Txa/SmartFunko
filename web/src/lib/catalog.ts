@@ -522,7 +522,7 @@ async function getCatalogProductsPageUncached(
   }
 
   if (filters.filter === "specials") {
-    query = query.or("type.in.(exclusive,chase,glow,special),special_label.not.is.null", {
+    query = query.or("type.in.(exclusive,chase,glow,special),special_label.not.is.null,special_tags.neq.{}", {
       referencedTable: "product_variants",
     });
   }

@@ -69,7 +69,7 @@ npm run build
 
 ## APIs V1
 
-A V1 possui endpoints publicos de catalogo, endpoints `/me` para cliente autenticado e endpoints `/api/v1/admin/*` protegidos por role `owner`.
+A V1 possui endpoints publicos de catalogo, endpoints `/me` para cliente autenticado e endpoints `/api/v1/admin/*` protegidos por role interna. A role operacional principal e `owner`; `admin` fica apenas como compatibilidade legada.
 
 Principais fluxos:
 
