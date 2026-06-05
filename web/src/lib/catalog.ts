@@ -32,6 +32,8 @@ type ProductRow = {
   slug: string;
   status?: string;
   subcategory_name?: string | null;
+  supplier_id?: string | null;
+  suppliers?: { name: string; slug: string } | { name: string; slug: string }[] | null;
   product_images?: Array<{
     image_url: string;
     sort_order: number | null;
@@ -59,7 +61,7 @@ const sourceLabel: Record<VariantRow["source"], Product["source"]> = {
   international: "Importado",
   national: "Encomenda nacional",
   own_stock: "Pronta-entrega",
-  preorder: "Pre-venda",
+  preorder: "Pré-venda",
 };
 
 export type CatalogProductFilter = "all" | "ready" | "order" | "preorder" | "specials";
@@ -72,6 +74,7 @@ export type CatalogProductFilters = {
   pageSize?: number;
   query?: string;
   subcategory?: string;
+  supplier?: string;
 };
 
 export type CatalogProductPage = {
@@ -91,6 +94,58 @@ export type CatalogCategory = {
   }>;
 };
 
+export type CatalogSupplier = {
+  accent_color: string | null;
+  banner_url: string | null;
+  description: string | null;
+  id: string;
+  logo_url: string | null;
+  name: string;
+  slug: string;
+  sort_order: number;
+  status: string;
+  website_url: string | null;
+};
+
+const fallbackSuppliers: CatalogSupplier[] = [
+  {
+    accent_color: null,
+    banner_url: null,
+    description: "Colecao especial Piticas.",
+    id: "piticas",
+    logo_url: "/brand/piticas.webp",
+    name: "Piticas",
+    slug: "piticas",
+    sort_order: 10,
+    status: "active",
+    website_url: null,
+  },
+  {
+    accent_color: null,
+    banner_url: null,
+    description: "Colecao especial Copag.",
+    id: "copag",
+    logo_url: null,
+    name: "Copag",
+    slug: "copag",
+    sort_order: 20,
+    status: "active",
+    website_url: null,
+  },
+  {
+    accent_color: null,
+    banner_url: null,
+    description: "Colecao especial Panini.",
+    id: "panini",
+    logo_url: null,
+    name: "Panini",
+    slug: "panini",
+    sort_order: 30,
+    status: "active",
+    website_url: null,
+  },
+];
+
 const categoryOrder = [
   "Disney",
   "Heróis/Vilões",
@@ -106,10 +161,10 @@ const CATALOG_DETAIL_REVALIDATE_SECONDS = 300;
 const CATALOG_OPTIONS_REVALIDATE_SECONDS = 900;
 
 const catalogListSelect =
-  "id,name,slug,franchise_id,funko_number,category_name,subcategory_name,main_image_url,status,franchises(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,main_image_url,status,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 const catalogDetailSelect =
-  "id,name,slug,franchise_id,funko_number,category_name,subcategory_name,description,main_image_url,status,franchises(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,description,main_image_url,status,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 function getPublicSupabase() {
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -129,6 +184,14 @@ function getFranchiseName(franchises: ProductRow["franchises"]) {
   }
 
   return franchises?.name;
+}
+
+function getSupplier(suppliers: ProductRow["suppliers"]) {
+  if (Array.isArray(suppliers)) {
+    return suppliers[0];
+  }
+
+  return suppliers ?? null;
 }
 
 function normalizeSlug(value: string) {
@@ -280,6 +343,9 @@ function mapProduct(row: ProductRow, index: number, filter: CatalogProductFilter
     source: sourceLabel[variant?.source ?? "own_stock"],
     status: toProductStatus(variant?.status),
     subcategory: row.subcategory_name ?? undefined,
+    supplierId: row.supplier_id ?? undefined,
+    supplierName: getSupplier(row.suppliers)?.name,
+    supplierSlug: getSupplier(row.suppliers)?.slug,
     tone: toneByIndex[index % toneByIndex.length],
     type: typeLabel[variant?.type ?? "common"],
   };
@@ -306,6 +372,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
   const query = filters.query?.trim() ?? "";
   const franchise = filters.franchise?.trim() ?? "";
   const subcategory = filters.subcategory?.trim() ?? "";
+  const supplier = filters.supplier?.trim() ?? "";
 
   return {
     category,
@@ -315,6 +382,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
     pageSize,
     query,
     subcategory,
+    supplier,
   };
 }
 
@@ -332,7 +400,7 @@ function fallbackProductMatchesFilter(product: Product, filter: CatalogProductFi
   }
 
   if (filter === "preorder") {
-    return product.source === "Pre-venda" || product.status === "preorder";
+    return product.source === "Pré-venda" || product.status === "preorder";
   }
 
   if (filter === "specials") {
@@ -361,9 +429,10 @@ function filterFallbackProducts(filters: ReturnType<typeof normalizeCatalogFilte
     const matchesSubcategory = filters.subcategory
       ? product.subcategory === filters.subcategory
       : true;
+    const matchesSupplier = filters.supplier ? product.supplierSlug === filters.supplier : true;
     const matchesFilter = fallbackProductMatchesFilter(product, filters.filter);
 
-    return matchesQuery && matchesFranchise && matchesCategory && matchesSubcategory && matchesFilter;
+    return matchesQuery && matchesFranchise && matchesCategory && matchesSubcategory && matchesSupplier && matchesFilter;
   });
   const from = (filters.page - 1) * filters.pageSize;
   const pageItems = filtered.slice(from, from + filters.pageSize);
@@ -412,6 +481,25 @@ async function getFranchiseIdBySlug(
 
   if (error) {
     console.error("Failed to resolve catalog franchise", error);
+    return undefined;
+  }
+
+  return data?.id as string | undefined;
+}
+
+async function getSupplierIdBySlug(
+  supabase: ReturnType<typeof getPublicSupabase>,
+  slug: string,
+) {
+  const { data, error } = await supabase
+    .from("suppliers")
+    .select("id")
+    .eq("slug", slug)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to resolve catalog supplier", error);
     return undefined;
   }
 
@@ -477,12 +565,25 @@ async function getCatalogProductsPageUncached(
   const supabase = getPublicSupabase();
   const from = (filters.page - 1) * filters.pageSize;
   const to = from + filters.pageSize - 1;
-  const [franchiseId, searchIds] = await Promise.all([
+  const [franchiseId, supplierId, searchIds] = await Promise.all([
     filters.franchise ? getFranchiseIdBySlug(supabase, filters.franchise) : Promise.resolve(undefined),
+    filters.supplier ? getSupplierIdBySlug(supabase, filters.supplier) : Promise.resolve(undefined),
     filters.query ? getSearchRelationIds(supabase, filters.query) : Promise.resolve(undefined),
   ]);
 
   if (filters.franchise && !franchiseId) {
+    return {
+      data: [],
+      meta: {
+        page: filters.page,
+        pageSize: filters.pageSize,
+        total: 0,
+        totalPages: 1,
+      },
+    };
+  }
+
+  if (filters.supplier && !supplierId) {
     return {
       data: [],
       meta: {
@@ -529,6 +630,10 @@ async function getCatalogProductsPageUncached(
 
   if (franchiseId) {
     query = query.eq("franchise_id", franchiseId);
+  }
+
+  if (supplierId) {
+    query = query.eq("supplier_id", supplierId);
   }
 
   if (filters.category) {
@@ -657,6 +762,79 @@ const getCachedCatalogFranchises = unstable_cache(
 
 export async function getCatalogFranchises() {
   return getCachedCatalogFranchises();
+}
+
+async function getCatalogSuppliersUncached() {
+  if (!hasSupabasePublicEnv()) {
+    return fallbackOrThrow(fallbackSuppliers, "Fornecedores publicos");
+  }
+
+  const supabase = getPublicSupabase();
+  const { data, error } = await supabase
+    .from("suppliers")
+    .select("id,name,slug,description,logo_url,banner_url,accent_color,website_url,status,sort_order")
+    .eq("status", "active")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error || !data) {
+    console.error("Failed to load catalog suppliers", error);
+    return fallbackOrThrow(fallbackSuppliers, "Fornecedores publicos");
+  }
+
+  return data as CatalogSupplier[];
+}
+
+const getCachedCatalogSuppliers = unstable_cache(
+  getCatalogSuppliersUncached,
+  ["catalog-suppliers"],
+  {
+    revalidate: CATALOG_OPTIONS_REVALIDATE_SECONDS,
+    tags: ["catalog-options"],
+  },
+);
+
+export async function getCatalogSuppliers() {
+  return getCachedCatalogSuppliers();
+}
+
+async function getCatalogSupplierBySlugUncached(slug: string) {
+  if (!hasSupabasePublicEnv()) {
+    return fallbackOrThrow(
+      fallbackSuppliers.find((supplier) => supplier.slug === slug),
+      "Fornecedor publico",
+    );
+  }
+
+  const supabase = getPublicSupabase();
+  const { data, error } = await supabase
+    .from("suppliers")
+    .select("id,name,slug,description,logo_url,banner_url,accent_color,website_url,status,sort_order")
+    .eq("slug", slug)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error("Failed to load catalog supplier", error);
+    return shouldUseCatalogFallback()
+      ? fallbackSuppliers.find((supplier) => supplier.slug === slug)
+      : undefined;
+  }
+
+  return data as CatalogSupplier;
+}
+
+const getCachedCatalogSupplierBySlug = unstable_cache(
+  getCatalogSupplierBySlugUncached,
+  ["catalog-supplier-by-slug"],
+  {
+    revalidate: CATALOG_OPTIONS_REVALIDATE_SECONDS,
+    tags: ["catalog-options"],
+  },
+);
+
+export async function getCatalogSupplierBySlug(slug: string) {
+  return getCachedCatalogSupplierBySlug(slug);
 }
 
 function buildCatalogCategories(

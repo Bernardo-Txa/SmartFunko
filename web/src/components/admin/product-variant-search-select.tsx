@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { Loader2, Search, X } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import { getProductVariantStatusMeta } from "@/lib/status-labels";
 
 export type ProductVariantSearchOption = {
   id: string;
@@ -176,7 +177,7 @@ export function ProductVariantSearchSelect({
                 >
                   <span className="text-sm font-semibold text-[var(--foreground)]">{option.productName}</span>
                   <span className="text-xs text-[var(--muted)]">
-                    {option.sku} · {formatCurrency(option.salePrice)} · {option.status}
+                    {option.sku} · {formatCurrency(option.salePrice)} · {getProductVariantStatusMeta(option.status).label}
                   </span>
                 </button>
               ))}

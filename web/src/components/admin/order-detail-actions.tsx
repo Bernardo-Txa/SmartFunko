@@ -7,6 +7,7 @@ import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
 } from "@/components/admin/product-variant-search-select";
+import { orderItemStatusOptions } from "@/lib/status-labels";
 
 type InventoryOption = {
   id: string;
@@ -30,25 +31,10 @@ type DraftItem = {
   unitPrice: number;
 };
 
-const itemStatuses = [
-  "requested",
-  "reserved",
-  "waiting_payment",
-  "paid",
-  "waiting_purchase",
-  "purchased",
-  "in_transit",
-  "received",
-  "ready_to_ship",
-  "shipped",
-  "delivered",
-  "cancelled",
-];
-
 const sourceLabels = {
   international_order: "Importado",
   national_order: "Encomenda nacional",
-  preorder: "Pre-venda",
+  preorder: "Pré-venda",
   stock: "Pronta-entrega",
 };
 
@@ -368,9 +354,9 @@ export function OrderDetailActions({
                 }
                 className="h-10 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
               >
-                {itemStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
+                {orderItemStatusOptions.map(({ label, value }) => (
+                  <option key={value} value={value}>
+                    {label}
                   </option>
                 ))}
               </select>

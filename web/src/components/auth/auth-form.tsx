@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
 import { getDefaultAuthenticatedPath, sanitizeNextPath } from "@/lib/auth/redirect";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { ProfileRole } from "@/server/auth/require-user";
 
 type AuthMode = "login" | "register";
+type ProfileRole = "admin" | "customer" | "owner";
 
 const modeCopy = {
   login: {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { InventoryCreateForm } from "@/components/admin/inventory-create-form";
+import { InventoryStatusBadge } from "@/components/ui/status-badge";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { InventoryService } from "@/server/inventory/inventory-service";
 
@@ -43,9 +44,7 @@ export default async function AdminInventoryPage() {
             </strong>
             <div className="mt-4 flex items-center justify-between gap-3 text-sm">
               <span className="text-[var(--muted)]">{item.location ?? "Sem local"}</span>
-              <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 font-semibold text-[var(--foreground)]">
-                {item.status}
-              </span>
+              <InventoryStatusBadge status={item.status} />
             </div>
           </article>
         ))}

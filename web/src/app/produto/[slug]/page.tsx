@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { clsx } from "clsx";
 import { MessageCircle } from "lucide-react";
@@ -7,17 +8,11 @@ import { ProductMedia } from "@/components/product/product-card";
 import { ProductStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { getCatalogProductBySlug } from "@/lib/catalog";
+import { getProductVariantStatusMeta } from "@/lib/status-labels";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
 
 type Props = {
   params: Promise<{ slug: string }>;
-};
-
-const statusLabels = {
-  available: "Disponivel",
-  order_only: "Sob encomenda",
-  preorder: "Pre-venda",
-  sold_out: "Esgotado",
 };
 
 function getSpecialPills(product: {
@@ -127,6 +122,14 @@ export default async function ProductPage({ params }: Props) {
           <p className="mt-2 text-sm text-[var(--muted)]">
             {product.franchise} · #{product.funkoNumber} · {product.sku}
           </p>
+          {product.supplierName && product.supplierSlug ? (
+            <Link
+              href={`/fornecedores/${product.supplierSlug}`}
+              className="mt-3 inline-flex rounded-md bg-[var(--surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--foreground)] hover:text-[var(--accent)]"
+            >
+              {product.supplierName}
+            </Link>
+          ) : null}
 
           <div className="mt-6 border-y border-[var(--border)] py-5">
             <p className="text-3xl font-bold text-[var(--foreground)]">
@@ -154,7 +157,7 @@ export default async function ProductPage({ params }: Props) {
             </div>
             <div>
               <dt className="font-semibold text-[var(--foreground)]">Status</dt>
-              <dd className="text-[var(--muted)]">{statusLabels[product.status]}</dd>
+              <dd className="text-[var(--muted)]">{getProductVariantStatusMeta(product.status).label}</dd>
             </div>
           </dl>
 

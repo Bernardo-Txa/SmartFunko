@@ -10,22 +10,24 @@ export const metadata: Metadata = {
   title: "Meus pedidos",
 };
 
-const labels = {
-  pending_payment: "Aguardando pagamento",
-  paid: "Pago",
-  processing: "Em separacao",
-  ready_to_ship: "Pronto para envio",
-  shipped: "Enviado",
-};
-
 type AccountOrder = {
   id: string;
   order_number: string;
-  status: keyof typeof labels;
+  status: string;
   total: number;
   updated_at: string;
   order_items?: Array<unknown>;
+  payments?: Array<{
+    amount: number;
+    status: string;
+  }>;
 };
+
+function getPaidAmount(order: AccountOrder) {
+  return (order.payments ?? [])
+    .filter((payment) => payment.status === "paid")
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+}
 
 export default async function AccountOrdersPage() {
   const { customer } = await requireUserPage("/conta/pedidos");
@@ -56,38 +58,52 @@ export default async function AccountOrdersPage() {
       </div>
 
       <div className="space-y-3">
-        {orders.map((order) => (
-          <article
-            key={order.id}
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
-          >
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-bold text-[var(--foreground)]">
-                    {order.order_number}
-                  </h2>
-                  <OrderStatusBadge label={labels[order.status] ?? order.status} />
+        {orders.length > 0 ? (
+          orders.map((order) => {
+            const paidAmount = getPaidAmount(order);
+            const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
+
+            return (
+              <article
+                key={order.id}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+              >
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-bold text-[var(--foreground)]">
+                        {order.order_number}
+                      </h2>
+                      <OrderStatusBadge status={order.status} />
+                    </div>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Atualizado em {formatDate(order.updated_at)} · {order.order_items?.length ?? 0} item(ns)
+                    </p>
+                    <p className="mt-2 text-sm text-[var(--muted)]">
+                      Pago {formatCurrency(paidAmount)} · Pendente {formatCurrency(pendingAmount)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 md:justify-end">
+                    <strong className="text-lg text-[var(--foreground)]">
+                      {formatCurrency(order.total)}
+                    </strong>
+                    <Link
+                      href={`/conta/pedidos/${order.order_number}`}
+                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                    >
+                      Abrir
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </Link>
+                  </div>
                 </div>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  Atualizado em {formatDate(order.updated_at)} · {order.order_items?.length ?? 0} item(ns)
-                </p>
-              </div>
-              <div className="flex items-center justify-between gap-4 md:justify-end">
-                <strong className="text-lg text-[var(--foreground)]">
-                  {formatCurrency(order.total)}
-                </strong>
-                <Link
-                  href={`/conta/pedidos/${order.order_number}`}
-                  className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-                >
-                  Abrir
-                  <ArrowRight size={16} aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
-          </article>
-        ))}
+              </article>
+            );
+          })
+        ) : (
+          <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+            Você ainda não possui pedidos cadastrados.
+          </p>
+        )}
       </div>
     </div>
   );

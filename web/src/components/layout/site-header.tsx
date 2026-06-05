@@ -10,15 +10,12 @@ export async function SiteHeader() {
   const ordersHref = currentUser ? "/conta/pedidos" : "/login?next=/conta/pedidos";
   const links: Array<{ href: string; label: string }> = [
     { href: "/catalogo", label: "Catalogo" },
+    { href: "/fornecedores", label: "Fornecedores" },
     { href: ordersHref, label: "Meus pedidos" },
   ];
 
   if (currentUser) {
     links.push({ href: "/conta", label: "Minha conta" });
-  }
-
-  if (isOwner) {
-    links.push({ href: "/admin/dashboard", label: "Painel" });
   }
 
   return (

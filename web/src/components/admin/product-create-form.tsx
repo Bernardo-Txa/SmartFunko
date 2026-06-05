@@ -5,7 +5,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
-export function ProductCreateForm() {
+type SupplierOption = {
+  id: string;
+  name: string;
+};
+
+export function ProductCreateForm({ suppliers = [] }: { suppliers?: SupplierOption[] }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -29,6 +34,7 @@ export function ProductCreateForm() {
     const slug = String(formData.get("slug") ?? "").trim();
     const sku = String(formData.get("sku") ?? "");
     const subcategoryName = String(formData.get("subcategoryName") ?? "").trim();
+    const supplierId = String(formData.get("supplierId") ?? "").trim();
     const salePrice = Number(formData.get("salePrice") ?? 0);
     const marketPrice = Number(formData.get("marketPrice") || 0);
     const estimatedCost = Number(formData.get("estimatedCost") || 0);
@@ -54,6 +60,7 @@ export function ProductCreateForm() {
           slug: slug || undefined,
           status: "active",
           subcategoryName: subcategoryName || null,
+          supplierId: supplierId || null,
         }),
         headers: { "content-type": "application/json" },
         method: "POST",
@@ -120,7 +127,7 @@ export function ProductCreateForm() {
             />
           </label>
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Slug</span>
             <input
@@ -149,6 +156,20 @@ export function ProductCreateForm() {
               name="subcategoryName"
               className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Fornecedor/marca</span>
+            <select
+              name="supplierId"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              <option value="">Sem fornecedor</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.name}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
         <div className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 md:grid-cols-[96px_1fr] md:items-center">
@@ -233,7 +254,7 @@ export function ProductCreateForm() {
               <option value="own_stock">Pronta-entrega</option>
               <option value="national">Nacional</option>
               <option value="international">Importado</option>
-              <option value="preorder">Pre-venda</option>
+              <option value="preorder">Pré-venda</option>
             </select>
           </label>
           <label className="block">
@@ -257,9 +278,9 @@ export function ProductCreateForm() {
               defaultValue="order_only"
               className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
-              <option value="available">Disponivel</option>
+              <option value="available">Disponível</option>
               <option value="order_only">Sob encomenda</option>
-              <option value="preorder">Pre-venda</option>
+              <option value="preorder">Pré-venda</option>
               <option value="sold_out">Esgotado</option>
               <option value="hidden">Oculto</option>
             </select>

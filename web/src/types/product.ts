@@ -8,7 +8,7 @@ export type ProductSource =
   | "Pronta-entrega"
   | "Encomenda nacional"
   | "Importado"
-  | "Pre-venda";
+  | "Pré-venda";
 
 export type ProductTone = "teal" | "pink" | "amber" | "indigo";
 
@@ -33,6 +33,9 @@ export type Product = {
   source: ProductSource;
   status: ProductStatus;
   subcategory?: string;
+  supplierId?: string;
+  supplierName?: string;
+  supplierSlug?: string;
   tone: ProductTone;
   type: ProductType;
 };

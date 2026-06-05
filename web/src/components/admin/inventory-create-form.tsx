@@ -83,9 +83,9 @@ export function InventoryCreateForm() {
               defaultValue="available"
               className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
-              <option value="available">Disponivel</option>
-              <option value="in_transit">Em transito</option>
-              <option value="unavailable">Indisponivel</option>
+              <option value="available">Disponível</option>
+              <option value="in_transit">Em trânsito</option>
+              <option value="unavailable">Indisponível</option>
               <option value="damaged">Avariado</option>
             </select>
           </label>

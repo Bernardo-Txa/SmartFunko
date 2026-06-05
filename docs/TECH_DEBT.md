@@ -17,8 +17,9 @@ Criar uma RPC Postgres `record_manual_payment(...)` para executar o fluxo inteir
 ## Proxima sprint
 
 - Criar upload real de imagens no painel; hoje o MVP usa URL externa em `main_image_url`.
-- Completar tela de edicao detalhada de produto/variante.
+- Melhorar editor de produto com upload, historico visual de alteracoes e validacoes de SEO.
 - Automatizar Pix e baixa de pagamento.
 - Criar checkout proprio apenas depois do fluxo WhatsApp estabilizar.
 - Preparar Flutter mobile depois da V1 web/admin.
 - Planejar leilao, rifa/campanha e notificacoes automaticas fora do MVP operacional.
+- Enriquecer metadados de marcas no importador quando cada parceiro exigir campos proprios alem de `supplier_id`.

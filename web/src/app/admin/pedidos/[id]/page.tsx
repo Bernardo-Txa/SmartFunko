@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { OrderDetailActions } from "@/components/admin/order-detail-actions";
-import { OrderStatusBadge } from "@/components/ui/status-badge";
+import { OrderItemStatusBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { env } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOperationalStatusMeta } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { OrderService } from "@/server/orders/order-service";
@@ -95,23 +96,10 @@ type AuditLogItem = {
   } | null;
 };
 
-const statusLabels: Record<string, string> = {
-  cancelled: "Cancelado",
-  delivered: "Entregue",
-  draft: "Rascunho",
-  paid: "Pago",
-  partially_paid: "Parcialmente pago",
-  pending_payment: "Aguardando pagamento",
-  processing: "Em separacao",
-  ready_to_ship: "Pronto para envio",
-  refunded: "Estornado",
-  shipped: "Enviado",
-};
-
 const sourceLabels: Record<string, string> = {
   international_order: "Importado",
   national_order: "Encomenda nacional",
-  preorder: "Pre-venda",
+  preorder: "Pré-venda",
   stock: "Pronta-entrega",
 };
 
@@ -158,7 +146,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <OrderStatusBadge label={statusLabels[order.status] ?? order.status} />
+                <OrderStatusBadge status={order.status} />
                 <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-xs font-semibold text-[var(--muted)]">
                   {order.channel}
                 </span>
@@ -209,7 +197,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                     </td>
                     <td className="px-4 py-3 text-[var(--muted)]">{item.product_variants?.sku ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">{sourceLabels[item.source] ?? item.source}</td>
-                    <td className="px-4 py-3 text-[var(--foreground)]">{item.status}</td>
+                    <td className="px-4 py-3">
+                      <OrderItemStatusBadge status={item.status} />
+                    </td>
                     <td className="px-4 py-3 text-[var(--muted)]">{item.quantity}</td>
                     <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.unit_price)}</td>
                     <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.total_price)}</td>
@@ -231,8 +221,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                 >
                   <div>
                     <strong className="text-[var(--foreground)]">{payment.method}</strong>
-                    <p className="text-[var(--muted)]">
-                      {payment.status} · {payment.paid_at ? formatDate(payment.paid_at) : "Sem data de baixa"}
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-[var(--muted)]">
+                      <PaymentStatusBadge status={payment.status} />
+                      <span>{payment.paid_at ? formatDate(payment.paid_at) : "Sem data de baixa"}</span>
                     </p>
                   </div>
                   <span className="font-semibold text-[var(--foreground)]">{formatCurrency(payment.amount)}</span>
@@ -271,7 +262,8 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               {(history as unknown as HistoryItem[]).map((entry) => (
                 <div key={entry.id} className="rounded-lg border border-[var(--border)] p-3 text-sm">
                   <strong className="text-[var(--foreground)]">
-                    {entry.previous_status ?? "inicio"} {"->"} {entry.new_status}
+                    {entry.previous_status ? getOperationalStatusMeta(entry.previous_status).label : "Inicio"} {"->"}{" "}
+                    {getOperationalStatusMeta(entry.new_status).label}
                   </strong>
                   <p className="mt-1 text-[var(--muted)]">
                     {formatDate(entry.created_at)} · {entry.profiles?.name ?? "Sistema"}

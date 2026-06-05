@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
+import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { DashboardService } from "@/server/dashboard/dashboard-service";
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 type LatestOrder = {
   id: string;
   order_number: string;
+  status: string;
   total: number;
   customers?: {
     name?: string;
@@ -46,7 +48,10 @@ export default async function AdminDashboardPage() {
               className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
             >
               <div>
-                <strong className="text-sm text-[var(--foreground)]">{order.order_number}</strong>
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong className="text-sm text-[var(--foreground)]">{order.order_number}</strong>
+                  <OrderStatusBadge status={order.status} />
+                </div>
                 <p className="text-sm text-[var(--muted)]">{order.customers?.name ?? "Cliente"}</p>
               </div>
               <span className="text-sm font-semibold text-[var(--foreground)]">

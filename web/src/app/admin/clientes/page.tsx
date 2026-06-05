@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   title: "Clientes admin",
 };
 
+const customerStatusLabels: Record<string, string> = {
+  active: "Ativo",
+  blocked: "Bloqueado",
+  vip: "VIP",
+};
+
 export default async function AdminCustomersPage() {
   const admin = await requireAdminPage();
   const customers = await new CustomerService(undefined, admin.profile.id).listCustomers();
@@ -31,7 +37,9 @@ export default async function AdminCustomersPage() {
                 </td>
                 <td className="px-4 py-3 text-[var(--muted)]">{customer.email ?? "-"}</td>
                 <td className="px-4 py-3 text-[var(--muted)]">{customer.phone ?? "-"}</td>
-                <td className="px-4 py-3 text-[var(--foreground)]">{customer.status}</td>
+                <td className="px-4 py-3 text-[var(--foreground)]">
+                  {customerStatusLabels[customer.status] ?? customer.status}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -3,6 +3,7 @@ import {
   Boxes,
   ChartNoAxesColumn,
   CreditCard,
+  Handshake,
   LayoutDashboard,
   Package,
   ReceiptText,
@@ -12,6 +13,7 @@ import {
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/produtos", label: "Produtos", icon: Package },
+  { href: "/admin/fornecedores", label: "Fornecedores", icon: Handshake },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
   { href: "/admin/estoque", label: "Estoque", icon: Boxes },

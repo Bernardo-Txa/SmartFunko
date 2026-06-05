@@ -4,7 +4,7 @@ const DEFAULT_OWNER_PATH = "/admin/dashboard";
 type AuthRole = "customer" | "admin" | "owner";
 
 export function getDefaultAuthenticatedPath(role?: AuthRole | null) {
-  return role === "owner" || role === "admin" ? DEFAULT_OWNER_PATH : DEFAULT_CUSTOMER_PATH;
+  return role === "owner" ? DEFAULT_OWNER_PATH : DEFAULT_CUSTOMER_PATH;
 }
 
 export function sanitizeNextPath(value: string | null | undefined) {

@@ -11,7 +11,7 @@ export async function GET() {
       throw forbidden("Cliente nao vinculado ao usuario");
     }
 
-    const orders = await new OrderService().getCustomerOrders(customer.id);
+    const orders = await new OrderService().getCustomerOrdersForApi(customer.id);
     return jsonOk(orders);
   });
 }

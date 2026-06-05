@@ -1,4 +1,4 @@
-import { OrderStatusBadge } from "@/components/ui/status-badge";
+import { OrderItemStatusBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 export type OrderDetailData = {
@@ -8,6 +8,14 @@ export type OrderDetailData = {
   total: number;
   paidAmount: number;
   pendingAmount?: number;
+  notes?: string | null;
+  payments?: Array<{
+    amount: number;
+    createdAt?: string | null;
+    method: string;
+    paidAt?: string | null;
+    status: string;
+  }>;
   updatedAt: string;
   items: Array<{
     name: string;
@@ -18,12 +26,12 @@ export type OrderDetailData = {
   }>;
 };
 
-const labels = {
-  pending_payment: "Aguardando pagamento",
-  paid: "Pago",
-  processing: "Em separacao",
-  ready_to_ship: "Pronto para envio",
-  shipped: "Enviado",
+const paymentMethodLabels: Record<string, string> = {
+  cash: "Dinheiro",
+  credit_card: "Crédito",
+  debit_card: "Débito",
+  manual: "Manual",
+  pix: "Pix",
 };
 
 export function OrderDetail({ order }: { order: OrderDetailData }) {
@@ -37,7 +45,7 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
             <h1 className="text-2xl font-bold text-[var(--foreground)]">
               {order.orderNumber}
             </h1>
-            <OrderStatusBadge label={labels[order.status as keyof typeof labels] ?? order.status} />
+            <OrderStatusBadge status={order.status} />
           </div>
           <p className="mt-2 text-sm text-[var(--muted)]">
             {order.customerName} · atualizado em {formatDate(order.updatedAt)}
@@ -65,13 +73,57 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 md:justify-end">
-              <OrderStatusBadge label={item.status} />
+              <OrderItemStatusBadge status={item.status} />
               <strong className="text-sm text-[var(--foreground)]">
                 {formatCurrency(item.unitPrice)}
               </strong>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <section className="rounded-lg border border-[var(--border)] p-4">
+          <h2 className="text-sm font-bold text-[var(--foreground)]">Pagamentos</h2>
+          <div className="mt-3 grid gap-3">
+            {(order.payments ?? []).length > 0 ? (
+              (order.payments ?? []).map((payment, index) => (
+                <div
+                  key={`${order.orderNumber}-payment-${index}`}
+                  className="flex flex-col gap-2 rounded-md border border-[var(--border)] p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <strong className="text-[var(--foreground)]">
+                      {paymentMethodLabels[payment.method] ?? payment.method}
+                    </strong>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {payment.paidAt
+                        ? formatDate(payment.paidAt)
+                        : payment.createdAt
+                          ? formatDate(payment.createdAt)
+                          : "Sem data registrada"}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 sm:justify-end">
+                    <PaymentStatusBadge status={payment.status} />
+                    <strong className="text-sm text-[var(--foreground)]">
+                      {formatCurrency(payment.amount)}
+                    </strong>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-[var(--muted)]">Nenhum pagamento registrado.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-[var(--border)] p-4">
+          <h2 className="text-sm font-bold text-[var(--foreground)]">Observações</h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+            {order.notes || "Nenhuma observação pública registrada."}
+          </p>
+        </section>
       </div>
     </section>
   );

@@ -126,9 +126,20 @@ export function ProductCard({
           <ProductStatusBadge status={product.status} />
         </div>
 
-        <p className="mt-3 text-xs font-black uppercase text-sky-300">
-          {product.franchise}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p className="text-xs font-black uppercase text-sky-300">
+            {product.franchise}
+          </p>
+          {product.supplierName && product.supplierSlug ? (
+            <Link
+              href={`/fornecedores/${product.supplierSlug}`}
+              prefetch={false}
+              className="rounded-md bg-slate-800 px-2 py-1 text-[11px] font-bold text-slate-300 hover:text-[var(--accent)]"
+            >
+              {product.supplierName}
+            </Link>
+          ) : null}
+        </div>
 
         <Link
           href={`/produto/${product.slug}`}

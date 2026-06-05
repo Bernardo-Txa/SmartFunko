@@ -17,6 +17,12 @@ type AccountOrder = {
   }>;
 };
 
+const customerStatusLabels: Record<string, string> = {
+  active: "Ativo",
+  blocked: "Bloqueado",
+  vip: "VIP",
+};
+
 function getPaidAmount(order: AccountOrder) {
   return (order.payments ?? [])
     .filter((payment) => payment.status === "paid")
@@ -69,7 +75,9 @@ export default async function AccountPage() {
             </div>
             <div>
               <dt className="font-semibold text-[var(--foreground)]">Status</dt>
-              <dd className="text-[var(--muted)]">{customer?.status ?? "Sem cliente vinculado"}</dd>
+              <dd className="text-[var(--muted)]">
+                {customer ? customerStatusLabels[customer.status] ?? customer.status : "Sem cliente vinculado"}
+              </dd>
             </div>
           </dl>
         </section>

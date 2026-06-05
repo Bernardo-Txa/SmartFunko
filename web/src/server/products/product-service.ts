@@ -62,10 +62,30 @@ const specialTagsSchema = z.preprocess(
   z.array(z.string()).default([]),
 ).transform((tags) => Array.from(new Set(tags)));
 
+const optionalSpecialTagsSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const rawTags = Array.isArray(value)
+      ? value
+      : typeof value === "string"
+        ? value.split(/[|,]/)
+        : [];
+
+    return rawTags
+      .map((entry) => String(entry).trim())
+      .filter(Boolean);
+  },
+  z.array(z.string()).optional(),
+).transform((tags) => (tags ? Array.from(new Set(tags)) : undefined));
+
 export const createProductSchema = z.object({
   name: z.string().trim().min(2),
   slug: optionalTrimmedText(2),
   franchiseId: z.string().uuid().optional().nullable(),
+  supplierId: z.string().uuid().optional().nullable(),
   funkoNumber: nullableTrimmedText(),
   categoryName: nullableTrimmedText(),
   subcategoryName: nullableTrimmedText(),
@@ -91,9 +111,23 @@ export const createProductVariantSchema = z.object({
   status: z.enum(["available", "order_only", "preorder", "sold_out", "hidden"]).default("available"),
 });
 
+export const updateProductVariantSchema = z.object({
+  condition: z.enum(["new", "used", "damaged_box"]).optional(),
+  estimatedCost: z.number().nonnegative().optional().nullable(),
+  marketPrice: z.number().nonnegative().optional().nullable(),
+  salePrice: z.number().nonnegative().optional(),
+  sku: z.string().trim().min(2).optional(),
+  source: z.enum(["own_stock", "national", "international", "preorder"]).optional(),
+  specialLabel: nullableTrimmedText(),
+  specialTags: optionalSpecialTagsSchema,
+  status: z.enum(["available", "order_only", "preorder", "sold_out", "hidden"]).optional(),
+  type: z.enum(["common", "exclusive", "chase", "glow", "special"]).optional(),
+});
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type CreateProductVariantInput = z.infer<typeof createProductVariantSchema>;
+export type UpdateProductVariantInput = z.infer<typeof updateProductVariantSchema>;
 
 type EntityWithId = {
   id: string;
@@ -150,11 +184,16 @@ function slugify(value: string) {
 
 function productSelect() {
   return `
-    id,name,slug,franchise_id,funko_number,description,main_image_url,status,created_at,updated_at,
+    id,name,slug,franchise_id,supplier_id,funko_number,description,main_image_url,status,created_at,updated_at,
     category_name,subcategory_name,external_catalog_code,
     franchises(id,name,slug),
+    suppliers(id,name,slug),
     product_variants(id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at)
   `;
+}
+
+function variantSelect() {
+  return "id,product_id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at";
 }
 
 function firstRelation<T>(relation: T | T[] | null | undefined) {
@@ -220,6 +259,33 @@ export class ProductService {
 
     if (error) {
       throwQueryError(error, "Falha ao listar produtos");
+    }
+
+    return data ?? [];
+  }
+
+  async listProductsBySupplierId(supplierId: string) {
+    const { data, error } = await this.supabase
+      .from("products")
+      .select(productSelect())
+      .eq("supplier_id", supplierId)
+      .order("name", { ascending: true });
+
+    if (error) {
+      throwQueryError(error, "Falha ao listar produtos por fornecedor");
+    }
+
+    return data ?? [];
+  }
+
+  async listFranchiseOptions() {
+    const { data, error } = await this.supabase
+      .from("franchises")
+      .select("id,name,slug")
+      .order("name", { ascending: true });
+
+    if (error) {
+      throwQueryError(error, "Falha ao listar franquias");
     }
 
     return data ?? [];
@@ -326,6 +392,10 @@ export class ProductService {
     return data;
   }
 
+  async getAdminProductById(id: string) {
+    return this.getProductById(id);
+  }
+
   async getProductBySlug(slug: string) {
     const { data, error } = await this.supabase
       .from("products")
@@ -359,6 +429,7 @@ export class ProductService {
         slug,
         status: input.status,
         subcategory_name: input.subcategoryName ?? null,
+        supplier_id: input.supplierId ?? null,
       })
       .select(productSelect())
       .single();
@@ -393,6 +464,7 @@ export class ProductService {
       slug: input.slug ? slugify(input.slug) : undefined,
       status: input.status,
       subcategory_name: input.subcategoryName,
+      supplier_id: input.supplierId,
     });
 
     const { data, error } = await this.supabase
@@ -421,7 +493,7 @@ export class ProductService {
   async listVariants(productId: string) {
     const { data, error } = await this.supabase
       .from("product_variants")
-      .select("id,product_id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at")
+      .select(variantSelect())
       .eq("product_id", productId)
       .order("created_at", { ascending: false });
 
@@ -448,7 +520,7 @@ export class ProductService {
         status: input.status,
         type: input.type,
       })
-      .select("id,product_id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at")
+      .select(variantSelect())
       .single();
 
     if (error) {
@@ -463,6 +535,62 @@ export class ProductService {
       entityId: created.id,
       entityType: "product_variant",
       newValue: data,
+    });
+
+    return data;
+  }
+
+  async getVariantById(id: string) {
+    const { data, error } = await this.supabase
+      .from("product_variants")
+      .select(variantSelect())
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao buscar variante");
+    }
+
+    if (!data) {
+      throw notFound("Variante nao encontrada");
+    }
+
+    return data;
+  }
+
+  async updateProductVariant(id: string, input: UpdateProductVariantInput) {
+    const current = await this.getVariantById(id);
+    const patch = withoutUndefined({
+      condition: input.condition,
+      estimated_cost: input.estimatedCost,
+      market_price: input.marketPrice,
+      sale_price: input.salePrice,
+      sku: input.sku,
+      source: input.source,
+      special_label: input.specialLabel,
+      special_tags: input.specialTags,
+      status: input.status,
+      type: input.type,
+    });
+
+    const { data, error } = await this.supabase
+      .from("product_variants")
+      .update(patch)
+      .eq("id", id)
+      .select(variantSelect())
+      .single();
+
+    if (error) {
+      throwQueryError(error, "Falha ao atualizar variante");
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "product_variant.update",
+      adminId: this.actorId,
+      entityId: id,
+      entityType: "product_variant",
+      newValue: data,
+      oldValue: current,
     });
 
     return data;

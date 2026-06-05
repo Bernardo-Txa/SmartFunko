@@ -38,7 +38,7 @@ type DraftItem = {
 const sourceLabels = {
   international_order: "Importado",
   national_order: "Encomenda nacional",
-  preorder: "Pre-venda",
+  preorder: "Pré-venda",
   stock: "Pronta-entrega",
 };
 

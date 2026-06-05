@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { orderStatusOptions } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { OrderService } from "@/server/orders/order-service";
 
@@ -11,22 +12,9 @@ export const metadata: Metadata = {
   title: "Pedidos admin",
 };
 
-const labels = {
-  cancelled: "Cancelado",
-  delivered: "Entregue",
-  draft: "Rascunho",
-  pending_payment: "Aguardando pagamento",
-  partially_paid: "Parcialmente pago",
-  paid: "Pago",
-  processing: "Em separacao",
-  ready_to_ship: "Pronto para envio",
-  refunded: "Estornado",
-  shipped: "Enviado",
-};
-
 const channels = {
   admin: "Admin",
-  preorder: "Pre-venda",
+  preorder: "Pré-venda",
   website: "Site",
   whatsapp: "WhatsApp",
 };
@@ -36,7 +24,7 @@ type AdminOrder = {
   created_at: string;
   id: string;
   order_number: string;
-  status: keyof typeof labels;
+  status: string;
   total: number;
   customers?: {
     name?: string;
@@ -95,7 +83,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
               <option value="">Todos</option>
-              {Object.entries(labels).map(([value, label]) => (
+              {orderStatusOptions.map(({ label, value }) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
@@ -163,7 +151,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   <td className="px-4 py-3 text-[var(--muted)]">{formatCurrency(paidAmount)}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatCurrency(pendingAmount)}</td>
                   <td className="px-4 py-3">
-                    <OrderStatusBadge label={labels[order.status] ?? order.status} />
+                    <OrderStatusBadge status={order.status} />
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatDate(order.created_at)}</td>
                 </tr>

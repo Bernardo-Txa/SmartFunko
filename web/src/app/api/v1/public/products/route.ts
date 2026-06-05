@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     pageSize: Number(searchParams.get("pageSize") ?? 24),
     query: searchParams.get("q") ?? undefined,
     subcategory: searchParams.get("subcategory") ?? undefined,
+    supplier: searchParams.get("supplier") ?? undefined,
   });
 
   return Response.json(

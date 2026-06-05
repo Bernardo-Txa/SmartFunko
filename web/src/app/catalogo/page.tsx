@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CatalogCategoryFilter } from "@/components/product/catalog-category-filter";
 import { ProductCard } from "@/components/product/product-card";
-import { getCatalogCategories, getCatalogProductsPage, type CatalogProductFilter } from "@/lib/catalog";
+import {
+  getCatalogCategories,
+  getCatalogProductsPage,
+  getCatalogSuppliers,
+  type CatalogProductFilter,
+} from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Catalogo",
@@ -15,6 +20,7 @@ type Props = {
     page?: string;
     q?: string;
     subcategory?: string;
+    supplier?: string;
   }>;
 };
 
@@ -38,8 +44,10 @@ export default async function CatalogPage({ searchParams }: Props) {
   const page = Number(params.page ?? 1);
   const query = params.q ?? "";
   const subcategory = params.subcategory ?? "";
-  const [categories, productPage] = await Promise.all([
+  const supplier = params.supplier ?? "";
+  const [categories, suppliers, productPage] = await Promise.all([
     getCatalogCategories(),
+    getCatalogSuppliers(),
     getCatalogProductsPage({
       category,
       filter,
@@ -47,6 +55,7 @@ export default async function CatalogPage({ searchParams }: Props) {
       pageSize: 24,
       query,
       subcategory,
+      supplier,
     }),
   ]);
   const { data: products, meta } = productPage;
@@ -61,7 +70,9 @@ export default async function CatalogPage({ searchParams }: Props) {
           currentCategory={category}
           currentFilter={filter}
           currentSubcategory={subcategory}
+          currentSupplier={supplier}
           query={query}
+          suppliers={suppliers}
         />
       </section>
 
@@ -83,6 +94,7 @@ export default async function CatalogPage({ searchParams }: Props) {
             page: Math.max(1, meta.page - 1),
             q: query,
             subcategory,
+            supplier,
           })}
           prefetch={false}
           aria-disabled={meta.page <= 1}
@@ -100,6 +112,7 @@ export default async function CatalogPage({ searchParams }: Props) {
             page: Math.min(meta.totalPages, meta.page + 1),
             q: query,
             subcategory,
+            supplier,
           })}
           prefetch={false}
           aria-disabled={meta.page >= meta.totalPages}

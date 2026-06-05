@@ -1,37 +1,65 @@
 import { clsx } from "clsx";
 import type { ProductStatus } from "@/types/product";
-
-const productStatusLabel: Record<ProductStatus, string> = {
-  available: "DISPONIVEL",
-  order_only: "SOB ENCOMENDA",
-  preorder: "PRE-VENDA",
-  sold_out: "ESGOTADO",
-};
-
-const productStatusClass: Record<ProductStatus, string> = {
-  available: "bg-emerald-500/20 text-emerald-200 ring-emerald-400/40",
-  order_only: "bg-cyan-500/20 text-cyan-100 ring-cyan-400/40",
-  preorder: "bg-yellow-300 text-slate-950 ring-yellow-200/50",
-  sold_out: "bg-slate-500/20 text-slate-300 ring-slate-400/30",
-};
+import {
+  getInventoryStatusMeta,
+  getOrderItemStatusMeta,
+  getOrderStatusMeta,
+  getPaymentStatusMeta,
+  getProductStatusMeta,
+  getProductVariantStatusMeta,
+  getStatusBadgeClassName,
+  type StatusMeta,
+} from "@/lib/status-labels";
 
 export function ProductStatusBadge({ status }: { status: ProductStatus }) {
+  const meta = getProductVariantStatusMeta(status);
+
   return (
     <span
       className={clsx(
-        "inline-flex h-7 items-center rounded-full px-3 text-[11px] font-black ring-1",
-        productStatusClass[status],
+        getStatusBadgeClassName(meta),
+        "rounded-full px-3 text-[11px] font-black uppercase",
       )}
     >
-      {productStatusLabel[status]}
+      {meta.label}
     </span>
   );
 }
 
-export function OrderStatusBadge({ label }: { label: string }) {
+function StatusBadge({
+  className,
+  meta,
+}: {
+  className?: string;
+  meta: StatusMeta;
+}) {
   return (
-    <span className="inline-flex h-7 items-center rounded-md bg-[var(--surface-strong)] px-2 text-xs font-semibold text-[var(--foreground)] ring-1 ring-[var(--border)]">
-      {label}
+    <span className={getStatusBadgeClassName(meta, className)}>
+      {meta.label}
     </span>
   );
+}
+
+export function OrderStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getOrderStatusMeta(status)} />;
+}
+
+export function OrderItemStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getOrderItemStatusMeta(status)} />;
+}
+
+export function PaymentStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getPaymentStatusMeta(status)} />;
+}
+
+export function InventoryStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getInventoryStatusMeta(status)} />;
+}
+
+export function ProductVariantStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getProductVariantStatusMeta(status)} />;
+}
+
+export function ProductPublishStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getProductStatusMeta(status)} />;
 }

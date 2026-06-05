@@ -4,6 +4,10 @@ import { sanitizeNextPath } from "@/lib/auth/redirect";
 import { env, hasSupabasePublicEnv } from "@/lib/env";
 
 function getSafeNextUrl(request: NextRequest) {
+  if (request.nextUrl.pathname === "/admin") {
+    return "/admin/dashboard";
+  }
+
   return sanitizeNextPath(`${request.nextUrl.pathname}${request.nextUrl.search}`) ?? "/";
 }
 
@@ -79,7 +83,7 @@ export async function proxy(request: NextRequest) {
       .eq("auth_user_id", user.id)
       .maybeSingle<{ role: "customer" | "admin" | "owner" }>();
 
-    if (profile?.role !== "owner" && profile?.role !== "admin") {
+    if (profile?.role !== "owner") {
       return redirectWithCookies(request, response, "/conta/pedidos");
     }
   }

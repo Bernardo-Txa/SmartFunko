@@ -103,6 +103,9 @@ type OrderDetailRow = OrderRow & {
 
 type PublicOrderPayment = {
   amount: number;
+  created_at: string;
+  method: string;
+  paid_at: string | null;
   status: string;
 };
 
@@ -549,6 +552,18 @@ export class OrderService {
     return data;
   }
 
+  async getCustomerOrdersForApi(customerId: string) {
+    const orders = await this.getCustomerOrders(customerId);
+
+    return (orders as unknown as PublicOrderRow[]).map((order) => this.sanitizePublicOrder(order));
+  }
+
+  async getCustomerOrderByNumberForApi(customerId: string, orderNumber: string) {
+    const order = await this.getCustomerOrderByNumber(customerId, orderNumber);
+
+    return this.sanitizePublicOrder(order as unknown as PublicOrderRow);
+  }
+
   async listOrderStatusHistory(orderId: string) {
     const { data, error } = await this.supabase
       .from("order_status_history")
@@ -670,6 +685,13 @@ export class OrderService {
       orderNumber: order.order_number,
       paidAmount,
       pendingAmount: Math.max(0, Number(order.total) - paidAmount),
+      payments: (order.payments ?? []).map((payment) => ({
+        amount: payment.amount,
+        createdAt: payment.created_at,
+        method: payment.method,
+        paidAt: payment.paid_at,
+        status: payment.status,
+      })),
       status: order.status,
       total: order.total,
       updatedAt: order.updated_at,

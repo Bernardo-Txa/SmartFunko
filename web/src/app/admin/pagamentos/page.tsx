@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { PaymentStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { PaymentService } from "@/server/payments/payment-service";
@@ -13,6 +14,7 @@ type PaymentListItem = {
   amount: number;
   method: string;
   order_id: string;
+  status: string;
   customers?: {
     name?: string;
   } | null;
@@ -45,6 +47,7 @@ export default async function AdminPaymentsPage() {
               </div>
               <div className="grid gap-1 text-sm md:text-right">
                 <span>{payment.method}</span>
+                <PaymentStatusBadge status={payment.status} />
                 <strong>{formatCurrency(payment.amount)}</strong>
               </div>
             </div>

@@ -196,9 +196,29 @@ function variantTypeFromSpecial(tags) {
   return "common";
 }
 
+function normalizeSupplierName(value) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const slug = slugify(trimmed);
+  const known = {
+    copag: "Copag",
+    panini: "Panini",
+    piticas: "Piticas",
+  };
+
+  return known[slug] ?? trimmed;
+}
+
 function mapRows(rows, args) {
   const [headers, ...dataRows] = rows;
   const indexByHeader = Object.fromEntries(headers.map((header, index) => [header.trim(), index]));
+  const supplierHeader = ["fornecedor", "marca", "supplier", "collab", "parceiro"].find(
+    (header) => header in indexByHeader,
+  );
   const requiredHeaders = [
     "nome",
     "preco",
@@ -229,6 +249,9 @@ function mapRows(rows, args) {
     const categoryName = row[indexByHeader.categoria_principal]?.trim();
     const subcategoryName = normalizeSubcategory(row[indexByHeader.subcategoria] ?? "");
     const specialLabel = row[indexByHeader.special]?.trim() || null;
+    const supplierName = supplierHeader
+      ? normalizeSupplierName(row[indexByHeader[supplierHeader]] ?? "")
+      : null;
     const tags = specialLabel ? specialTags(specialLabel) : [];
 
     const missing = [
@@ -265,6 +288,7 @@ function mapRows(rows, args) {
       specialTags: tags,
       status: "active",
       subcategoryName,
+      supplierName,
       type: variantTypeFromSpecial(tags),
       variantStatus: args.variantStatus,
     });
@@ -344,6 +368,27 @@ async function runImport(rows, args) {
   );
   const franchiseBySlug = new Map(franchises.map((franchise) => [franchise.slug, franchise.id]));
 
+  const supplierRows = uniqueBy(
+    rows
+      .filter((row) => row.supplierName)
+      .map((row) => ({
+        name: row.supplierName,
+        slug: slugify(row.supplierName),
+        status: "active",
+      })),
+    (row) => row.slug,
+  );
+  const suppliers = supplierRows.length > 0
+    ? await upsertChunked(
+        supabase,
+        "suppliers",
+        supplierRows,
+        { onConflict: "slug", select: "id,slug" },
+        args.batchSize,
+      )
+    : [];
+  const supplierBySlug = new Map(suppliers.map((supplier) => [supplier.slug, supplier.id]));
+
   const productRows = rows.map((row) => ({
     category_name: row.categoryName,
     description: row.description,
@@ -354,6 +399,7 @@ async function runImport(rows, args) {
     slug: row.slug,
     status: row.status,
     subcategory_name: row.subcategoryName,
+    supplier_id: row.supplierName ? supplierBySlug.get(slugify(row.supplierName)) ?? null : null,
   }));
 
   const products = await upsertChunked(
@@ -401,12 +447,13 @@ async function runImport(rows, args) {
     args.batchSize,
   );
 
-  return {
-    franchises: franchiseRows.length,
-    images: imageRows.length,
-    products: productRows.length,
-    variants: variantRows.length,
-  };
+	return {
+	  franchises: franchiseRows.length,
+	  images: imageRows.length,
+	  products: productRows.length,
+	  suppliers: supplierRows.length,
+	  variants: variantRows.length,
+	};
 }
 
 async function main() {

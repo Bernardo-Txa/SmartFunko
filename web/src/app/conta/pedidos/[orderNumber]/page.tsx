@@ -26,8 +26,12 @@ type AccountOrderDetail = {
   } | null;
   order_items?: AccountOrderItem[];
   order_number: string;
+  notes: string | null;
   payments?: Array<{
     amount: number;
+    created_at: string;
+    method: string;
+    paid_at: string | null;
     status: string;
   }>;
   status: string;
@@ -75,8 +79,16 @@ export default async function AccountOrderPage({ params }: Props) {
       unitPrice: item.unit_price,
     })),
     orderNumber: order.order_number,
+    notes: order.notes,
     paidAmount,
     pendingAmount: Math.max(0, Number(order.total) - paidAmount),
+    payments: payments.map((payment) => ({
+      amount: payment.amount,
+      createdAt: payment.created_at,
+      method: payment.method,
+      paidAt: payment.paid_at,
+      status: payment.status,
+    })),
     status: order.status,
     total: order.total,
     updatedAt: order.updated_at,

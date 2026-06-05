@@ -1,21 +1,31 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import type { ProductStatus } from "@/types/product";
-import { ProductStatusBadge } from "@/components/ui/status-badge";
+import { ProductPublishStatusBadge, ProductVariantStatusBadge } from "@/components/ui/status-badge";
 
 type AdminProduct = {
   category_name?: string | null;
   id: string;
   main_image_url?: string | null;
   name: string;
+  status: "active" | "inactive" | "archived";
   subcategory_name?: string | null;
   franchises?: {
     name?: string;
-  } | null;
+  } | Array<{
+    name?: string;
+  }> | null;
+  suppliers?: {
+    name?: string;
+    slug?: string;
+  } | Array<{
+    name?: string;
+    slug?: string;
+  }> | null;
   product_variants?: Array<{
     sale_price: number;
     special_label?: string | null;
@@ -33,33 +43,33 @@ type ApiResponse = {
   };
 };
 
-type AdminVariantStatus = NonNullable<AdminProduct["product_variants"]>[number]["status"];
+function firstRelation<T>(relation: T | T[] | null | undefined) {
+  if (Array.isArray(relation)) {
+    return relation[0] ?? null;
+  }
 
-function toProductStatus(status: AdminVariantStatus | undefined): ProductStatus {
-  return status === "hidden" ? "sold_out" : status ?? "sold_out";
+  return relation ?? null;
 }
 
 export function AdminProductSearch() {
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<AdminProduct[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const term = query.trim();
 
-    if (term.length < 2) {
-      return;
-    }
-
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       setError("");
+      setIsLoading(true);
 
       try {
-        const response = await fetch(`/api/v1/admin/products?q=${encodeURIComponent(term)}&limit=50`, {
-          signal: controller.signal,
-        });
+        const url = term.length >= 2
+          ? `/api/v1/admin/products?q=${encodeURIComponent(term)}&limit=50`
+          : "/api/v1/admin/products?limit=50";
+        const response = await fetch(url, { signal: controller.signal });
         const payload = (await response.json()) as ApiResponse;
 
         if (!response.ok) {
@@ -77,7 +87,7 @@ export function AdminProductSearch() {
       } finally {
         setIsLoading(false);
       }
-    }, 280);
+    }, term.length >= 2 ? 280 : 0);
 
     return () => {
       controller.abort();
@@ -87,14 +97,6 @@ export function AdminProductSearch() {
 
   function updateQuery(value: string) {
     setQuery(value);
-
-    if (value.trim().length < 2) {
-      setProducts([]);
-      setError("");
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
   }
 
@@ -124,28 +126,36 @@ export function AdminProductSearch() {
         </div>
       </label>
 
-      {query.trim().length < 2 ? (
-        <p className="mt-4 text-sm text-[var(--muted)]">Digite pelo menos 2 caracteres para listar produtos.</p>
-      ) : error ? (
+      {error ? (
         <p className="mt-4 text-sm font-semibold text-red-300">{error}</p>
       ) : products.length === 0 && !isLoading ? (
         <p className="mt-4 text-sm text-[var(--muted)]">Nenhum produto encontrado.</p>
       ) : (
         <div className="mt-5 overflow-hidden rounded-lg border border-[var(--border)]">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
               <tr>
                 <th className="px-4 py-3">Produto</th>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Franquia</th>
+                <th className="px-4 py-3">Fornecedor</th>
                 <th className="px-4 py-3">Categoria</th>
                 <th className="px-4 py-3">Preco</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Produto</th>
+                <th className="px-4 py-3">Variante</th>
+                <th className="px-4 py-3">Acoes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {products.map((product) => {
                 const variant = product.product_variants?.[0];
+                const franchise = firstRelation(product.franchises);
+                const supplier = firstRelation(product.suppliers);
+                const isSpecial = Boolean(
+                  variant?.special_label ||
+                    variant?.special_tags?.length ||
+                    (variant?.type && variant.type !== "common"),
+                );
 
                 return (
                   <tr key={product.id}>
@@ -165,17 +175,23 @@ export function AdminProductSearch() {
                           )}
                         </div>
                         <div>
-                          <span className="font-semibold text-[var(--foreground)]">{product.name}</span>
-                          {variant?.type && variant.type !== "common" ? (
+                          <Link
+                            href={`/admin/produtos/${product.id}`}
+                            className="font-semibold text-[var(--foreground)] hover:text-[var(--accent)]"
+                          >
+                            {product.name}
+                          </Link>
+                          {isSpecial ? (
                             <span className="mt-1 inline-flex rounded-full bg-yellow-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-950">
-                              {variant.special_label ?? variant.type}
+                              {variant?.special_label ?? "Special"}
                             </span>
                           ) : null}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-[var(--muted)]">{variant?.sku ?? "-"}</td>
-                    <td className="px-4 py-3 text-[var(--muted)]">{product.franchises?.name ?? "-"}</td>
+                    <td className="px-4 py-3 text-[var(--muted)]">{franchise?.name ?? "-"}</td>
+                    <td className="px-4 py-3 text-[var(--muted)]">{supplier?.name ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">
                       {product.category_name ?? "-"}
                       {product.subcategory_name ? ` / ${product.subcategory_name}` : ""}
@@ -184,7 +200,18 @@ export function AdminProductSearch() {
                       {variant ? formatCurrency(variant.sale_price) : "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <ProductStatusBadge status={toProductStatus(variant?.status)} />
+                      <ProductPublishStatusBadge status={product.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <ProductVariantStatusBadge status={variant?.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/admin/produtos/${product.id}`}
+                        className="inline-flex h-9 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                      >
+                        Editar
+                      </Link>
                     </td>
                   </tr>
                 );

@@ -4,6 +4,27 @@ import { handleApi, jsonOk } from "@/server/http/responses";
 import { createSupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
+type PaymentOrderRelation = {
+  order_number?: string;
+};
+
+type CustomerPaymentRow = {
+  amount: number;
+  created_at: string;
+  method: string;
+  orders?: PaymentOrderRelation | PaymentOrderRelation[] | null;
+  paid_at: string | null;
+  status: string;
+};
+
+function firstRelation<T>(relation: T | T[] | null | undefined) {
+  if (Array.isArray(relation)) {
+    return relation[0] ?? null;
+  }
+
+  return relation ?? null;
+}
+
 export async function GET() {
   return handleApi(async () => {
     const { customer } = await requireUser();
@@ -14,7 +35,7 @@ export async function GET() {
 
     const { data, error } = await createSupabaseAdminClient()
       .from("payments")
-      .select("id,order_id,method,amount,fee_amount,net_amount,status,paid_at,created_at,orders(order_number)")
+      .select("method,amount,status,paid_at,created_at,orders(order_number)")
       .eq("customer_id", customer.id)
       .order("created_at", { ascending: false });
 
@@ -22,6 +43,15 @@ export async function GET() {
       throwQueryError(error, "Falha ao listar pagamentos do cliente");
     }
 
-    return jsonOk(data ?? []);
+    const payments = ((data ?? []) as unknown as CustomerPaymentRow[]).map((payment) => ({
+      amount: payment.amount,
+      createdAt: payment.created_at,
+      method: payment.method,
+      orderNumber: firstRelation(payment.orders)?.order_number ?? null,
+      paidAt: payment.paid_at,
+      status: payment.status,
+    }));
+
+    return jsonOk(payments);
   });
 }

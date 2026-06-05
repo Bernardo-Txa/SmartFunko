@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
-import type { CatalogCategory, CatalogProductFilter } from "@/lib/catalog";
+import type { CatalogCategory, CatalogProductFilter, CatalogSupplier } from "@/lib/catalog";
 
 type Props = {
   categories: CatalogCategory[];
   currentCategory: string;
   currentFilter: CatalogProductFilter;
   currentSubcategory: string;
+  currentSupplier: string;
   query: string;
+  suppliers: CatalogSupplier[];
 };
 
 const filters: Array<{ label: string; value: CatalogProductFilter }> = [
@@ -24,7 +26,9 @@ export function CatalogCategoryFilter({
   currentCategory,
   currentFilter,
   currentSubcategory,
+  currentSupplier,
   query,
+  suppliers,
 }: Props) {
   const [selectedCategoryName, setSelectedCategoryName] = useState(currentCategory);
   const [selectedSubcategoryName, setSelectedSubcategoryName] = useState(currentSubcategory);
@@ -34,7 +38,7 @@ export function CatalogCategoryFilter({
 
   return (
     <form className="rounded-xl border border-cyan-400/20 bg-[#030816]/88 p-3 shadow-[0_18px_44px_rgba(2,6,23,0.2)]">
-      <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.3fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(150px,0.7fr)_auto]">
+      <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(150px,0.7fr)_auto]">
         <label className="relative block">
           <span className="sr-only">Buscar produto</span>
           <Search
@@ -84,6 +88,22 @@ export function CatalogCategoryFilter({
             {subcategoryOptions.map((item) => (
               <option key={item.name} value={item.name}>
                 {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="sr-only">Fornecedor</span>
+          <select
+            name="supplier"
+            defaultValue={currentSupplier}
+            className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
+          >
+            <option value="">Fornecedores</option>
+            {suppliers.map((supplier) => (
+              <option key={supplier.id} value={supplier.slug}>
+                {supplier.name}
               </option>
             ))}
           </select>
