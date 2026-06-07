@@ -1,45 +1,204 @@
 import "server-only";
 import { z } from "zod";
 import { conflict, notFound } from "@/server/http/errors";
-import { AuditLogService } from "@/server/audit/audit-log-service";
-import { calculatePaymentStatus } from "@/server/orders/order-calculator";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
 export const manualPaymentSchema = z.object({
   orderId: z.string().uuid(),
+  customerId: z.string().uuid().optional().nullable(),
   method: z.enum(["pix", "credit_card", "debit_card", "cash", "manual"]).default("manual"),
   amount: z.number().positive(),
   feeAmount: z.number().nonnegative().default(0),
   paidAt: z.string().datetime().optional(),
-  allowOverpayment: z.boolean().default(false),
+  notes: z.string().trim().optional().nullable(),
+});
+
+export const refundManualPaymentSchema = z.object({
+  amount: z.number().positive().optional(),
+  notes: z.string().trim().min(3, "Informe uma justificativa para o estorno"),
 });
 
 export type ManualPaymentInput = z.infer<typeof manualPaymentSchema>;
+export type RefundManualPaymentInput = z.infer<typeof refundManualPaymentSchema>;
+
+export type PaymentListFilters = {
+  endDate?: string;
+  limit?: number;
+  method?: string;
+  search?: string;
+  startDate?: string;
+  status?: string;
+};
+
+type PaymentRpcResult = {
+  cash_entry_id: string;
+  new_status: string;
+  order_id: string;
+  paid_amount: number;
+  payment_id: string;
+  pending_amount: number;
+  previous_status: string;
+};
+
+type RefundRpcResult = {
+  cash_entry_id: string;
+  new_status: string;
+  order_id: string;
+  paid_amount: number;
+  payment_id: string;
+  pending_amount: number;
+  previous_status: string;
+  refunded_amount: number;
+};
+
+type PaymentSummaryRow = {
+  amount: number | string;
+  fee_amount: number | string;
+  net_amount: number | string;
+  paid_at: string | null;
+  status: string;
+};
+
+type PendingReceivableOrder = {
+  id: string;
+  total: number | string;
+  status: string;
+  payments?: Array<{
+    amount: number | string;
+    status: string;
+  }>;
+};
+
+function paymentSelect() {
+  return `
+    id,order_id,customer_id,method,amount,fee_amount,net_amount,status,paid_at,created_by,created_at,
+    orders(id,order_number,total,status),
+    customers(id,name,email,phone),
+    profiles(name,email)
+  `;
+}
+
+function escapeSearch(value: string) {
+  return value.replaceAll("%", "\\%").replaceAll("_", "\\_").trim();
+}
+
+function inDateRange(value: string | null, filters: PaymentListFilters) {
+  if (!value) {
+    return false;
+  }
+
+  const time = new Date(value).getTime();
+
+  if (Number.isNaN(time)) {
+    return false;
+  }
+
+  if (filters.startDate && time < new Date(filters.startDate).getTime()) {
+    return false;
+  }
+
+  if (filters.endDate && time > new Date(filters.endDate).getTime()) {
+    return false;
+  }
+
+  return true;
+}
+
+function startOfToday() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function startOfMonth() {
+  const date = new Date();
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
 
 export class PaymentService {
-  private readonly audit: AuditLogService;
-
   constructor(
     private readonly supabase: SupabaseAdminClient = createSupabaseAdminClient(),
     private readonly actorId?: string,
-  ) {
-    this.audit = new AuditLogService(this.supabase);
-  }
+  ) {}
 
-  async listPayments() {
-    const { data, error } = await this.supabase
+  async listPayments(filters: PaymentListFilters = {}) {
+    const limit = Math.min(500, Math.max(1, Number(filters.limit ?? 300)));
+    let query = this.supabase
       .from("payments")
-      .select(
-        "id,order_id,customer_id,method,amount,fee_amount,net_amount,status,paid_at,created_by,created_at,orders(order_number,total,status),customers(name,email,phone)",
-      )
-      .order("created_at", { ascending: false });
+      .select(paymentSelect())
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    if (filters.method) {
+      query = query.eq("method", filters.method);
+    }
+
+    if (filters.startDate) {
+      query = query.gte("paid_at", filters.startDate);
+    }
+
+    if (filters.endDate) {
+      query = query.lte("paid_at", filters.endDate);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throwQueryError(error, "Falha ao listar pagamentos");
     }
 
-    return data ?? [];
+    const search = filters.search?.trim().toLowerCase();
+
+    if (!search) {
+      return data ?? [];
+    }
+
+    return (data ?? []).filter((payment) => {
+      const row = payment as {
+        id?: string | null;
+        customers?: { name?: string | null; email?: string | null } | null;
+        orders?: { order_number?: string | null } | null;
+      };
+      return [
+        row.id ?? "",
+        row.orders?.order_number ?? "",
+        row.customers?.name ?? "",
+        row.customers?.email ?? "",
+      ].some((value) => value.toLowerCase().includes(escapeSearch(search)));
+    });
+  }
+
+  async getPaymentSummary(filters: PaymentListFilters = {}) {
+    const [periodPayments, todayPayments, monthPayments, pendingReceivables] = await Promise.all([
+      this.listPaymentSummaryRows(filters),
+      this.listPaymentSummaryRows({
+        startDate: startOfToday().toISOString(),
+        status: "paid",
+      }),
+      this.listPaymentSummaryRows({
+        startDate: startOfMonth().toISOString(),
+        status: "paid",
+      }),
+      this.calculatePendingReceivables(),
+    ]);
+
+    const paidPeriod = periodPayments.filter((payment) => payment.status === "paid");
+
+    return {
+      feesInPeriod: paidPeriod.reduce((sum, payment) => sum + Number(payment.fee_amount), 0),
+      netInPeriod: paidPeriod.reduce((sum, payment) => sum + Number(payment.net_amount), 0),
+      pendingReceivables,
+      receivedInPeriod: paidPeriod.reduce((sum, payment) => sum + Number(payment.amount), 0),
+      receivedThisMonth: monthPayments.reduce((sum, payment) => sum + Number(payment.amount), 0),
+      receivedToday: todayPayments.reduce((sum, payment) => sum + Number(payment.amount), 0),
+    };
   }
 
   async calculateOrderPaidAmount(orderId: string) {
@@ -63,113 +222,91 @@ export class PaymentService {
   }
 
   async recordManualPayment(input: ManualPaymentInput) {
-    const order = await this.getOrderPaymentBase(input.orderId);
-    const paidBefore = await this.calculateOrderPaidAmount(input.orderId);
-    const pendingBefore = Math.max(0, Number(order.total) - paidBefore);
-
-    if (!input.allowOverpayment && input.amount > pendingBefore + 0.001) {
-      throw conflict("Pagamento maior que o saldo pendente");
-    }
-
-    const netAmount = Math.max(0, input.amount - input.feeAmount);
-    const paidAt = input.paidAt ?? new Date().toISOString();
-
-    const { data: payment, error: paymentError } = await this.supabase
-      .from("payments")
-      .insert({
-        amount: input.amount,
-        created_by: this.actorId ?? null,
-        customer_id: order.customer_id,
-        fee_amount: input.feeAmount,
-        method: input.method,
-        net_amount: netAmount,
-        order_id: input.orderId,
-        paid_at: paidAt,
-        status: "paid",
-      })
-      .select("id,order_id,customer_id,method,amount,fee_amount,net_amount,status,paid_at,created_by,created_at")
-      .single();
-
-    if (paymentError) {
-      throwQueryError(paymentError, "Falha ao registrar pagamento");
-    }
-
-    const { data: cashEntry, error: cashError } = await this.supabase
-      .from("cash_entries")
-      .insert({
-        amount: netAmount,
-        category: "sale",
-        created_by: this.actorId ?? null,
-        description: `Recebimento do pedido ${order.order_number}`,
-        occurred_at: paidAt,
-        order_id: input.orderId,
-        payment_id: payment.id,
-        type: "income",
-      })
-      .select("id,type,category,order_id,payment_id,amount,description,occurred_at,created_by,created_at")
-      .single();
-
-    if (cashError) {
-      throwQueryError(cashError, "Falha ao criar entrada de caixa");
-    }
-
-    const paidAfter = paidBefore + input.amount;
-    const nextStatus = calculatePaymentStatus(Number(order.total), paidAfter);
-    await this.updateOrderPaymentStatus(input.orderId, nextStatus, order.status);
-
-    await this.audit.createAdminActionLog({
-      action: "payment.record_manual",
-      adminId: this.actorId,
-      entityId: payment.id,
-      entityType: "payment",
-      newValue: {
-        cashEntry,
-        payment,
-      },
-      oldValue: {
-        orderStatus: order.status,
-        paidBefore,
-        pendingBefore,
-      },
+    const { data, error } = await this.supabase.rpc("record_manual_payment", {
+      p_amount: input.amount,
+      p_created_by: this.actorId ?? null,
+      p_customer_id: input.customerId ?? null,
+      p_fee_amount: input.feeAmount,
+      p_method: input.method,
+      p_notes: input.notes ?? null,
+      p_order_id: input.orderId,
+      p_paid_at: input.paidAt ?? new Date().toISOString(),
     });
 
-    return {
-      cashEntry,
-      payment,
-      paidAmount: paidAfter,
-      pendingAmount: Math.max(0, Number(order.total) - paidAfter),
-      status: nextStatus,
-    };
+    if (error) {
+      throwQueryError(error, "Falha ao registrar pagamento manual");
+    }
+
+    return data as PaymentRpcResult;
   }
 
-  async updateOrderPaymentStatus(orderId: string, status: "pending_payment" | "partially_paid" | "paid", previousStatus?: string) {
-    const { error } = await this.supabase
-      .from("orders")
-      .update({ status })
-      .eq("id", orderId);
+  async refundManualPayment(paymentId: string, input: RefundManualPaymentInput) {
+    const { data, error } = await this.supabase.rpc("refund_manual_payment", {
+      p_amount: input.amount ?? null,
+      p_created_by: this.actorId ?? null,
+      p_notes: input.notes,
+      p_payment_id: paymentId,
+    });
 
     if (error) {
-      throwQueryError(error, "Falha ao atualizar status financeiro do pedido");
+      throwQueryError(error, "Falha ao estornar pagamento");
     }
 
-    if (previousStatus !== status) {
-      const { error: historyError } = await this.supabase.from("order_status_history").insert({
-        changed_by: this.actorId ?? null,
-        new_status: status,
-        notes: "Status atualizado por pagamento manual",
-        order_id: orderId,
-        previous_status: previousStatus ?? null,
-      });
-
-      if (historyError) {
-        throwQueryError(historyError, "Falha ao registrar historico financeiro");
-      }
-    }
+    return data as RefundRpcResult;
   }
 
-  async refundPayment() {
-    // TODO: implementar estorno com regra financeira completa na proxima sprint.
-    throw conflict("Estorno ainda nao implementado na V1");
+  async refundPayment(paymentId: string, input: RefundManualPaymentInput) {
+    return this.refundManualPayment(paymentId, input);
+  }
+
+  private async listPaymentSummaryRows(filters: PaymentListFilters = {}) {
+    let query = this.supabase
+      .from("payments")
+      .select("amount,fee_amount,net_amount,status,paid_at")
+      .order("paid_at", { ascending: false });
+
+    if (filters.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    if (filters.method) {
+      query = query.eq("method", filters.method);
+    }
+
+    if (filters.startDate) {
+      query = query.gte("paid_at", filters.startDate);
+    }
+
+    if (filters.endDate) {
+      query = query.lte("paid_at", filters.endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throwQueryError(error, "Falha ao resumir pagamentos");
+    }
+
+    return ((data ?? []) as unknown as PaymentSummaryRow[]).filter((payment) => inDateRange(payment.paid_at, filters));
+  }
+
+  private async calculatePendingReceivables() {
+    const { data, error } = await this.supabase
+      .from("orders")
+      .select("id,total,status,payments(amount,status)")
+      .not("status", "in", "(cancelled,refunded)");
+
+    if (error) {
+      throwQueryError(error, "Falha ao calcular valores pendentes");
+    }
+
+    return ((data ?? []) as unknown as PendingReceivableOrder[]).reduce((sum, order) => {
+      const paidAmount = (order.payments ?? [])
+        .filter((payment) => payment.status === "paid")
+        .reduce((paymentSum, payment) => paymentSum + Number(payment.amount), 0);
+
+      return sum + Math.max(0, Number(order.total) - paidAmount);
+    }, 0);
   }
 
   private async getOrderPaymentBase(orderId: string) {
@@ -187,8 +324,8 @@ export class PaymentService {
       throw notFound("Pedido nao encontrado");
     }
 
-    if (data.status === "cancelled") {
-      throw conflict("Pedido cancelado nao recebe pagamento");
+    if (data.status === "cancelled" || data.status === "refunded") {
+      throw conflict("Pedido com este status nao recebe pagamento");
     }
 
     return data;

@@ -10,7 +10,7 @@
 6. Se o item for pronta-entrega, admin vincula uma unidade de estoque disponivel.
 7. Sistema reserva a unidade de estoque.
 8. Admin registra pagamento manual.
-9. Sistema cria `payments`, cria `cash_entries` e atualiza o status do pedido.
+9. RPC `record_manual_payment` cria `payments`, cria `cash_entries`, atualiza status do pedido, registra historico e log no mesmo fluxo transacional.
 10. Admin envia o link publico `/pedido/[orderNumber]?token=...` para o cliente.
 
 ## APIs principais
@@ -39,8 +39,13 @@
 - `POST /api/v1/admin/inventory/[id]/mark-damaged`
 - `POST /api/v1/admin/orders`
 - `POST /api/v1/admin/orders/[id]/items`
+- `GET /api/v1/admin/payments`
 - `POST /api/v1/admin/payments/manual`
+- `POST /api/v1/admin/payments/[id]/refund`
 - `GET /api/v1/admin/cashflow`
+- `GET /api/v1/admin/cashflow/summary`
+- `GET /api/v1/admin/cashflow/pending`
+- `POST /api/v1/admin/cashflow/manual-entry`
 - `GET /api/v1/me`
 - `GET /api/v1/me/orders`
 - `GET /api/v1/me/orders/[orderNumber]`
@@ -71,7 +76,14 @@
 - Login e unico em `/login`; `/admin/login` redireciona para `/login?next=/admin/dashboard`.
 - A sessao Supabase SSR e renovada em `web/src/proxy.ts`, seguindo a convencao ativa do Next 16 no projeto.
 - Rotas `/me` exigem usuario autenticado e cliente vinculado.
-- Pagamento manual gera pagamento, entrada de caixa, log administrativo e atualiza status financeiro.
+- Pagamento manual usa a RPC `record_manual_payment`, chamada somente pelo backend com service role.
+- Pagamento manual gera pagamento, entrada de caixa, historico de status e log administrativo de forma transacional.
+- A baixa manual bloqueia valor maior que o saldo pendente e bloqueia pedidos `cancelled` ou `refunded`.
+- Estorno manual usa `refund_manual_payment`, exige justificativa, marca o pagamento como `refunded`, cria saida de caixa `refund`, atualiza status do pedido e grava log.
+- Estorno parcial ainda nao esta disponivel; o fluxo atual cobre estorno total.
+- `/admin/pagamentos` lista pagamentos reais, filtros, resumo do periodo, acao de copiar resumo e estorno quando permitido.
+- `/admin/caixa` lista `cash_entries` reais, filtros, resumo, despesas e ajustes manuais restritos a owner.
+- `/admin/relatorios/financeiro` mostra recebido por periodo, a receber, reembolsos, taxas, liquido, pedidos por situacao financeira, vendas por metodo e caixa por categoria.
 - Reserva de estoque impede reservar unidade que nao esteja `available`.
 - Cancelamento de pedido libera unidade reservada.
 - Estoque 2.0 registra `inventory_movements` por unidade fisica para criacao, reserva, liberacao, venda, cancelamento, recebimento, avaria, indisponibilidade, ajuste de custo, mudanca de localizacao e ajuste manual.
@@ -124,25 +136,30 @@ SUPABASE_SERVICE_ROLE_KEY=...
 5. Criar cliente via `POST /api/v1/admin/customers`.
 6. Criar pedido via `POST /api/v1/admin/orders`.
 7. Adicionar item via `POST /api/v1/admin/orders/[id]/items`.
-8. Registrar pagamento via `POST /api/v1/admin/payments/manual`.
-9. Abrir `/admin/dashboard`, `/admin/pedidos`, `/admin/pagamentos` e `/admin/caixa`.
-10. Abrir `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
-11. Editar produto em `/admin/produtos/[id]`, trocar fornecedor/imagem/preco e conferir em `/catalogo?supplier=piticas`.
-12. Em `/admin/produtos/[id]`, enviar imagem valida na secao "Imagens do produto".
-13. Testar rejeicao de arquivo acima de 5MB e de arquivo que nao seja imagem aceita.
-14. Definir a imagem enviada como principal e conferir card no catalogo/home e galeria em `/produto/[slug]`.
-15. Reordenar imagens e conferir a ordem da galeria publica.
-16. Remover uma imagem e confirmar que o fallback por `main_image_url`, primeira imagem restante ou `ProductArtwork` continua funcionando.
-17. Criar unidade de estoque e conferir movimento `created`.
-18. Ajustar status, localizacao e custo com justificativa e conferir movimentos `manual_adjustment`, `location_change` e `cost_adjustment`.
-19. Criar pedido com item pronta-entrega vinculado a uma unidade e conferir movimento `reserved`.
-20. Cancelar pedido e conferir estoque liberado com movimento `cancelled`.
-21. Marcar unidade como avariada e conferir movimento `damaged`.
-22. Abrir `/admin/estoque` e `/admin/estoque/[id]`.
-23. Confirmar que cliente nao acessa endpoints admin de estoque.
-24. Abrir `/pedido/[orderNumber]?token=...`.
-25. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
-26. Testar token errado no link publico.
+8. Registrar pagamento parcial via `POST /api/v1/admin/payments/manual`.
+9. Conferir `payments`, `cash_entries`, `order_status_history` e `admin_action_logs`.
+10. Registrar segundo pagamento ate quitar o pedido.
+11. Tentar pagamento maior que saldo pendente e confirmar bloqueio.
+12. Estornar pagamento via `POST /api/v1/admin/payments/[id]/refund` com justificativa.
+13. Conferir saida de caixa `refund`, status do pedido e log administrativo.
+14. Abrir `/admin/dashboard`, `/admin/pedidos`, `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
+15. Abrir `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
+16. Editar produto em `/admin/produtos/[id]`, trocar fornecedor/imagem/preco e conferir em `/catalogo?supplier=piticas`.
+17. Em `/admin/produtos/[id]`, enviar imagem valida na secao "Imagens do produto".
+18. Testar rejeicao de arquivo acima de 5MB e de arquivo que nao seja imagem aceita.
+19. Definir a imagem enviada como principal e conferir card no catalogo/home e galeria em `/produto/[slug]`.
+20. Reordenar imagens e conferir a ordem da galeria publica.
+21. Remover uma imagem e confirmar que o fallback por `main_image_url`, primeira imagem restante ou `ProductArtwork` continua funcionando.
+22. Criar unidade de estoque e conferir movimento `created`.
+23. Ajustar status, localizacao e custo com justificativa e conferir movimentos `manual_adjustment`, `location_change` e `cost_adjustment`.
+24. Criar pedido com item pronta-entrega vinculado a uma unidade e conferir movimento `reserved`.
+25. Cancelar pedido e conferir estoque liberado com movimento `cancelled`.
+26. Marcar unidade como avariada e conferir movimento `damaged`.
+27. Abrir `/admin/estoque` e `/admin/estoque/[id]`.
+28. Confirmar que cliente nao acessa endpoints admin financeiros e de estoque.
+29. Abrir `/pedido/[orderNumber]?token=...`.
+30. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
+31. Testar token errado no link publico.
 
 ## Contratos para app futuro
 

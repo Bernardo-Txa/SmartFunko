@@ -54,6 +54,21 @@ export const paymentStatusOptions = [
   { label: "Reembolsado", value: "refunded" },
 ] as const;
 
+export const cashEntryTypeOptions = [
+  { label: "Entrada", value: "income" },
+  { label: "Saída", value: "expense" },
+  { label: "Ajuste", value: "adjustment" },
+] as const;
+
+export const cashEntryCategoryOptions = [
+  { label: "Venda", value: "sale" },
+  { label: "Compra de fornecedor", value: "supplier_purchase" },
+  { label: "Frete", value: "shipping" },
+  { label: "Taxa de pagamento", value: "payment_fee" },
+  { label: "Reembolso", value: "refund" },
+  { label: "Ajuste manual", value: "manual_adjustment" },
+] as const;
+
 export const inventoryStatusOptions = [
   { label: "Disponível", value: "available" },
   { label: "Reservado", value: "reserved" },
@@ -111,6 +126,21 @@ const paymentStatusMeta = {
   paid: createMeta("Pago", "green"),
   pending: createMeta("Pendente", "yellow"),
   refunded: createMeta("Reembolsado", "gray"),
+} satisfies Record<string, StatusMeta>;
+
+const cashEntryTypeMeta = {
+  adjustment: createMeta("Ajuste", "yellow"),
+  expense: createMeta("Saída", "red"),
+  income: createMeta("Entrada", "green"),
+} satisfies Record<string, StatusMeta>;
+
+const cashEntryCategoryMeta = {
+  manual_adjustment: createMeta("Ajuste manual", "yellow"),
+  payment_fee: createMeta("Taxa de pagamento", "yellow"),
+  refund: createMeta("Reembolso", "red"),
+  sale: createMeta("Venda", "green"),
+  shipping: createMeta("Frete", "cyan"),
+  supplier_purchase: createMeta("Compra de fornecedor", "violet"),
 } satisfies Record<string, StatusMeta>;
 
 const inventoryStatusMeta = {
@@ -177,6 +207,8 @@ const operationalStatusMaps: ReadonlyArray<Readonly<Record<string, StatusMeta>>>
   orderStatusMeta,
   orderItemStatusMeta,
   paymentStatusMeta,
+  cashEntryTypeMeta,
+  cashEntryCategoryMeta,
   inventoryStatusMeta,
   inventoryMovementTypeMeta,
   productVariantStatusMeta,
@@ -193,6 +225,14 @@ export function getOrderItemStatusMeta(status: string | null | undefined) {
 
 export function getPaymentStatusMeta(status: string | null | undefined) {
   return getMeta(paymentStatusMeta, status);
+}
+
+export function getCashEntryTypeMeta(type: string | null | undefined) {
+  return getMeta(cashEntryTypeMeta, type);
+}
+
+export function getCashEntryCategoryMeta(category: string | null | undefined) {
+  return getMeta(cashEntryCategoryMeta, category);
 }
 
 export function getInventoryStatusMeta(status: string | null | undefined) {

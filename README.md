@@ -63,6 +63,22 @@ O estoque e rastreado por unidade fisica em `inventory_items` e cada mudanca rel
 
 O admin operacional fica em `/admin/estoque` e o detalhe por unidade em `/admin/estoque/[id]`.
 
+## Financeiro 2.0
+
+O pagamento manual agora passa pela RPC Postgres `record_manual_payment`, chamada pelo backend com service role. A baixa cria `payments`, cria `cash_entries`, atualiza o status financeiro do pedido, registra `order_status_history` quando houver mudanca e grava `admin_action_logs` no mesmo fluxo transacional.
+
+- pagamento maior que o saldo pendente e bloqueado;
+- pedidos `cancelled` e `refunded` nao recebem nova baixa manual;
+- `payments.amount` guarda valor bruto, `fee_amount` guarda taxa e `net_amount` guarda o liquido;
+- `cash_entries` de venda usam `type = income`, `category = sale` e `amount = net_amount`;
+- estorno manual usa `refund_manual_payment`, exige justificativa, marca o pagamento como `refunded`, cria saida de caixa `category = refund`, atualiza status do pedido e grava log;
+- estorno parcial ainda nao esta disponivel;
+- despesas e ajustes manuais de caixa sao restritos a owner e exigem descricao.
+
+As telas principais sao `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`. O relatorio mostra recebido por periodo, a receber, reembolsos, taxas, liquido, pedidos por situacao financeira, vendas por metodo e caixa por categoria.
+
+Financeiro 2.0 nao implementa Pix automatico, gateway, webhook, checkout proprio, cartao, frete automatico ou nota fiscal.
+
 ## Como rodar localmente
 
 ```bash
@@ -153,6 +169,7 @@ Principais fluxos:
 - manter produtos e variantes em `/admin/produtos/[id]`.
 - analisar demanda de wishlist em `/admin/demanda`.
 - auditar estoque por unidade em `/admin/estoque` e `/admin/estoque/[id]`.
+- consultar pagamentos, caixa e relatorio financeiro em `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
 
 Fornecedores/collabs ficam em `suppliers`. Piticas, Copag e Panini sao seedados por migration e aparecem em `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`. `/collabs` redireciona para fornecedores, e `/marcas` permanece como vitrine especial compativel. Para vincular um produto, edite `Fornecedor/marca` em `/admin/produtos/[id]` ou use uma coluna CSV opcional.
 
@@ -180,9 +197,13 @@ Teste operacional manual:
 1. Criar cliente.
 2. Criar produto, variante e estoque.
 3. Criar pedido e adicionar item.
-4. Registrar pagamento manual.
-5. Conferir `cash_entries`, dashboard, `/conta/pedidos` e link publico por token.
-6. Testar token errado no link publico.
+4. Registrar pagamento manual parcial.
+5. Conferir `payments`, `cash_entries`, `order_status_history`, dashboard, `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
+6. Registrar segundo pagamento ate quitar o pedido.
+7. Estornar um pagamento total com justificativa.
+8. Conferir status do pedido, saida de caixa `refund` e `admin_action_logs`.
+9. Conferir `/conta/pedidos` e link publico por token.
+10. Testar token errado no link publico.
 
 ## Contratos para Flutter futuro
 

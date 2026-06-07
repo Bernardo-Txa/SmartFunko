@@ -1,19 +1,5 @@
 # Divida tecnica SmartFunko
 
-## Registro de pagamento manual ainda nao transacional
-
-Hoje o fluxo de pagamento manual cria `payments`, `cash_entries`, atualiza status do pedido e registra log em etapas separadas.
-
-Risco:
-
-- pagamento criado e caixa nao criado;
-- caixa criado e status nao atualizado;
-- historico incompleto em caso de erro intermediario.
-
-Solucao futura:
-
-Criar uma RPC Postgres `record_manual_payment(...)` para executar o fluxo inteiro em uma unica transacao.
-
 ## Movimentos de estoque ainda nao transacionais
 
 O Estoque 2.0 registra `inventory_movements` a partir dos services Next.js depois das mutacoes em `inventory_items` e, em alguns fluxos, depois do vinculo com `order_items`.
@@ -27,6 +13,19 @@ Risco:
 Solucao futura:
 
 Criar RPCs Postgres para `reserve_inventory_item`, `release_inventory_item`, `adjust_inventory_item` e `mark_inventory_item_sold`, garantindo estoque, pedido, movimento e log administrativo em uma unica transacao.
+
+## Financeiro futuro
+
+Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e relatorio basico. Permanecem fora do MVP:
+
+- estorno parcial manual;
+- idempotency key para pagamentos manuais duplicados;
+- conciliacao financeira;
+- Pix automatico;
+- gateway de pagamento;
+- webhooks de baixa;
+- nota fiscal;
+- checkout completo.
 
 ## Proxima sprint
 

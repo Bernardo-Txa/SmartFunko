@@ -21,6 +21,7 @@ const navItems = [
   { href: "/admin/estoque", label: "Estoque", icon: Boxes },
   { href: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
   { href: "/admin/caixa", label: "Caixa", icon: ChartNoAxesColumn },
+  { href: "/admin/relatorios/financeiro", label: "Relatorios", icon: ChartNoAxesColumn },
 ];
 
 export function AdminShell({
