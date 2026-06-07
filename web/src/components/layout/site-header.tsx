@@ -1,16 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, LayoutDashboard, LogOut, Package, User } from "lucide-react";
+import { ChevronDown, Heart, LayoutDashboard, LogOut, Menu, Package, User } from "lucide-react";
+import { CartNavButton } from "@/components/storefront/cart-button";
+import { MegaMenu, MobileMegaMenu } from "@/components/storefront/mega-menu";
+import { getCatalogCategories, getCatalogFranchises } from "@/lib/catalog";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 
 export async function SiteHeader() {
-  const currentUser = await getCurrentUser();
+  const [currentUser, categories, franchises] = await Promise.all([
+    getCurrentUser(),
+    getCatalogCategories(),
+    getCatalogFranchises(),
+  ]);
   const isOwner = currentUser?.profile.role === "owner";
   const accountLabel = currentUser?.profile.name || currentUser?.profile.email || currentUser?.authUser.email;
   const ordersHref = currentUser ? "/conta/pedidos" : "/login?next=/conta/pedidos";
   const links: Array<{ href: string; label: string }> = [
-    { href: "/catalogo", label: "Catalogo" },
+    { href: "/pronta-entrega", label: "Pronta-entrega" },
+    { href: "/pre-venda", label: "Pré-venda" },
+    { href: "/specials", label: "Specials" },
     { href: "/fornecedores", label: "Fornecedores" },
+    { href: "/#como-funciona", label: "Como funciona" },
     { href: ordersHref, label: "Meus pedidos" },
   ];
 
@@ -33,9 +43,10 @@ export async function SiteHeader() {
         </Link>
 
         <nav
-          className="hidden items-center gap-1 rounded-full border border-[var(--border)] bg-[#020617]/45 p-1 shadow-[0_0_22px_rgba(14,165,233,0.12)] md:flex"
+          className="hidden items-center gap-1 rounded-full border border-[var(--border)] bg-[#020617]/45 p-1 shadow-[0_0_22px_rgba(14,165,233,0.12)] lg:flex"
           aria-label="Principal"
         >
+          <MegaMenu categories={categories} franchises={franchises} />
           {links.map((link) => (
             <Link
               key={link.href}
@@ -48,6 +59,7 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <CartNavButton className="hidden sm:inline-flex" />
           {currentUser ? (
             <details className="group relative">
               <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--border)] bg-[#020617]/42 px-4 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15 [&::-webkit-details-marker]:hidden">
@@ -70,6 +82,13 @@ export async function SiteHeader() {
                 >
                   <Package size={16} aria-hidden="true" />
                   Meus pedidos
+                </Link>
+                <Link
+                  href="/conta/wishlist"
+                  className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/12"
+                >
+                  <Heart size={16} aria-hidden="true" />
+                  Favoritos
                 </Link>
                 {isOwner ? (
                   <Link
@@ -104,6 +123,42 @@ export async function SiteHeader() {
               Entrar
             </Link>
           )}
+          <details className="group relative lg:hidden">
+            <summary className="inline-flex h-10 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--border)] bg-[#020617]/42 px-3 text-[var(--foreground)] hover:bg-cyan-400/15 [&::-webkit-details-marker]:hidden">
+              <Menu size={18} aria-hidden="true" />
+              <span className="sr-only">Abrir menu</span>
+            </summary>
+            <div className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-[var(--border)] bg-[#020617] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.55)]">
+              <div className="grid gap-2">
+                <MobileMegaMenu categories={categories} franchises={franchises} />
+                {links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    prefetch={false}
+                    className="rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <Link
+                  href="/novidades"
+                  prefetch={false}
+                  className="rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+                >
+                  Novidades
+                </Link>
+                <Link
+                  href="/encomendas"
+                  prefetch={false}
+                  className="rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+                >
+                  Encomendas
+                </Link>
+                <CartNavButton className="mt-1 w-full justify-center" />
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </header>

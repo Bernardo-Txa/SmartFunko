@@ -4,6 +4,7 @@ import {
   ChartNoAxesColumn,
   CreditCard,
   Handshake,
+  HeartPulse,
   LayoutDashboard,
   Package,
   ReceiptText,
@@ -12,6 +13,7 @@ import {
 
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/demanda", label: "Demanda", icon: HeartPulse },
   { href: "/admin/produtos", label: "Produtos", icon: Package },
   { href: "/admin/fornecedores", label: "Fornecedores", icon: Handshake },
   { href: "/admin/clientes", label: "Clientes", icon: Users },

@@ -33,6 +33,20 @@ Na V1, as vendas continuam pelo WhatsApp, mas o sistema passa a controlar:
 
 Cliente escolhe no site, compra pelo WhatsApp, acompanha pela conta e a Smart Funkos controla tudo pelo admin.
 
+## Camada premium de loja
+
+A camada publica agora organiza descoberta e intencao de compra por cima do core operacional:
+
+- home premium com hero, vitrines comerciais, universos, fornecedores/collabs, fluxo assistido e bloco de confianca;
+- mega menu por universos/categorias e links diretos para vitrines comerciais;
+- paginas publicas `/pronta-entrega`, `/pre-venda`, `/specials`, `/novidades` e `/encomendas`;
+- pagina de produto com galeria, badges comerciais, CTA "Tenho interesse", favoritos, carrinho assistido e relacionados;
+- favoritos reais em cards, produto e `/conta/wishlist`, usando `/api/v1/me/wishlist`;
+- carrinho assistido em `/carrinho`, persistido no navegador e finalizado por mensagem de WhatsApp;
+- admin de demanda em `/admin/demanda`, restrito a owner, com ranking real de wishlist.
+
+O carrinho assistido nao e checkout: nao reserva estoque automaticamente, nao calcula frete, nao cobra pagamento e nao cria pedido sozinho.
+
 ## Como rodar localmente
 
 ```bash
@@ -99,6 +113,7 @@ Principais fluxos:
 - acompanhar pedido por link publico com token.
 - manter fornecedores/marcas em `/admin/fornecedores`;
 - manter produtos e variantes em `/admin/produtos/[id]`.
+- analisar demanda de wishlist em `/admin/demanda`.
 
 Fornecedores/collabs ficam em `suppliers`. Piticas, Copag e Panini sao seedados por migration e aparecem em `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`. `/collabs` redireciona para fornecedores, e `/marcas` permanece como vitrine especial compativel. Para vincular um produto, edite `Fornecedor/marca` em `/admin/produtos/[id]` ou use uma coluna CSV opcional.
 
@@ -109,6 +124,7 @@ Area do cliente:
 - `/conta` mostra perfil e resumo real do customer vinculado;
 - `/conta/pedidos` lista apenas pedidos reais do proprio customer;
 - `/conta/pedidos/[orderNumber]` mostra itens, status, pagamentos e observacoes publicas;
+- `/conta/wishlist` lista e remove favoritos do proprio customer;
 - `/pedido/[orderNumber]?token=...` continua publico por token e sem login.
 
 Admin de produto:
@@ -137,7 +153,7 @@ Nao ha app Flutter nesta V1. Os contratos web/API preparados sao:
 - `GET /api/v1/me/orders/[orderNumber]`: autenticado; retorna um pedido sanitizado do proprio cliente.
 - `GET|POST /api/v1/me/wishlist`: autenticado; lista/cria wishlist.
 - `DELETE /api/v1/me/wishlist/[id]`: autenticado; remove item do proprio cliente.
-- `GET /api/v1/public/products`: publico; aceita `q`, `category`, `subcategory`, `franchise`, `supplier`, `filter`, `page`, `pageSize`.
+- `GET /api/v1/public/products`: publico; aceita `q`, `category`, `subcategory`, `franchise`, `supplier`, `filter`, `sort`, `page`, `pageSize`.
 - `GET /api/v1/public/products/[slug]`: publico; detalhe de produto ativo.
 - `GET /api/v1/public/suppliers`: publico; lista suppliers ativos.
 - `GET /api/v1/public/suppliers/[slug]`: publico; detalhe de supplier ativo.

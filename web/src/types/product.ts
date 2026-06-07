@@ -15,6 +15,7 @@ export type ProductTone = "teal" | "pink" | "amber" | "indigo";
 export type Product = {
   category?: string;
   condition: ProductCondition;
+  createdAt?: string;
   description: string;
   franchise: string;
   funkoNumber: string;

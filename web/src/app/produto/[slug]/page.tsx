@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { clsx } from "clsx";
-import { MessageCircle } from "lucide-react";
-import { ProductMedia } from "@/components/product/product-card";
+import { MessageCircle, PackageCheck, Timer, Truck } from "lucide-react";
 import { ProductStatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency } from "@/lib/format";
-import { getCatalogProductBySlug } from "@/lib/catalog";
+import { CartButton } from "@/components/storefront/cart-button";
+import { PriceDisplay } from "@/components/storefront/price-display";
+import { ProductGallery } from "@/components/storefront/product-gallery";
+import { ProductGrid } from "@/components/storefront/product-grid";
+import { WishlistButton } from "@/components/storefront/wishlist-button";
+import { getCatalogProductBySlug, getCatalogProducts } from "@/lib/catalog";
 import { getProductVariantStatusMeta } from "@/lib/status-labels";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
 
@@ -33,6 +35,30 @@ function getSpecialPills(product: {
   return [];
 }
 
+function getHowItWorks(productSource: string) {
+  if (productSource === "Pronta-entrega") {
+    return {
+      icon: PackageCheck,
+      title: "Reserva e envio",
+      text: "A Smart Funkos confirma a disponibilidade e organiza reserva, pagamento manual e envio pelo atendimento.",
+    };
+  }
+
+  if (productSource === "Pré-venda") {
+    return {
+      icon: Timer,
+      title: "Pré-venda acompanhada",
+      text: "Prazos podem variar. A equipe confirma previsão, reserva e status antes de registrar o pedido.",
+    };
+  }
+
+  return {
+    icon: Truck,
+    title: "Encomenda sob consulta",
+    text: "Disponibilidade, prazo e valor final são confirmados pelo atendimento antes da criação do pedido.",
+  };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getCatalogProductBySlug(slug);
@@ -44,6 +70,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: product.name,
     description: product.description,
+    alternates: {
+      canonical: `/produto/${product.slug}`,
+    },
+    openGraph: {
+      title: `${product.name} | Smart Funkos`,
+      description: product.description,
+      images: product.imageUrl ? [product.imageUrl] : ["/brand/SmartFunko.png"],
+    },
   };
 }
 
@@ -57,6 +91,15 @@ export default async function ProductPage({ params }: Props) {
 
   const specialPills = getSpecialPills(product);
   const isSpecial = product.isSpecial || specialPills.length > 0;
+  const howItWorks = getHowItWorks(product.source);
+  const HowItWorksIcon = howItWorks.icon;
+  const relatedProducts = (
+    await getCatalogProducts({
+      pageSize: 8,
+      query: product.franchise || product.category || product.supplierName,
+      sort: "specials_first",
+    })
+  ).filter((relatedProduct) => relatedProduct.id !== product.id);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -67,38 +110,15 @@ export default async function ProductPage({ params }: Props) {
               Produto Special
             </div>
           ) : null}
-          <ProductMedia
-            product={product}
-            priority
-            sizes="(min-width: 1024px) 42vw, 100vw"
-          />
-          {product.images && product.images.length > 1 ? (
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-              {product.images.map((imageUrl, index) => (
-                <div
-                  key={imageUrl}
-                  className={clsx(
-                    "relative h-20 w-20 shrink-0 overflow-hidden rounded-md border bg-slate-950/50",
-                    index === 0 ? "border-[var(--accent)]" : "border-[var(--border)]",
-                  )}
-                >
-                  <Image
-                    src={imageUrl}
-                    alt={`${product.imageAlt ?? product.name} ${index + 1}`}
-                    fill
-                    sizes="80px"
-                    className="object-contain p-2"
-                  />
-                </div>
-              ))}
-            </div>
-          ) : null}
+          <ProductGallery product={product} />
         </div>
 
         <section
           className={clsx(
             "rounded-lg border bg-[var(--surface)] p-5",
-            isSpecial ? "border-yellow-300/50 shadow-[0_20px_60px_rgba(250,204,21,0.12)]" : "border-[var(--border)]",
+            isSpecial
+              ? "border-yellow-300/50 shadow-[0_20px_60px_rgba(250,204,21,0.12)]"
+              : "border-[var(--border)]",
           )}
         >
           <div className="flex flex-wrap items-center gap-2">
@@ -116,11 +136,11 @@ export default async function ProductPage({ params }: Props) {
             </span>
           </div>
 
-          <h1 className="mt-5 text-3xl font-bold leading-tight text-[var(--foreground)]">
+          <h1 className="mt-5 text-3xl font-black leading-tight text-[var(--foreground)] sm:text-4xl">
             {product.name}
           </h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            {product.franchise} · #{product.funkoNumber} · {product.sku}
+            {product.franchise} · #{product.funkoNumber} · SKU {product.sku}
           </p>
           {product.supplierName && product.supplierSlug ? (
             <Link
@@ -132,19 +152,34 @@ export default async function ProductPage({ params }: Props) {
           ) : null}
 
           <div className="mt-6 border-y border-[var(--border)] py-5">
-            <p className="text-3xl font-bold text-[var(--foreground)]">
-              {formatCurrency(product.price)}
-            </p>
-            {product.marketPrice ? (
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Mercado: {formatCurrency(product.marketPrice)}
-              </p>
-            ) : null}
+            <PriceDisplay
+              marketPrice={product.marketPrice}
+              price={product.price}
+              size="lg"
+            />
           </div>
 
           <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
             <div>
-              <dt className="font-semibold text-[var(--foreground)]">Condicao</dt>
+              <dt className="font-semibold text-[var(--foreground)]">Franquia</dt>
+              <dd className="text-[var(--muted)]">{product.franchise}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Número Funko</dt>
+              <dd className="text-[var(--muted)]">#{product.funkoNumber}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Categoria</dt>
+              <dd className="text-[var(--muted)]">
+                {[product.category, product.subcategory].filter(Boolean).join(" · ") || "Colecionável"}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Fornecedor/collab</dt>
+              <dd className="text-[var(--muted)]">{product.supplierName ?? "Smart Funkos"}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-[var(--foreground)]">Condição</dt>
               <dd className="text-[var(--muted)]">{product.condition}</dd>
             </div>
             <div>
@@ -157,7 +192,9 @@ export default async function ProductPage({ params }: Props) {
             </div>
             <div>
               <dt className="font-semibold text-[var(--foreground)]">Status</dt>
-              <dd className="text-[var(--muted)]">{getProductVariantStatusMeta(product.status).label}</dd>
+              <dd className="text-[var(--muted)]">
+                {getProductVariantStatusMeta(product.status).label}
+              </dd>
             </div>
           </dl>
 
@@ -165,17 +202,58 @@ export default async function ProductPage({ params }: Props) {
             {product.description}
           </p>
 
-          <a
-            href={createProductWhatsAppUrl(product)}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-5 text-sm font-black text-[#052e16] hover:brightness-110 sm:w-auto"
-          >
-            <MessageCircle size={18} aria-hidden="true" />
-            Comprar pelo WhatsApp
-          </a>
+          <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
+            <a
+              href={createProductWhatsAppUrl(product)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--green)] px-5 text-sm font-black text-[#052e16] hover:brightness-110"
+            >
+              <MessageCircle size={18} aria-hidden="true" />
+              Tenho interesse
+            </a>
+            <WishlistButton
+              className="h-11 justify-center"
+              productId={product.id}
+              productName={product.name}
+              showLabel
+            />
+          </div>
+          <CartButton className="mt-3 w-full" product={product} />
         </section>
       </div>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <HowItWorksIcon className="text-[var(--yellow)]" size={24} aria-hidden="true" />
+          <h2 className="mt-4 text-lg font-black text-[var(--foreground)]">
+            {howItWorks.title}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{howItWorks.text}</p>
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h2 className="text-lg font-black text-[var(--foreground)]">Próximos passos</h2>
+          <div className="mt-4 grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-3">
+            <p>1. Envie interesse pelo WhatsApp com SKU e link preenchidos.</p>
+            <p>2. A equipe confirma disponibilidade, prazo e condição final.</p>
+            <p>3. O pedido manual pode ser acompanhado pela sua conta.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <div className="mb-5">
+          <h2 className="text-2xl font-black text-[var(--foreground)]">Produtos relacionados</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Sugestões por franquia, categoria, fornecedor ou specials.
+          </p>
+        </div>
+        <ProductGrid
+          emptyDescription="Ainda não há produtos relacionados ativos para este item."
+          emptyTitle="Nenhum relacionado por enquanto"
+          products={relatedProducts.slice(0, 4)}
+        />
+      </section>
     </div>
   );
 }

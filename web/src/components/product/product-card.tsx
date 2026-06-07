@@ -2,8 +2,10 @@ import Link from "next/link";
 import { clsx } from "clsx";
 import { MessageCircle } from "lucide-react";
 import { SafeProductImage } from "@/components/product/safe-product-image";
+import { CartButton } from "@/components/storefront/cart-button";
+import { PriceDisplay } from "@/components/storefront/price-display";
+import { WishlistButton } from "@/components/storefront/wishlist-button";
 import type { Product } from "@/types/product";
-import { formatCurrency } from "@/lib/format";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
 import { ProductStatusBadge } from "@/components/ui/status-badge";
 
@@ -108,6 +110,9 @@ export function ProductCard({
           Special
         </div>
       ) : null}
+      <div className="absolute left-3 top-3 z-20">
+        <WishlistButton productId={product.id} productName={product.name} />
+      </div>
 
       <Link href={`/produto/${product.slug}`} prefetch={false} aria-label={product.name}>
         <ProductMedia product={product} priority={priority} />
@@ -165,24 +170,24 @@ export function ProductCard({
         </div>
 
         <div className="mt-auto pt-5">
-          <p className="text-xl font-black text-slate-100">
-            {formatCurrency(product.price)}
-          </p>
-          {product.marketPrice ? (
-            <p className="mt-1 text-xs text-slate-500">
-              Mercado {formatCurrency(product.marketPrice)}
-            </p>
-          ) : null}
+          <PriceDisplay
+            marketPrice={product.marketPrice}
+            price={product.price}
+            size="sm"
+          />
 
-          <a
-            href={createProductWhatsAppUrl(product)}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-4 text-sm font-black text-[#052e16] hover:brightness-110"
-          >
-            <MessageCircle size={16} aria-hidden="true" />
-            WhatsApp
-          </a>
+          <div className="mt-5 grid gap-2">
+            <CartButton className="w-full" label="Adicionar" product={product} />
+            <a
+              href={createProductWhatsAppUrl(product)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-4 text-sm font-black text-[#052e16] hover:brightness-110"
+            >
+              <MessageCircle size={16} aria-hidden="true" />
+              Tenho interesse
+            </a>
+          </div>
         </div>
       </div>
     </article>

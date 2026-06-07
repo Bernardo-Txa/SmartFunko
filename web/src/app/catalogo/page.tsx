@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CatalogCategoryFilter } from "@/components/product/catalog-category-filter";
-import { ProductCard } from "@/components/product/product-card";
+import { ProductGrid } from "@/components/storefront/product-grid";
 import {
   getCatalogCategories,
   getCatalogProductsPage,
   getCatalogSuppliers,
   type CatalogProductFilter,
+  type CatalogProductSort,
 } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Catalogo",
+  description: "Catalogo publico da Smart Funkos com pronta-entrega, pre-venda, encomendas e colecionaveis especiais.",
+  alternates: {
+    canonical: "/catalogo",
+  },
+  openGraph: {
+    title: "Catalogo | Smart Funkos",
+    description: "Explore produtos ativos, colecionaveis especiais e vitrines comerciais da Smart Funkos.",
+    images: ["/brand/SmartFunko.png"],
+  },
 };
 
 type Props = {
@@ -19,6 +29,7 @@ type Props = {
     filter?: CatalogProductFilter;
     page?: string;
     q?: string;
+    sort?: CatalogProductSort;
     subcategory?: string;
     supplier?: string;
   }>;
@@ -43,6 +54,7 @@ export default async function CatalogPage({ searchParams }: Props) {
   const filter = params.filter ?? "all";
   const page = Number(params.page ?? 1);
   const query = params.q ?? "";
+  const sort = params.sort ?? "ready_first";
   const subcategory = params.subcategory ?? "";
   const supplier = params.supplier ?? "";
   const [categories, suppliers, productPage] = await Promise.all([
@@ -54,6 +66,7 @@ export default async function CatalogPage({ searchParams }: Props) {
       page,
       pageSize: 24,
       query,
+      sort,
       subcategory,
       supplier,
     }),
@@ -69,6 +82,7 @@ export default async function CatalogPage({ searchParams }: Props) {
           categories={categories}
           currentCategory={category}
           currentFilter={filter}
+          currentSort={sort}
           currentSubcategory={subcategory}
           currentSupplier={supplier}
           query={query}
@@ -80,11 +94,7 @@ export default async function CatalogPage({ searchParams }: Props) {
         {meta.total} produto(s) encontrado(s). Pagina {meta.page} de {meta.totalPages}.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {products.map((product, index) => (
-          <ProductCard key={product.id} priority={index < 4} product={product} />
-        ))}
-      </div>
+      <ProductGrid products={products} />
 
       <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Paginacao">
         <Link
@@ -93,6 +103,7 @@ export default async function CatalogPage({ searchParams }: Props) {
             filter,
             page: Math.max(1, meta.page - 1),
             q: query,
+            sort,
             subcategory,
             supplier,
           })}
@@ -111,6 +122,7 @@ export default async function CatalogPage({ searchParams }: Props) {
             filter,
             page: Math.min(meta.totalPages, meta.page + 1),
             q: query,
+            sort,
             subcategory,
             supplier,
           })}

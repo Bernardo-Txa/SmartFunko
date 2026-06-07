@@ -1,138 +1,243 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, MessageCircle, PackageCheck, UserRound } from "lucide-react";
-import { ProductCard } from "@/components/product/product-card";
-import { getCatalogProducts } from "@/lib/catalog";
+import type { Metadata } from "next";
+import { Heart, MessageCircle, PackageCheck, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { CategoryTile } from "@/components/storefront/category-tile";
+import { CommercialSection } from "@/components/storefront/commercial-section";
+import { HeroBanner } from "@/components/storefront/hero-banner";
+import { ProductCarousel } from "@/components/storefront/product-carousel";
+import { SupplierTile } from "@/components/storefront/supplier-tile";
+import {
+  getCatalogFranchises,
+  getCatalogProducts,
+  getCatalogSuppliers,
+} from "@/lib/catalog";
+
+export const metadata: Metadata = {
+  title: "Sua coleção começa aqui",
+  description:
+    "Funkos, colecionáveis, pré-vendas e encomendas selecionadas pela Smart Funkos.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Smart Funkos",
+    description:
+      "Loja e comunidade de colecionáveis com catálogo, favoritos, pronta-entrega, pré-vendas e atendimento assistido.",
+    images: ["/brand/SmartFunko.png"],
+  },
+};
+
+const commercialTiles = [
+  {
+    description: "Produtos disponíveis para reservar agora.",
+    href: "/pronta-entrega",
+    label: "Pronta-entrega",
+  },
+  {
+    description: "Itens acompanhados desde a abertura da pré-venda.",
+    href: "/pre-venda",
+    label: "Pré-venda",
+  },
+  {
+    description: "Chase, exclusivos, glow e peças com rótulos especiais.",
+    href: "/specials",
+    label: "Specials",
+  },
+  {
+    description: "Entradas recentes do catálogo ativo.",
+    href: "/novidades",
+    label: "Novidades",
+  },
+  {
+    description: "Importações e pedidos sob consulta pelo atendimento.",
+    href: "/encomendas",
+    label: "Encomendas",
+  },
+  {
+    description: "Piticas, Copag, Panini e collabs ativos.",
+    href: "/fornecedores",
+    label: "Fornecedores/Collabs",
+  },
+];
+
+const trustItems = [
+  {
+    icon: ShieldCheck,
+    label: "Produto original",
+    text: "Curadoria e cadastro operacional para manter informações claras.",
+  },
+  {
+    icon: MessageCircle,
+    label: "Atendimento próximo",
+    text: "A compra é finalizada com contexto pelo WhatsApp.",
+  },
+  {
+    icon: PackageCheck,
+    label: "Acompanhamento",
+    text: "Pedidos manuais continuam visíveis na conta do cliente.",
+  },
+  {
+    icon: Users,
+    label: "Comunidade",
+    text: "Favoritos ajudam a Smart Funkos entender a demanda real.",
+  },
+];
 
 export default async function Home() {
-  const products = await getCatalogProducts({ pageSize: 4 });
-  const featuredProducts = products.slice(0, 4);
+  const [heroProducts, readyProducts, specialProducts, newProducts, suppliers, franchises] =
+    await Promise.all([
+      getCatalogProducts({ filter: "specials", pageSize: 4, sort: "specials_first" }),
+      getCatalogProducts({ filter: "ready", pageSize: 8, sort: "ready_first" }),
+      getCatalogProducts({ filter: "specials", pageSize: 8, sort: "specials_first" }),
+      getCatalogProducts({ filter: "new", pageSize: 8, sort: "newest" }),
+      getCatalogSuppliers(),
+      getCatalogFranchises(),
+    ]);
+
+  const featuredProducts = [
+    ...specialProducts.filter((product) => product.imageUrl),
+    ...readyProducts.filter((product) => product.imageUrl),
+    ...newProducts.filter((product) => product.imageUrl),
+  ].filter(
+    (product, index, products) =>
+      products.findIndex((candidate) => candidate.id === product.id) === index,
+  );
 
   return (
     <div>
-      <section className="relative overflow-hidden border-b border-[var(--border)]">
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,0.96),rgba(15,23,42,0.84)_42%,rgba(79,70,229,0.42))]" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:34px_34px]" />
-        <div className="mx-auto grid min-h-[560px] max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-          <div className="relative z-10 flex flex-col justify-center">
-            <Image
-              src="/brand/SmartFunko.png"
-              alt="Smart Funkos"
-              width={300}
-              height={105}
-              preload
-              className="mb-5 h-auto w-56 drop-shadow-[0_0_26px_rgba(34,211,238,0.42)] sm:w-72"
-            />
-            <p className="text-sm font-bold uppercase tracking-[0.22em] text-[var(--yellow)]">
-              Catalogo com atendimento assistido
-            </p>
-            <h1 className="mt-3 max-w-xl text-4xl font-black leading-tight text-white sm:text-5xl">
-              Monte sua colecao sem perder o controle do pedido.
-            </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
-              Escolha o item, chame no WhatsApp com o produto preenchido e acompanhe
-              seus pedidos pela conta.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/catalogo"
-                prefetch={false}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--yellow)] px-5 text-sm font-black text-[#020617] shadow-[0_0_26px_rgba(250,204,21,0.28)] hover:brightness-110"
-              >
-                <PackageCheck size={17} aria-hidden="true" />
-                Ver catalogo
-              </Link>
-              <Link
-                href="/cadastro"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-slate-950/38 px-5 text-sm font-bold text-white backdrop-blur hover:bg-cyan-400/15"
-              >
-                <UserRound size={17} aria-hidden="true" />
-                Criar conta
-              </Link>
-            </div>
-          </div>
+      <HeroBanner products={featuredProducts.length > 0 ? featuredProducts : heroProducts} />
 
-          <div className="relative z-10 min-h-[380px]" aria-hidden="true">
-            <div className="absolute left-[18%] top-6 z-20 flex h-72 w-56 rotate-[-3deg] flex-col justify-between rounded-[28px] border border-cyan-200/24 bg-slate-950/72 p-5 shadow-[0_34px_30px_rgba(0,0,0,0.48)] backdrop-blur">
-              <span className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-3xl font-black leading-none text-slate-950">
-                POP
-              </span>
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">
-                  Smart seleção
-                </p>
-                <strong className="mt-2 block text-6xl font-black leading-none text-white">
-                  #1607
-                </strong>
-              </div>
-            </div>
-            <div className="absolute bottom-10 left-2 z-10 flex h-52 w-40 rotate-[7deg] flex-col justify-between rounded-[24px] border border-yellow-200/20 bg-yellow-300/12 p-4 shadow-[0_28px_24px_rgba(0,0,0,0.42)] backdrop-blur">
-              <span className="text-3xl font-black text-white">POP</span>
-              <span className="rounded-full bg-[var(--yellow)] px-3 py-1 text-xs font-black text-slate-950">
-                Pre-venda
-              </span>
-            </div>
-            <div className="absolute bottom-2 right-4 z-10 flex h-56 w-44 rotate-[-8deg] flex-col justify-between rounded-[24px] border border-pink-200/20 bg-pink-500/14 p-4 shadow-[0_28px_24px_rgba(0,0,0,0.42)] backdrop-blur">
-              <span className="text-3xl font-black text-white">POP</span>
-              <span className="rounded-full bg-cyan-300 px-3 py-1 text-xs font-black text-slate-950">
-                Chase
-              </span>
-            </div>
-            <div className="absolute inset-x-16 bottom-0 h-20 rounded-full bg-cyan-300/20 blur-3xl" />
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--foreground)]">
-              Destaques do catalogo
-            </h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Itens prontos, sob encomenda e pre-venda.
-            </p>
-          </div>
-          <Link
-            href="/catalogo"
-            prefetch={false}
-            className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15"
-          >
-            Abrir
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} priority product={product} />
+      <CommercialSection
+        eyebrow="Vitrines"
+        title="Escolha pelo momento da coleção"
+        description="A navegação separa pronta-entrega, pré-venda, specials, novidades e encomendas sem esconder o catálogo operacional."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {commercialTiles.map((tile) => (
+            <CategoryTile key={tile.href} {...tile} />
           ))}
         </div>
-      </section>
+      </CommercialSection>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-4 pb-12 sm:px-6 md:grid-cols-3 lg:px-8">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 backdrop-blur">
-          <MessageCircle className="text-[var(--green)]" size={24} />
-          <strong className="mt-4 block text-sm">WhatsApp com contexto</strong>
-          <span className="mt-1 block text-sm text-[var(--muted)]">
-            Produto, codigo, preco e link saem prontos para o atendimento.
-          </span>
+      <ProductCarousel
+        title="Produtos em destaque"
+        description="Prioridade para itens com imagem, specials e pronta-entrega."
+        href="/catalogo"
+        products={featuredProducts.slice(0, 10)}
+      />
+
+      <CommercialSection
+        eyebrow="Universos"
+        title="Franquias em destaque"
+        description="Entre por franquia ou universo e refine depois por fornecedor, status e tipo."
+        ctaHref="/catalogo"
+        ctaLabel="Explorar catálogo"
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {franchises.slice(0, 8).map((franchise) => (
+            <CategoryTile
+              key={franchise.id}
+              href={`/catalogo?franchise=${franchise.slug}`}
+              label={franchise.name}
+              description="Produtos ativos desse universo no catálogo."
+            />
+          ))}
+          {franchises.length === 0
+            ? ["One Piece", "Marvel", "DC", "Disney", "Anime", "Harry Potter", "Star Wars"].map(
+                (label) => (
+                  <CategoryTile
+                    key={label}
+                    href={`/catalogo?q=${encodeURIComponent(label)}`}
+                    label={label}
+                    description="Busca pronta para este universo."
+                  />
+                ),
+              )
+            : null}
         </div>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 backdrop-blur">
-          <PackageCheck className="text-[var(--yellow)]" size={24} />
-          <strong className="mt-4 block text-sm">Estoque reservado</strong>
-          <span className="mt-1 block text-sm text-[var(--muted)]">
-            O admin organiza reserva, pagamento e status por item.
-          </span>
+      </CommercialSection>
+
+      <CommercialSection
+        eyebrow="Collabs"
+        title="Fornecedores e parceiros"
+        description="Coleções vinculadas ao cadastro real de fornecedores ativos."
+        ctaHref="/fornecedores"
+        ctaLabel="Ver fornecedores"
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          {suppliers.slice(0, 6).map((supplier) => (
+            <SupplierTile key={supplier.id} supplier={supplier} />
+          ))}
         </div>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 backdrop-blur">
-          <UserRound className="text-[var(--accent)]" size={24} />
-          <strong className="mt-4 block text-sm">Conta do cliente</strong>
-          <span className="mt-1 block text-sm text-[var(--muted)]">
-            Historico e acompanhamento ficam salvos desde a V1.
-          </span>
+      </CommercialSection>
+
+      <CommercialSection
+        eyebrow="Fluxo assistido"
+        title="Como funciona"
+        description="O site organiza desejo e intenção de compra; o fechamento continua pelo atendimento."
+      >
+        <div id="como-funciona" className="grid gap-4 md:grid-cols-4">
+          {[
+            ["Escolha o produto", "Use catálogo, vitrines e favoritos para montar sua lista."],
+            ["Chame no WhatsApp", "A mensagem já leva produto, SKU e link para o atendimento."],
+            ["A Smart organiza", "Reserva, encomenda ou pré-venda entram no fluxo operacional."],
+            ["Acompanhe o status", "Pedidos vinculados aparecem na conta do cliente."],
+          ].map(([label, text], index) => (
+            <div
+              key={label}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5"
+            >
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--yellow)] text-sm font-black text-[#020617]">
+                {index + 1}
+              </span>
+              <strong className="mt-4 block text-sm text-[var(--foreground)]">{label}</strong>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{text}</p>
+            </div>
+          ))}
         </div>
-      </section>
+      </CommercialSection>
+
+      <CommercialSection
+        eyebrow="Confiança"
+        title="Por que comprar com a Smart Funkos"
+        description="A experiência premium fica por cima do mesmo core operacional: pedido, estoque, pagamento manual, caixa e acompanhamento."
+      >
+        <div className="grid gap-4 md:grid-cols-4">
+          {trustItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={item.label}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5"
+              >
+                <Icon className="text-[var(--accent)]" size={24} aria-hidden="true" />
+                <strong className="mt-4 block text-sm text-[var(--foreground)]">
+                  {item.label}
+                </strong>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{item.text}</p>
+              </div>
+            );
+          })}
+          <div className="rounded-lg border border-yellow-300/35 bg-yellow-300/10 p-5">
+            <Sparkles className="text-[var(--yellow)]" size={24} aria-hidden="true" />
+            <strong className="mt-4 block text-sm text-[var(--foreground)]">
+              Pré-vendas e encomendas
+            </strong>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              Prazos são confirmados pelo atendimento antes da reserva manual.
+            </p>
+          </div>
+          <div className="rounded-lg border border-pink-300/30 bg-pink-500/10 p-5">
+            <Heart className="text-pink-200" size={24} aria-hidden="true" />
+            <strong className="mt-4 block text-sm text-[var(--foreground)]">
+              Favoritos reais
+            </strong>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              Sua lista ajuda a loja decidir compras e divulgações futuras.
+            </p>
+          </div>
+        </div>
+      </CommercialSection>
     </div>
   );
 }

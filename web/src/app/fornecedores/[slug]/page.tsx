@@ -29,6 +29,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: supplier.name,
     description: supplier.description ?? `Produtos vinculados a ${supplier.name}.`,
+    alternates: {
+      canonical: `/fornecedores/${supplier.slug}`,
+    },
+    openGraph: {
+      title: `${supplier.name} | Smart Funkos`,
+      description:
+        supplier.description ?? `Produtos vinculados a ${supplier.name} na Smart Funkos.`,
+      images:
+        supplier.banner_url || supplier.logo_url
+          ? [supplier.banner_url ?? supplier.logo_url ?? "/brand/SmartFunko.png"]
+          : ["/brand/SmartFunko.png"],
+    },
   };
 }
 

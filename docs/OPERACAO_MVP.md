@@ -3,7 +3,7 @@
 ## Fluxo principal
 
 1. Cliente escolhe um produto no catalogo.
-2. Cliente chama a Smart Funkos pelo WhatsApp.
+2. Cliente pode favoritar produtos, montar carrinho assistido ou chamar a Smart Funkos pelo WhatsApp.
 3. Admin entra no painel e cadastra ou seleciona o cliente.
 4. Admin cria um pedido manual.
 5. Admin adiciona itens ao pedido.
@@ -16,6 +16,7 @@
 ## APIs principais
 
 - `GET /api/v1/admin/dashboard`
+- `/admin/demanda` usa wishlist para ranking operacional de demanda, restrito a owner.
 - `GET|POST /api/v1/admin/customers`
 - `GET|PATCH /api/v1/admin/customers/[id]`
 - `GET|POST /api/v1/admin/products`
@@ -43,6 +44,17 @@
 - `GET /api/v1/public/suppliers`
 - `GET /api/v1/public/suppliers/[slug]`
 
+## Rotas publicas comerciais
+
+- `/`: home premium com hero, vitrines, universos, fornecedores, fluxo assistido e confianca.
+- `/pronta-entrega`: produtos com estoque proprio ou status disponivel.
+- `/pre-venda`: produtos com origem/status de pre-venda, com aviso de prazo variavel.
+- `/specials`: produtos com tipo especial, special label ou tags especiais.
+- `/novidades`: produtos ativos mais recentes por data de cadastro.
+- `/encomendas`: produtos sob encomenda/importacao, com CTA para WhatsApp.
+- `/carrinho`: carrinho local para intencao de compra assistida.
+- `/conta/wishlist`: favoritos do cliente autenticado.
+
 ## Regras implementadas
 
 - Rotas internas usam `owner` como role operacional principal.
@@ -60,8 +72,13 @@
 - Status internos continuam em ingles no banco, mas badges e textos de UI usam `web/src/lib/status-labels.ts`.
 - Fornecedores/collabs usam `suppliers`; publicos ativos aparecem em `/fornecedores` e `/fornecedores/[slug]`.
 - O catalogo aceita filtro adicional por fornecedor: `/catalogo?supplier=piticas`.
+- O catalogo e as paginas comerciais aceitam busca, fornecedor, categoria e ordenacao comercial (`sort`).
+- Filtros comerciais aceitos: `ready`, `preorder`, `specials`, `new` e `order`.
 - Produtos sao criados em `/admin/produtos/novo` e editados em `/admin/produtos/[id]`, incluindo fornecedor, imagem, descricao, status e variantes.
 - Mock do catalogo so e permitido fora de `production`.
+- Carrinho assistido persiste apenas no navegador e nao grava pedido, pagamento, frete ou reserva de estoque.
+- Wishlist exige login e customer vinculado; customer so ve/remove a propria lista.
+- Admin de demanda usa dados reais de `wishlist_items` para ranking por produto, franquia, fornecedor e categoria.
 
 ## Variaveis necessarias
 
@@ -102,7 +119,7 @@ O app Flutter nao faz parte desta V1. Estes contratos devem ser mantidos estavei
 - `GET /api/v1/me/wishlist`: exige login e customer vinculado; resposta `{ data: WishlistItem[] }`.
 - `POST /api/v1/me/wishlist`: exige login; body com produto/variante conforme service; resposta `{ data: WishlistItem }`.
 - `DELETE /api/v1/me/wishlist/[id]`: exige login; remove item do proprio customer.
-- `GET /api/v1/public/products`: publico; resposta `{ data: Product[], meta }`.
+- `GET /api/v1/public/products`: publico; aceita `q`, `category`, `subcategory`, `franchise`, `supplier`, `filter`, `sort`, `page`, `pageSize`; resposta `{ data: Product[], meta }`.
 - `GET /api/v1/public/products/[slug]`: publico; resposta `{ data: Product }` ou 404.
 - `GET /api/v1/public/suppliers`: publico; resposta `{ data: Supplier[] }` somente com suppliers `active`.
 - `GET /api/v1/public/suppliers/[slug]`: publico; resposta `{ data: Supplier }` somente se `active`.

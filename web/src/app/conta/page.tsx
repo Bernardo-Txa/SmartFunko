@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Package, UserRound } from "lucide-react";
+import { ArrowRight, Heart, Package, UserRound } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderService } from "@/server/orders/order-service";
@@ -88,6 +88,16 @@ export default async function AccountPage() {
             Historico do atendimento pelo WhatsApp.
           </p>
         </section>
+        <Link
+          href="/conta/wishlist"
+          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
+        >
+          <Heart className="text-pink-200" size={24} />
+          <strong className="mt-4 block text-sm">Favoritos</strong>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Lista de desejos e produtos acompanhados.
+          </p>
+        </Link>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <strong className="block text-2xl text-[var(--foreground)]">
             {formatCurrency(totalOpen)}

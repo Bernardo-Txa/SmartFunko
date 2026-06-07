@@ -7,6 +7,14 @@ import { getCatalogSuppliers } from "@/lib/catalog";
 export const metadata: Metadata = {
   title: "Fornecedores",
   description: "Fornecedores, collabs e colecoes especiais da Smart Funkos.",
+  alternates: {
+    canonical: "/fornecedores",
+  },
+  openGraph: {
+    title: "Fornecedores | Smart Funkos",
+    description: "Fornecedores, collabs e coleções especiais da Smart Funkos.",
+    images: ["/brand/SmartFunko.png"],
+  },
 };
 
 export default async function SuppliersPage() {

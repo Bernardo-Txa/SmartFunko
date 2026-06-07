@@ -22,7 +22,9 @@ type VariantRow = {
 
 type ProductRow = {
   category_name?: string | null;
+  created_at?: string | null;
   description?: string | null;
+  external_catalog_code?: string | null;
   franchise_id?: string | null;
   franchises?: { name: string; slug: string } | { name: string; slug: string }[] | null;
   funko_number?: string | null;
@@ -64,7 +66,15 @@ const sourceLabel: Record<VariantRow["source"], Product["source"]> = {
   preorder: "Pré-venda",
 };
 
-export type CatalogProductFilter = "all" | "ready" | "order" | "preorder" | "specials";
+export type CatalogProductFilter = "all" | "new" | "ready" | "order" | "preorder" | "specials";
+
+export type CatalogProductSort =
+  | "name"
+  | "newest"
+  | "price_asc"
+  | "price_desc"
+  | "ready_first"
+  | "specials_first";
 
 export type CatalogProductFilters = {
   category?: string;
@@ -73,6 +83,7 @@ export type CatalogProductFilters = {
   page?: number;
   pageSize?: number;
   query?: string;
+  sort?: CatalogProductSort;
   subcategory?: string;
   supplier?: string;
 };
@@ -161,10 +172,10 @@ const CATALOG_DETAIL_REVALIDATE_SECONDS = 300;
 const CATALOG_OPTIONS_REVALIDATE_SECONDS = 900;
 
 const catalogListSelect =
-  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,main_image_url,status,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 const catalogDetailSelect =
-  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,description,main_image_url,status,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,description,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 function getPublicSupabase() {
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -325,6 +336,7 @@ function mapProduct(row: ProductRow, index: number, filter: CatalogProductFilter
   return {
     category: row.category_name ?? undefined,
     condition: conditionLabel[variant?.condition ?? "new"],
+    createdAt: row.created_at ?? undefined,
     description: row.description ?? "Produto Smart Funkos com atendimento pelo WhatsApp.",
     franchise: getFranchiseName(row.franchises) ?? "Smart Funkos",
     funkoNumber: row.funko_number ?? "000",
@@ -360,7 +372,15 @@ function fallbackOrThrow<T>(data: T, context: string) {
 }
 
 function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
-  const validFilters: CatalogProductFilter[] = ["all", "ready", "order", "preorder", "specials"];
+  const validFilters: CatalogProductFilter[] = ["all", "new", "ready", "order", "preorder", "specials"];
+  const validSorts: CatalogProductSort[] = [
+    "name",
+    "newest",
+    "price_asc",
+    "price_desc",
+    "ready_first",
+    "specials_first",
+  ];
   const category = filters.category?.trim() ?? "";
   const filter = filters.filter && validFilters.includes(filters.filter) ? filters.filter : "all";
   const requestedPage = Number(filters.page ?? 1);
@@ -371,6 +391,12 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
     : 24;
   const query = filters.query?.trim() ?? "";
   const franchise = filters.franchise?.trim() ?? "";
+  const sort =
+    filters.sort && validSorts.includes(filters.sort)
+      ? filters.sort
+      : filter === "new"
+        ? "newest"
+        : "ready_first";
   const subcategory = filters.subcategory?.trim() ?? "";
   const supplier = filters.supplier?.trim() ?? "";
 
@@ -381,6 +407,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
     page,
     pageSize,
     query,
+    sort,
     subcategory,
     supplier,
   };
@@ -412,13 +439,17 @@ function fallbackProductMatchesFilter(product: Product, filter: CatalogProductFi
     );
   }
 
+  if (filter === "new") {
+    return true;
+  }
+
   return true;
 }
 
 function filterFallbackProducts(filters: ReturnType<typeof normalizeCatalogFilters>) {
   const filtered = fallbackProducts.filter((product) => {
     const matchesQuery = filters.query
-      ? `${product.name} ${product.slug} ${product.sku} ${product.franchise} ${product.funkoNumber} ${product.category ?? ""} ${product.subcategory ?? ""}`
+      ? `${product.name} ${product.slug} ${product.sku} ${product.franchise} ${product.funkoNumber} ${product.category ?? ""} ${product.subcategory ?? ""} ${product.supplierName ?? ""} ${(product.specialTags ?? []).join(" ")}`
           .toLowerCase()
           .includes(filters.query.toLowerCase())
       : true;
@@ -434,16 +465,17 @@ function filterFallbackProducts(filters: ReturnType<typeof normalizeCatalogFilte
 
     return matchesQuery && matchesFranchise && matchesCategory && matchesSubcategory && matchesSupplier && matchesFilter;
   });
+  const sorted = sortProducts(filtered, filters);
   const from = (filters.page - 1) * filters.pageSize;
-  const pageItems = filtered.slice(from, from + filters.pageSize);
+  const pageItems = sorted.slice(from, from + filters.pageSize);
 
   return {
     data: pageItems,
     meta: {
       page: filters.page,
       pageSize: filters.pageSize,
-      total: filtered.length,
-      totalPages: Math.max(1, Math.ceil(filtered.length / filters.pageSize)),
+      total: sorted.length,
+      totalPages: Math.max(1, Math.ceil(sorted.length / filters.pageSize)),
     },
   };
 }
@@ -454,6 +486,15 @@ function rowMatchesFilter(row: ProductRow, filter: CatalogProductFilter) {
 
 function sortCatalogProducts(products: Product[], filter: CatalogProductFilter) {
   return products.sort((first, second) => {
+    if (filter === "new") {
+      const firstDate = first.createdAt ? new Date(first.createdAt).getTime() : 0;
+      const secondDate = second.createdAt ? new Date(second.createdAt).getTime() : 0;
+
+      if (firstDate !== secondDate) {
+        return secondDate - firstDate;
+      }
+    }
+
     if (filter === "specials" && first.isSpecial !== second.isSpecial) {
       return first.isSpecial ? -1 : 1;
     }
@@ -463,6 +504,42 @@ function sortCatalogProducts(products: Product[], filter: CatalogProductFilter) 
 
     if (firstReady !== secondReady) {
       return firstReady ? -1 : 1;
+    }
+
+    return first.name.localeCompare(second.name, "pt-BR");
+  });
+}
+
+function sortProducts(products: Product[], filters: ReturnType<typeof normalizeCatalogFilters>) {
+  return products.sort((first, second) => {
+    if (filters.sort === "newest") {
+      const firstDate = first.createdAt ? new Date(first.createdAt).getTime() : 0;
+      const secondDate = second.createdAt ? new Date(second.createdAt).getTime() : 0;
+
+      if (firstDate !== secondDate) {
+        return secondDate - firstDate;
+      }
+    }
+
+    if (filters.sort === "price_asc" && first.price !== second.price) {
+      return first.price - second.price;
+    }
+
+    if (filters.sort === "price_desc" && first.price !== second.price) {
+      return second.price - first.price;
+    }
+
+    if (filters.sort === "specials_first" && first.isSpecial !== second.isSpecial) {
+      return first.isSpecial ? -1 : 1;
+    }
+
+    if (filters.sort === "ready_first") {
+      const firstReady = first.source === "Pronta-entrega" || first.status === "available";
+      const secondReady = second.source === "Pronta-entrega" || second.status === "available";
+
+      if (firstReady !== secondReady) {
+        return firstReady ? -1 : 1;
+      }
     }
 
     return first.name.localeCompare(second.name, "pt-BR");
@@ -514,30 +591,58 @@ async function getSearchRelationIds(
 
   if (!safeQuery) {
     return {
+      franchiseIds: [],
       productIds: [],
       safeQuery,
+      supplierIds: [],
     };
   }
 
-  const variantResult = await supabase
-    .from("product_variants")
-    .select("product_id")
-    .ilike("sku", `%${safeQuery}%`)
-    .limit(500);
+  const [variantResult, supplierResult, franchiseResult] = await Promise.all([
+    supabase
+      .from("product_variants")
+      .select("product_id")
+      .or(`sku.ilike.%${safeQuery}%,special_label.ilike.%${safeQuery}%`)
+      .limit(500),
+    supabase
+      .from("suppliers")
+      .select("id")
+      .eq("status", "active")
+      .or(`name.ilike.%${safeQuery}%,slug.ilike.%${safeQuery}%`)
+      .limit(200),
+    supabase
+      .from("franchises")
+      .select("id")
+      .eq("status", "active")
+      .or(`name.ilike.%${safeQuery}%,slug.ilike.%${safeQuery}%`)
+      .limit(200),
+  ]);
 
   if (variantResult.error) {
     console.error("Failed to search catalog variants", variantResult.error);
   }
 
+  if (supplierResult.error) {
+    console.error("Failed to search catalog suppliers", supplierResult.error);
+  }
+
+  if (franchiseResult.error) {
+    console.error("Failed to search catalog franchises", franchiseResult.error);
+  }
+
   return {
+    franchiseIds: Array.from(new Set((franchiseResult.data ?? []).map((row) => row.id as string))),
     productIds: Array.from(new Set((variantResult.data ?? []).map((row) => row.product_id as string))),
     safeQuery,
+    supplierIds: Array.from(new Set((supplierResult.data ?? []).map((row) => row.id as string))),
   };
 }
 
 function getCatalogSearchOrFilter(input: {
+  franchiseIds: string[];
   productIds: string[];
   safeQuery: string;
+  supplierIds: string[];
 }) {
   const clauses = [
     `name.ilike.%${input.safeQuery}%`,
@@ -550,6 +655,14 @@ function getCatalogSearchOrFilter(input: {
 
   if (input.productIds.length > 0) {
     clauses.push(`id.in.(${input.productIds.join(",")})`);
+  }
+
+  if (input.supplierIds.length > 0) {
+    clauses.push(`supplier_id.in.(${input.supplierIds.join(",")})`);
+  }
+
+  if (input.franchiseIds.length > 0) {
+    clauses.push(`franchise_id.in.(${input.franchiseIds.join(",")})`);
   }
 
   return clauses.join(",");
@@ -598,9 +711,15 @@ async function getCatalogProductsPageUncached(
   let query = supabase
     .from("products")
     .select(catalogListSelect, { count: "planned" })
-    .eq("status", "active")
-    .order("name", { ascending: true })
-    .range(from, to);
+    .eq("status", "active");
+
+  if (filters.sort === "newest" || filters.filter === "new") {
+    query = query.order("created_at", { ascending: false });
+  } else {
+    query = query.order("name", { ascending: true });
+  }
+
+  query = query.range(from, to);
 
   query = query.neq("product_variants.status", "hidden");
 
@@ -658,7 +777,7 @@ async function getCatalogProductsPageUncached(
   const products = (data as unknown as ProductRow[]).map((row, index) =>
     mapProduct(row, index, filters.filter),
   );
-  const sortedProducts = sortCatalogProducts(products, filters.filter);
+  const sortedProducts = sortProducts(sortCatalogProducts(products, filters.filter), filters);
   const total = Math.max(count ?? sortedProducts.length, from + sortedProducts.length);
 
   return {

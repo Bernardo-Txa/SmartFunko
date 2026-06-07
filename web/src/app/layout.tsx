@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { env } from "@/lib/env";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,12 +16,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.siteUrl),
   title: {
     default: "Smart Funkos",
     template: "%s | Smart Funkos",
   },
   description:
     "Catalogo e acompanhamento de pedidos da Smart Funkos.",
+  openGraph: {
+    images: ["/brand/SmartFunko.png"],
+    siteName: "Smart Funkos",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

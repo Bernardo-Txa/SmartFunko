@@ -1,9 +1,25 @@
-import { getCatalogProductsPage, type CatalogProductFilter } from "@/lib/catalog";
+import {
+  getCatalogProductsPage,
+  type CatalogProductFilter,
+  type CatalogProductSort,
+} from "@/lib/catalog";
 
-const filters: CatalogProductFilter[] = ["all", "ready", "order", "preorder", "specials"];
+const filters: CatalogProductFilter[] = ["all", "new", "ready", "order", "preorder", "specials"];
+const sorts: CatalogProductSort[] = [
+  "name",
+  "newest",
+  "price_asc",
+  "price_desc",
+  "ready_first",
+  "specials_first",
+];
 
 function normalizeFilter(value: string | null): CatalogProductFilter {
   return filters.find((filter) => filter === value) ?? "all";
+}
+
+function normalizeSort(value: string | null): CatalogProductSort | undefined {
+  return sorts.find((sort) => sort === value);
 }
 
 export async function GET(request: Request) {
@@ -15,6 +31,7 @@ export async function GET(request: Request) {
     page: Number(searchParams.get("page") ?? 1),
     pageSize: Number(searchParams.get("pageSize") ?? 24),
     query: searchParams.get("q") ?? undefined,
+    sort: normalizeSort(searchParams.get("sort")),
     subcategory: searchParams.get("subcategory") ?? undefined,
     supplier: searchParams.get("supplier") ?? undefined,
   });
