@@ -30,8 +30,13 @@
 - `GET|POST /api/v1/admin/suppliers`
 - `GET|PATCH /api/v1/admin/suppliers/[id]`
 - `GET|POST /api/v1/admin/inventory`
+- `GET|PATCH /api/v1/admin/inventory/[id]`
+- `POST /api/v1/admin/inventory/[id]/adjust`
+- `GET /api/v1/admin/inventory/[id]/movements`
 - `POST /api/v1/admin/inventory/[id]/reserve`
 - `POST /api/v1/admin/inventory/[id]/release`
+- `POST /api/v1/admin/inventory/[id]/mark-sold`
+- `POST /api/v1/admin/inventory/[id]/mark-damaged`
 - `POST /api/v1/admin/orders`
 - `POST /api/v1/admin/orders/[id]/items`
 - `POST /api/v1/admin/payments/manual`
@@ -69,6 +74,12 @@
 - Pagamento manual gera pagamento, entrada de caixa, log administrativo e atualiza status financeiro.
 - Reserva de estoque impede reservar unidade que nao esteja `available`.
 - Cancelamento de pedido libera unidade reservada.
+- Estoque 2.0 registra `inventory_movements` por unidade fisica para criacao, reserva, liberacao, venda, cancelamento, recebimento, avaria, indisponibilidade, ajuste de custo, mudanca de localizacao e ajuste manual.
+- Ajuste manual de estoque e restrito a owner, exige justificativa e tambem grava `admin_action_logs`.
+- Reserva de estoque exige `order_item_id`; a unidade fica com `status = reserved` e `reserved_for_order_item_id` preenchido.
+- Liberacao de estoque limpa `reserved_for_order_item_id` e registra o pedido/item original no movimento.
+- Unidades `sold`, `reserved`, `damaged` e `unavailable` nao aparecem como disponiveis para reserva.
+- Item vendido nao volta para disponivel por fluxo automatico; qualquer retorno precisa de ajuste manual owner com justificativa.
 - Link publico valida `order_number + public_token` e nao expoe dados internos.
 - `/conta/pedidos` usa pedidos reais do cliente vinculado ao login e nao mostra pedidos de outros clientes.
 - `/conta/pedidos/[orderNumber]` mostra dados seguros do pedido do proprio cliente, incluindo itens, status, pagamentos e observacoes publicas.
@@ -79,6 +90,9 @@
 - O catalogo e as paginas comerciais aceitam busca, fornecedor, categoria e ordenacao comercial (`sort`).
 - Filtros comerciais aceitos: `ready`, `preorder`, `specials`, `new` e `order`.
 - Produtos sao criados em `/admin/produtos/novo` e editados em `/admin/produtos/[id]`, incluindo fornecedor, imagem, descricao, status e variantes.
+- `/admin/produtos/[id]` mostra resumo simples de estoque do produto por status e link para `/admin/estoque`.
+- `/admin/estoque` mostra resumo operacional, filtros por produto/SKU/status/localizacao, valor estimado de estoque e links para detalhe por unidade.
+- `/admin/estoque/[id]` mostra dados da unidade, custos, pedido reservado, historico de movimentos e acoes manuais permitidas para owner.
 - `/admin/produtos/[id]` possui a secao "Imagens do produto" para upload real via Supabase Storage, preview, definicao de imagem principal, remocao da galeria e reordenacao por botoes.
 - O bucket de imagens e `product-images`, publico para leitura e restrito a owner/admin para escrita.
 - Upload aceita `image/jpeg`, `image/png`, `image/webp` e `image/avif`, com limite de 5MB por arquivo.
@@ -119,9 +133,16 @@ SUPABASE_SERVICE_ROLE_KEY=...
 14. Definir a imagem enviada como principal e conferir card no catalogo/home e galeria em `/produto/[slug]`.
 15. Reordenar imagens e conferir a ordem da galeria publica.
 16. Remover uma imagem e confirmar que o fallback por `main_image_url`, primeira imagem restante ou `ProductArtwork` continua funcionando.
-17. Abrir `/pedido/[orderNumber]?token=...`.
-18. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
-19. Testar token errado no link publico.
+17. Criar unidade de estoque e conferir movimento `created`.
+18. Ajustar status, localizacao e custo com justificativa e conferir movimentos `manual_adjustment`, `location_change` e `cost_adjustment`.
+19. Criar pedido com item pronta-entrega vinculado a uma unidade e conferir movimento `reserved`.
+20. Cancelar pedido e conferir estoque liberado com movimento `cancelled`.
+21. Marcar unidade como avariada e conferir movimento `damaged`.
+22. Abrir `/admin/estoque` e `/admin/estoque/[id]`.
+23. Confirmar que cliente nao acessa endpoints admin de estoque.
+24. Abrir `/pedido/[orderNumber]?token=...`.
+25. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
+26. Testar token errado no link publico.
 
 ## Contratos para app futuro
 

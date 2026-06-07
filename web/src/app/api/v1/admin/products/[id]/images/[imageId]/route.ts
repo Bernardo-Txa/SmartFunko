@@ -7,6 +7,15 @@ type Params = {
   params: Promise<{ id: string; imageId: string }>;
 };
 
+type ProductImageMutationResult = {
+  deletedImage: ProductImageRow;
+  images: ProductImageRow[];
+  product: {
+    id: string;
+    main_image_url: string | null;
+  };
+};
+
 function toImageResponse(image: ProductImageRow) {
   return {
     id: image.id,
@@ -20,10 +29,10 @@ export async function DELETE(_request: Request, { params }: Params) {
   return handleApi(async () => {
     const { id, imageId } = await params;
     const admin = await requireAdmin();
-    const result = await new ProductService(undefined, admin.profile.id).deleteProductImage(
+    const result = (await new ProductService(undefined, admin.profile.id).deleteProductImage(
       id,
       imageId,
-    );
+    )) as unknown as ProductImageMutationResult;
 
     revalidateTag("catalog-products", "max");
     revalidateTag("catalog-options", "max");

@@ -122,6 +122,21 @@ const inventoryStatusMeta = {
   unavailable: createMeta("Indisponível", "gray"),
 } satisfies Record<string, StatusMeta>;
 
+const inventoryMovementTypeMeta = {
+  cancelled: createMeta("Cancelado", "red"),
+  cost_adjustment: createMeta("Ajuste de custo", "yellow"),
+  created: createMeta("Criado", "green"),
+  damaged: createMeta("Avariado", "red"),
+  location_change: createMeta("Mudança de localização", "cyan"),
+  manual_adjustment: createMeta("Ajuste manual", "yellow"),
+  received: createMeta("Recebido", "green"),
+  released: createMeta("Reserva liberada", "cyan"),
+  reserved: createMeta("Reservado", "blue"),
+  sold: createMeta("Vendido", "gray"),
+  status_change: createMeta("Alteração de status", "violet"),
+  unavailable: createMeta("Indisponível", "gray"),
+} satisfies Record<string, StatusMeta>;
+
 const productVariantStatusMeta = {
   available: createMeta("Disponível", "green"),
   hidden: createMeta("Oculto", "gray"),
@@ -163,6 +178,7 @@ const operationalStatusMaps: ReadonlyArray<Readonly<Record<string, StatusMeta>>>
   orderItemStatusMeta,
   paymentStatusMeta,
   inventoryStatusMeta,
+  inventoryMovementTypeMeta,
   productVariantStatusMeta,
   productStatusMeta,
 ];
@@ -181,6 +197,10 @@ export function getPaymentStatusMeta(status: string | null | undefined) {
 
 export function getInventoryStatusMeta(status: string | null | undefined) {
   return getMeta(inventoryStatusMeta, status);
+}
+
+export function getInventoryMovementTypeMeta(type: string | null | undefined) {
+  return getMeta(inventoryMovementTypeMeta, type);
 }
 
 export function getProductVariantStatusMeta(status: string | null | undefined) {

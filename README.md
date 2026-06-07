@@ -49,6 +49,20 @@ A camada publica agora organiza descoberta e intencao de compra por cima do core
 
 O carrinho assistido nao e checkout: nao reserva estoque automaticamente, nao calcula frete, nao cobra pagamento, nao cria pedido sozinho e nao inclui Pix nesta fase.
 
+## Estoque 2.0
+
+O estoque e rastreado por unidade fisica em `inventory_items` e cada mudanca relevante gera `inventory_movements`.
+
+- criacao de unidade registra movimento `created`;
+- reserva exige `order_item_id` e registra `reserved`;
+- cancelamento de pedido libera unidade reservada e registra `cancelled`;
+- liberacao manual registra `released`;
+- venda, avaria, indisponibilidade, recebimento, mudanca de localizacao e ajuste de custo ficam no historico da unidade;
+- ajuste manual exige owner e justificativa, e tambem grava `admin_action_logs`;
+- custos e movimentos nao sao expostos em rotas publicas ou `/me`.
+
+O admin operacional fica em `/admin/estoque` e o detalhe por unidade em `/admin/estoque/[id]`.
+
 ## Como rodar localmente
 
 ```bash
@@ -138,6 +152,7 @@ Principais fluxos:
 - manter fornecedores/marcas em `/admin/fornecedores`;
 - manter produtos e variantes em `/admin/produtos/[id]`.
 - analisar demanda de wishlist em `/admin/demanda`.
+- auditar estoque por unidade em `/admin/estoque` e `/admin/estoque/[id]`.
 
 Fornecedores/collabs ficam em `suppliers`. Piticas, Copag e Panini sao seedados por migration e aparecem em `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`. `/collabs` redireciona para fornecedores, e `/marcas` permanece como vitrine especial compativel. Para vincular um produto, edite `Fornecedor/marca` em `/admin/produtos/[id]` ou use uma coluna CSV opcional.
 

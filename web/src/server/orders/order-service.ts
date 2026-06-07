@@ -491,7 +491,10 @@ export class OrderService {
       if (item.inventory_item_id) {
         const inventoryItem = await this.inventory.getInventoryItemById(item.inventory_item_id);
         if (inventoryItem.status === "reserved") {
-          await this.inventory.releaseInventoryItem(item.inventory_item_id);
+          await this.inventory.releaseInventoryItem(item.inventory_item_id, {
+            notes: notes ?? "Pedido cancelado",
+            type: "cancelled",
+          });
         }
       }
     }

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDown,
@@ -363,11 +363,6 @@ export function ProductEditForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canPreviewImage = /^https?:\/\//.test(imageUrl);
   const currentMainImageUrl = imageUrl.trim();
-
-  useEffect(() => {
-    setImageUrl(product.main_image_url ?? "");
-    setProductImages(sortProductImages(product.product_images));
-  }, [product.id, product.main_image_url, product.product_images]);
 
   function onSaved(text: string) {
     setError("");

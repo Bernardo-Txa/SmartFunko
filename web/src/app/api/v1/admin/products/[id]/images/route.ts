@@ -13,6 +13,11 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
+type ProductImageMainResponse = {
+  id: string;
+  main_image_url: string | null;
+};
+
 const PRODUCT_IMAGES_BUCKET = "product-images";
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const allowedMimeExtensions = {
@@ -119,7 +124,7 @@ export async function POST(request: Request, { params }: Params) {
 
     const setAsMain = parseBoolean(formData.get("setAsMain"));
     const product = setAsMain
-      ? await productService.setMainProductImage(id, image.id)
+      ? ((await productService.setMainProductImage(id, image.id)) as unknown as ProductImageMainResponse)
       : undefined;
 
     revalidateTag("catalog-products", "max");

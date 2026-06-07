@@ -170,6 +170,11 @@ export type ProductImageRow = {
   sort_order: number;
 };
 
+type ProductMainImageRow = {
+  id: string;
+  main_image_url: string | null;
+};
+
 export type ProductVariantSearchResult = {
   id: string;
   productId: string;
@@ -515,7 +520,7 @@ export class ProductService {
       throwQueryError(error, "Falha ao listar imagens do produto");
     }
 
-    return (data ?? []) as ProductImageRow[];
+    return (data ?? []) as unknown as ProductImageRow[];
   }
 
   private async getProductImage(productId: string, imageId: string) {
@@ -534,7 +539,7 @@ export class ProductService {
       throw notFound("Imagem do produto nao encontrada");
     }
 
-    return data as ProductImageRow;
+    return data as unknown as ProductImageRow;
   }
 
   async addProductImage(productId: string, imageUrl: string, sortOrder?: number) {
@@ -564,12 +569,12 @@ export class ProductService {
     await this.audit.createAdminActionLog({
       action: "product_image.create",
       adminId: this.actorId,
-      entityId: (data as ProductImageRow).id,
+      entityId: (data as unknown as ProductImageRow).id,
       entityType: "product_image",
       newValue: data,
     });
 
-    return data as ProductImageRow;
+    return data as unknown as ProductImageRow;
   }
 
   async setMainProductImage(productId: string, imageId: string) {
@@ -577,6 +582,7 @@ export class ProductService {
       this.getProductById(productId),
       this.getProductImage(productId, imageId),
     ]);
+    const currentProduct = current as unknown as ProductMainImageRow;
 
     const { data, error } = await this.supabase
       .from("products")
@@ -595,7 +601,7 @@ export class ProductService {
       entityId: productId,
       entityType: "product",
       newValue: { image, main_image_url: image.image_url },
-      oldValue: { main_image_url: current.main_image_url },
+      oldValue: { main_image_url: currentProduct.main_image_url },
     });
 
     return data;
@@ -606,6 +612,7 @@ export class ProductService {
       this.getProductById(productId),
       this.getProductImage(productId, imageId),
     ]);
+    const currentProduct = current as unknown as ProductMainImageRow;
 
     const { error } = await this.supabase
       .from("product_images")
@@ -618,9 +625,9 @@ export class ProductService {
     }
 
     const images = await this.listProductImages(productId);
-    let product = current;
+    let product = currentProduct;
 
-    if (current.main_image_url === image.image_url) {
+    if (currentProduct.main_image_url === image.image_url) {
       const nextMainImageUrl = images[0]?.image_url ?? null;
       const updateResult = await this.supabase
         .from("products")
@@ -633,7 +640,7 @@ export class ProductService {
         throwQueryError(updateResult.error, "Falha ao atualizar imagem principal");
       }
 
-      product = updateResult.data;
+      product = updateResult.data as unknown as ProductMainImageRow;
     }
 
     await this.audit.createAdminActionLog({
