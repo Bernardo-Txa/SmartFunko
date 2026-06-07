@@ -30,6 +30,10 @@ type InventoryMovement = {
     id?: string;
     order_number?: string;
   } | null;
+  order_items?: {
+    id?: string;
+    status?: string;
+  } | null;
   profiles?: {
     name?: string;
   } | null;
@@ -53,9 +57,14 @@ type InventoryDetail = {
     products?: {
       name?: string;
       slug?: string;
+      franchises?: {
+        name?: string;
+      } | null;
     } | null;
   } | null;
   reserved_order_item?: {
+    id?: string;
+    status?: string;
     orders?: {
       id?: string;
       order_number?: string;
@@ -120,6 +129,8 @@ export default async function AdminInventoryDetailPage({ params }: Props) {
   }
 
   const product = item.product_variants?.products;
+  const franchise = product?.franchises;
+  const reservedOrderItem = item.reserved_order_item;
   const reservedOrder = item.reserved_order_item?.orders;
 
   return (
@@ -172,7 +183,12 @@ export default async function AdminInventoryDetailPage({ params }: Props) {
             <h2 className="text-lg font-bold text-[var(--foreground)]">Vínculos</h2>
             <div className="mt-4 grid gap-2 text-sm text-[var(--muted)]">
               <span>Produto: {product?.name ?? "-"}</span>
+              <span>Franquia: {franchise?.name ?? "-"}</span>
               <span>SKU variante: {item.product_variants?.sku ?? "-"}</span>
+              <span>
+                Order item: {reservedOrderItem?.id ?? "-"}
+                {reservedOrderItem?.status ? ` (${statusLabel(reservedOrderItem.status)})` : ""}
+              </span>
               <span>Pedido reservado: {reservedOrder?.order_number ?? "-"}</span>
               <span>Notas: {item.notes ?? "-"}</span>
             </div>
@@ -204,6 +220,11 @@ export default async function AdminInventoryDetailPage({ params }: Props) {
                   <p className="mt-3 text-[var(--muted)]">
                     {movement.profiles?.name ?? "Sistema"}
                     {movement.orders?.order_number ? ` · Pedido ${movement.orders.order_number}` : ""}
+                    {movement.order_items?.id
+                      ? ` · Item ${movement.order_items.id}${
+                          movement.order_items.status ? ` (${statusLabel(movement.order_items.status)})` : ""
+                        }`
+                      : ""}
                   </p>
                   {movement.notes ? <p className="mt-2 text-[var(--muted)]">{movement.notes}</p> : null}
                 </article>

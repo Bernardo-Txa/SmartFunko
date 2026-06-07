@@ -73,6 +73,7 @@ export type InventoryListFilters = {
   search?: string;
   sold?: boolean;
   status?: string;
+  unavailable?: boolean;
 };
 
 export type InventoryItemRow = {
@@ -95,9 +96,26 @@ export type InventoryItemRow = {
       id?: string;
       name?: string;
       slug?: string;
+      franchises?: {
+        id?: string;
+        name?: string;
+        slug?: string;
+      } | null;
     } | null;
   } | null;
   reserved_order_item?: ReservedOrderItemRow | null;
+};
+
+export type InventorySummary = {
+  available: number;
+  availableValue: number;
+  damaged: number;
+  inTransit: number;
+  reserved: number;
+  sold: number;
+  total: number;
+  unavailable: number;
+  stockValue: number;
 };
 
 type ReservedOrderItemRow = {
@@ -127,7 +145,7 @@ type InventoryMutationOptions = {
 function inventorySelect() {
   return `
     id,product_variant_id,sku,status,location,purchase_cost,landed_cost,reserved_for_order_item_id,notes,created_at,updated_at,
-    product_variants(id,sku,product_id,products(id,name,slug))
+    product_variants(id,sku,product_id,products(id,name,slug,franchises(id,name,slug)))
   `;
 }
 
@@ -196,6 +214,10 @@ function shouldClearReservation(current: InventoryItemRow, nextStatus: string | 
   return current.status === "reserved" && nextStatus !== undefined && nextStatus !== "reserved";
 }
 
+function inventoryItemValue(item: InventoryItemRow) {
+  return nullableNumber(item.landed_cost ?? item.purchase_cost) ?? 0;
+}
+
 export class InventoryService {
   private readonly audit: AuditLogService;
   private readonly movements: InventoryMovementService;
@@ -221,7 +243,8 @@ export class InventoryService {
       (filters.reserved ? "reserved" : undefined) ||
       (filters.sold ? "sold" : undefined) ||
       (filters.damaged ? "damaged" : undefined) ||
-      (filters.inTransit ? "in_transit" : undefined);
+      (filters.inTransit ? "in_transit" : undefined) ||
+      (filters.unavailable ? "unavailable" : undefined);
 
     if (statusFilter) {
       query = query.eq("status", statusFilter);
@@ -247,9 +270,60 @@ export class InventoryService {
     return items.filter((item) => {
       const productName = item.product_variants?.products?.name ?? "";
       const variantSku = item.product_variants?.sku ?? "";
-      return [item.sku, variantSku, productName]
+      const franchiseName = item.product_variants?.products?.franchises?.name ?? "";
+      return [item.sku, variantSku, productName, franchiseName]
         .some((entry) => entry.toLowerCase().includes(search));
     });
+  }
+
+  async getInventorySummary() {
+    const items = await this.listInventory();
+    const summary: InventorySummary = {
+      available: 0,
+      availableValue: 0,
+      damaged: 0,
+      inTransit: 0,
+      reserved: 0,
+      sold: 0,
+      stockValue: 0,
+      total: items.length,
+      unavailable: 0,
+    };
+
+    for (const item of items) {
+      const value = inventoryItemValue(item);
+
+      if (item.status !== "sold") {
+        summary.stockValue += value;
+      }
+
+      if (item.status === "available") {
+        summary.available += 1;
+        summary.availableValue += value;
+      }
+
+      if (item.status === "reserved") {
+        summary.reserved += 1;
+      }
+
+      if (item.status === "sold") {
+        summary.sold += 1;
+      }
+
+      if (item.status === "in_transit") {
+        summary.inTransit += 1;
+      }
+
+      if (item.status === "damaged") {
+        summary.damaged += 1;
+      }
+
+      if (item.status === "unavailable") {
+        summary.unavailable += 1;
+      }
+    }
+
+    return summary;
   }
 
   async listInventoryForProduct(productId: string) {

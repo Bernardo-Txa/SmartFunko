@@ -91,7 +91,7 @@
 - Filtros comerciais aceitos: `ready`, `preorder`, `specials`, `new` e `order`.
 - Produtos sao criados em `/admin/produtos/novo` e editados em `/admin/produtos/[id]`, incluindo fornecedor, imagem, descricao, status e variantes.
 - `/admin/produtos/[id]` mostra resumo simples de estoque do produto por status e link para `/admin/estoque`.
-- `/admin/estoque` mostra resumo operacional, filtros por produto/SKU/status/localizacao, valor estimado de estoque e links para detalhe por unidade.
+- `/admin/estoque` mostra cards reais de total, disponiveis, reservadas, vendidas, em transito, avariadas, indisponiveis, valor estimado e valor disponivel, alem de filtros por produto/SKU/status/localizacao e links para detalhe por unidade.
 - `/admin/estoque/[id]` mostra dados da unidade, custos, pedido reservado, historico de movimentos e acoes manuais permitidas para owner.
 - `/admin/produtos/[id]` possui a secao "Imagens do produto" para upload real via Supabase Storage, preview, definicao de imagem principal, remocao da galeria e reordenacao por botoes.
 - O bucket de imagens e `product-images`, publico para leitura e restrito a owner/admin para escrita.

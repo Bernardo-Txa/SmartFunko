@@ -61,7 +61,7 @@ function inventoryMovementSelect() {
 function inventoryItemSelect() {
   return `
     id,product_variant_id,sku,status,location,purchase_cost,landed_cost,reserved_for_order_item_id,notes,created_at,updated_at,
-    product_variants(id,sku,product_id,products(id,name,slug))
+    product_variants(id,sku,product_id,products(id,name,slug,franchises(id,name,slug)))
   `;
 }
 

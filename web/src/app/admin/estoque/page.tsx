@@ -26,6 +26,9 @@ type InventoryListItem = {
     sku?: string;
     products?: {
       name?: string;
+      franchises?: {
+        name?: string;
+      } | null;
     } | null;
   } | null;
   reserved_order_item?: {
@@ -40,47 +43,37 @@ type Props = {
   searchParams?: Promise<{
     location?: string;
     q?: string;
+    damaged?: string;
+    in_transit?: string;
+    reserved?: string;
+    sold?: string;
     status?: string;
+    unavailable?: string;
   }>;
 };
 
-const statusCountKeys = ["available", "reserved", "sold", "in_transit", "damaged"] as const;
-
 function getParam(value: string | undefined) {
   return value?.trim() ?? "";
+}
+
+function booleanParam(value: string | undefined) {
+  return value === "1" || value === "true";
 }
 
 function asMoney(value: number | string | null | undefined) {
   return Number(value ?? 0);
 }
 
-function itemStockValue(item: InventoryListItem) {
-  return asMoney(item.landed_cost ?? item.purchase_cost);
-}
-
 function summarizeInventory(items: InventoryListItem[]) {
-  const counts = Object.fromEntries(statusCountKeys.map((status) => [status, 0])) as Record<
-    (typeof statusCountKeys)[number],
-    number
-  >;
   const availableByProduct = new Map<string, number>();
   const productsWithInventory = new Set<string>();
-  let totalValue = 0;
-  let availableValue = 0;
 
   for (const item of items) {
-    const value = itemStockValue(item);
     const productName = item.product_variants?.products?.name ?? "Produto sem nome";
 
     productsWithInventory.add(productName);
-    totalValue += value;
-
-    if (item.status in counts) {
-      counts[item.status as keyof typeof counts] += 1;
-    }
 
     if (item.status === "available") {
-      availableValue += value;
       availableByProduct.set(productName, (availableByProduct.get(productName) ?? 0) + 1);
     }
   }
@@ -100,12 +93,9 @@ function summarizeInventory(items: InventoryListItem[]) {
     .slice(0, 5);
 
   return {
-    availableValue,
-    counts,
     oldestItems,
     productsWithoutAvailable,
     topAvailableProducts,
-    totalValue,
   };
 }
 
@@ -114,37 +104,46 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
   const params = await searchParams;
   const location = getParam(params?.location);
   const search = getParam(params?.q);
-  const status = getParam(params?.status);
+  const status =
+    getParam(params?.status) ||
+    (booleanParam(params?.reserved) ? "reserved" : "") ||
+    (booleanParam(params?.sold) ? "sold" : "") ||
+    (booleanParam(params?.damaged) ? "damaged" : "") ||
+    (booleanParam(params?.in_transit) ? "in_transit" : "") ||
+    (booleanParam(params?.unavailable) ? "unavailable" : "");
+  const hasFilters = Boolean(search || status || location);
   const inventoryService = new InventoryService(undefined, admin.profile.id);
-  const [allInventory, inventory] = await Promise.all([
+  const [allInventory, inventory, inventorySummary] = await Promise.all([
     inventoryService.listInventory(),
     inventoryService.listInventory({
       location: location || undefined,
       search: search || undefined,
       status: status || undefined,
     }),
+    inventoryService.getInventorySummary(),
   ]);
   const allItems = allInventory as unknown as InventoryListItem[];
   const filteredItems = inventory as unknown as InventoryListItem[];
-  const summary = summarizeInventory(allItems);
+  const operationalSummary = summarizeInventory(allItems);
 
   return (
     <AdminShell title="Estoque 2.0" description="Rastreabilidade por unidade, custos, reserva e historico operacional.">
       <div className="grid gap-6">
         <div className="grid gap-4 md:grid-cols-4">
-          <MetricCard label="Total de unidades" value={`${allItems.length}`} detail="Todas as unidades cadastradas" />
-          <MetricCard label="Disponíveis" value={`${summary.counts.available}`} detail="Prontas para reserva" />
-          <MetricCard label="Reservadas" value={`${summary.counts.reserved}`} detail="Vinculadas a pedido" />
-          <MetricCard label="Vendidas" value={`${summary.counts.sold}`} detail="Baixadas do estoque" />
-          <MetricCard label="Em trânsito" value={`${summary.counts.in_transit}`} detail="Aguardando recebimento" />
-          <MetricCard label="Avariadas" value={`${summary.counts.damaged}`} detail="Fora da disponibilidade" />
-          <MetricCard label="Valor em estoque" value={formatCurrency(summary.totalValue)} detail="Custo final ou compra" />
-          <MetricCard label="Valor disponível" value={formatCurrency(summary.availableValue)} detail="Somente unidades disponíveis" />
+          <MetricCard label="Total de unidades" value={`${inventorySummary.total}`} detail="Todas as unidades cadastradas" />
+          <MetricCard label="Disponíveis" value={`${inventorySummary.available}`} detail="Prontas para reserva" />
+          <MetricCard label="Reservadas" value={`${inventorySummary.reserved}`} detail="Vinculadas a pedido" />
+          <MetricCard label="Vendidas" value={`${inventorySummary.sold}`} detail="Baixadas do estoque" />
+          <MetricCard label="Em trânsito" value={`${inventorySummary.inTransit}`} detail="Aguardando recebimento" />
+          <MetricCard label="Avariadas" value={`${inventorySummary.damaged}`} detail="Fora da disponibilidade" />
+          <MetricCard label="Indisponíveis" value={`${inventorySummary.unavailable}`} detail="Bloqueadas para venda" />
+          <MetricCard label="Valor em estoque" value={formatCurrency(inventorySummary.stockValue)} detail="Exclui unidades vendidas" />
+          <MetricCard label="Valor disponível" value={formatCurrency(inventorySummary.availableValue)} detail="Somente unidades disponíveis" />
         </div>
 
         <InventoryCreateForm />
 
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_170px_170px_auto] md:items-end">
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_170px_170px_auto_auto] md:items-end">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Produto ou SKU</span>
             <input
@@ -181,6 +180,12 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
           <button className="h-10 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
             Filtrar
           </button>
+          <Link
+            href="/admin/estoque"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          >
+            Limpar
+          </Link>
         </form>
 
         <section className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
@@ -193,6 +198,7 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
               <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
                 <tr>
                   <th className="px-4 py-3">Produto</th>
+                  <th className="px-4 py-3">Franquia</th>
                   <th className="px-4 py-3">SKU</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Localização</th>
@@ -208,6 +214,9 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
                   <tr key={item.id}>
                     <td className="px-4 py-3 font-semibold text-[var(--foreground)]">
                       {item.product_variants?.products?.name ?? "Produto"}
+                    </td>
+                    <td className="px-4 py-3 text-[var(--muted)]">
+                      {item.product_variants?.products?.franchises?.name ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-[var(--muted)]">
                       <span className="block text-[var(--foreground)]">{item.sku}</span>
@@ -245,19 +254,26 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
               </tbody>
             </table>
           </div>
+          {filteredItems.length === 0 ? (
+            <p className="border-t border-[var(--border)] p-5 text-sm text-[var(--muted)]">
+              {hasFilters
+                ? "Nenhuma unidade encontrada para os filtros selecionados."
+                : "Nenhuma unidade de estoque encontrada."}
+            </p>
+          ) : null}
         </section>
 
         <section className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             <h2 className="text-lg font-bold text-[var(--foreground)]">Mais disponíveis</h2>
             <div className="mt-4 grid gap-2 text-sm">
-              {summary.topAvailableProducts.map(([name, quantity]) => (
+              {operationalSummary.topAvailableProducts.map(([name, quantity]) => (
                 <div key={name} className="flex items-center justify-between gap-3">
                   <span className="text-[var(--muted)]">{name}</span>
                   <strong className="text-[var(--foreground)]">{quantity}</strong>
                 </div>
               ))}
-              {summary.topAvailableProducts.length === 0 ? (
+              {operationalSummary.topAvailableProducts.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">Nenhum produto com estoque disponível.</p>
               ) : null}
             </div>
@@ -265,16 +281,16 @@ export default async function AdminInventoryPage({ searchParams }: Props) {
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             <h2 className="text-lg font-bold text-[var(--foreground)]">Sem disponível</h2>
             <div className="mt-4 grid gap-2 text-sm text-[var(--muted)]">
-              {summary.productsWithoutAvailable.map((name) => (
+              {operationalSummary.productsWithoutAvailable.map((name) => (
                 <span key={name}>{name}</span>
               ))}
-              {summary.productsWithoutAvailable.length === 0 ? <span>Nenhum alerta simples.</span> : null}
+              {operationalSummary.productsWithoutAvailable.length === 0 ? <span>Nenhum alerta simples.</span> : null}
             </div>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             <h2 className="text-lg font-bold text-[var(--foreground)]">Mais antigos</h2>
             <div className="mt-4 grid gap-2 text-sm">
-              {summary.oldestItems.map((item) => (
+              {operationalSummary.oldestItems.map((item) => (
                 <Link
                   key={item.id}
                   href={`/admin/estoque/${item.id}`}

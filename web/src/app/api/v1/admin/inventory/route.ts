@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       search: url.searchParams.get("q") ?? undefined,
       sold: booleanParam(url.searchParams.get("sold")),
       status: url.searchParams.get("status") ?? undefined,
+      unavailable: booleanParam(url.searchParams.get("unavailable")),
     });
     return jsonOk(inventory);
   });
