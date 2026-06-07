@@ -108,8 +108,10 @@ export type CatalogProductPage = {
 };
 
 export type CatalogCategory = {
+  slug: string;
   name: string;
   subcategories: Array<{
+    slug: string;
     name: string;
   }>;
 };
@@ -179,7 +181,7 @@ const categoryOrder = [
 const CATALOG_LIST_REVALIDATE_SECONDS = 120;
 const CATALOG_DETAIL_REVALIDATE_SECONDS = 300;
 const CATALOG_OPTIONS_REVALIDATE_SECONDS = 900;
-const CATALOG_LIST_MAX_ROWS = 5000;
+const CATALOG_LIST_PAGE_SIZE = 1000;
 
 const catalogListSelect =
   "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(id,sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
@@ -197,6 +199,10 @@ function getPublicSupabase() {
 
 export function shouldUseCatalogFallback() {
   return isDevelopmentMockAllowed();
+}
+
+export function normalizeCatalogTokenValue(value: string | null | undefined) {
+  return normalizeCatalogToken(value);
 }
 
 function getFranchiseName(franchises: ProductRow["franchises"]) {
@@ -229,6 +235,10 @@ function normalizeSearchText(value: string | null | undefined) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function normalizeCatalogToken(value: string | null | undefined) {
+  return normalizeSlug((value ?? "").trim());
 }
 
 function uniqueUrls(urls: Array<string | null | undefined>) {
@@ -405,7 +415,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
     "ready_first",
     "specials_first",
   ];
-  const category = filters.category?.trim() ?? "";
+  const category = normalizeCatalogToken(filters.category?.trim() ?? "");
   const filter = filters.filter && validFilters.includes(filters.filter) ? filters.filter : "all";
   const requestedPage = Number(filters.page ?? 1);
   const requestedPageSize = Number(filters.pageSize ?? 24);
@@ -414,15 +424,15 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
     ? Math.min(60, Math.max(1, requestedPageSize))
     : 24;
   const query = filters.query?.trim() ?? "";
-  const franchise = filters.franchise?.trim() ?? "";
+  const franchise = normalizeCatalogToken(filters.franchise?.trim() ?? "");
   const sort =
     filters.sort && validSorts.includes(filters.sort)
       ? filters.sort
       : filter === "new"
         ? "newest"
         : "relevance";
-  const subcategory = filters.subcategory?.trim() ?? "";
-  const supplier = filters.supplier?.trim() ?? "";
+  const subcategory = category ? normalizeCatalogToken(filters.subcategory?.trim() ?? "") : "";
+  const supplier = normalizeCatalogToken(filters.supplier?.trim() ?? "");
 
   return {
     category,
@@ -470,20 +480,24 @@ function fallbackProductMatchesFilter(product: Product, filter: CatalogProductFi
   return true;
 }
 
+function matchesCatalogValue(source: string | null | undefined, filter: string) {
+  if (!filter) {
+    return true;
+  }
+
+  return normalizeCatalogToken(source) === normalizeCatalogToken(filter);
+}
+
 function filterFallbackProducts(filters: ReturnType<typeof normalizeCatalogFilters>) {
   const filtered = fallbackProducts.filter((product) => {
     const matchesQuery = filters.query
-      ? `${product.name} ${product.slug} ${product.sku} ${product.franchise} ${product.funkoNumber} ${product.category ?? ""} ${product.subcategory ?? ""} ${product.supplierName ?? ""} ${(product.specialTags ?? []).join(" ")}`
+      ? `${product.name} ${product.slug} ${product.sku} ${product.franchise} ${product.funkoNumber} ${product.category ?? ""} ${product.subcategory ?? ""} ${(product.specialTags ?? []).join(" ")}`
           .toLowerCase()
           .includes(filters.query.toLowerCase())
       : true;
-    const matchesFranchise = filters.franchise
-      ? normalizeSlug(product.franchise) === filters.franchise
-      : true;
-    const matchesCategory = filters.category ? product.category === filters.category : true;
-    const matchesSubcategory = filters.subcategory
-      ? product.subcategory === filters.subcategory
-      : true;
+    const matchesFranchise = matchesCatalogValue(product.franchise, filters.franchise);
+    const matchesCategory = matchesCatalogValue(product.category, filters.category);
+    const matchesSubcategory = matchesCatalogValue(product.subcategory, filters.subcategory);
     const matchesSupplier = filters.supplier ? product.supplierSlug === filters.supplier : true;
     const matchesFilter = fallbackProductMatchesFilter(product, filters.filter);
 
@@ -516,7 +530,6 @@ function rowMatchesSearch(row: ProductRow, query: string) {
   }
 
   const franchise = Array.isArray(row.franchises) ? row.franchises[0] : row.franchises;
-  const supplier = getSupplier(row.suppliers);
   const variantText = (row.product_variants ?? [])
     .map((variant) =>
       [
@@ -539,8 +552,6 @@ function rowMatchesSearch(row: ProductRow, query: string) {
       row.subcategory_name ?? "",
       franchise?.name ?? "",
       franchise?.slug ?? "",
-      supplier?.name ?? "",
-      supplier?.slug ?? "",
       variantText,
     ].join(" "),
   );
@@ -651,6 +662,49 @@ async function getSupplierIdBySlug(
   return data?.id as string | undefined;
 }
 
+async function loadCatalogProductRowsFromProducts(
+  supabase: ReturnType<typeof getPublicSupabase>,
+  filters: ReturnType<typeof normalizeCatalogFilters>,
+  franchiseId?: string,
+  supplierId?: string,
+) {
+  const rows: ProductRow[] = [];
+
+  for (let from = 0; ; from += CATALOG_LIST_PAGE_SIZE) {
+    let query = supabase.from("products").select(catalogListSelect).eq("status", "active");
+
+    if (filters.sort === "newest" || filters.filter === "new") {
+      query = query.order("created_at", { ascending: false });
+    } else {
+      query = query.order("name", { ascending: true });
+    }
+
+    query = query.neq("product_variants.status", "hidden");
+
+    if (franchiseId) {
+      query = query.eq("franchise_id", franchiseId);
+    }
+
+    if (supplierId) {
+      query = query.eq("supplier_id", supplierId);
+    }
+
+    const { data, error } = await query.range(from, from + CATALOG_LIST_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    rows.push(...((data ?? []) as ProductRow[]));
+
+    if (!data || data.length < CATALOG_LIST_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  return rows;
+}
+
 async function getCatalogProductsPageUncached(
   filters: ReturnType<typeof normalizeCatalogFilters>,
 ): Promise<CatalogProductPage> {
@@ -692,42 +746,21 @@ async function getCatalogProductsPageUncached(
     };
   }
 
-  let query = supabase.from("products").select(catalogListSelect).eq("status", "active");
+  let data: ProductRow[] = [];
 
-  if (filters.sort === "newest" || filters.filter === "new") {
-    query = query.order("created_at", { ascending: false });
-  } else {
-    query = query.order("name", { ascending: true });
-  }
-
-  query = query.neq("product_variants.status", "hidden");
-  query = query.range(0, CATALOG_LIST_MAX_ROWS - 1);
-
-  if (franchiseId) {
-    query = query.eq("franchise_id", franchiseId);
-  }
-
-  if (supplierId) {
-    query = query.eq("supplier_id", supplierId);
-  }
-
-  if (filters.category) {
-    query = query.eq("category_name", filters.category);
-  }
-
-  if (filters.subcategory) {
-    query = query.eq("subcategory_name", filters.subcategory);
-  }
-
-  const { data, error } = await query;
-
-  if (error || !data) {
+  try {
+    data = await loadCatalogProductRowsFromProducts(supabase, filters, franchiseId, supplierId);
+  } catch (error) {
     logCatalogError("Failed to load catalog products", error);
     return fallbackOrThrow(filterFallbackProducts(filters), "Catalogo publico");
   }
 
-  const filteredRows = (data as unknown as ProductRow[]).filter(
-    (row) => rowMatchesFilter(row, filters.filter) && rowMatchesSearch(row, filters.query),
+  const filteredRows = data.filter(
+    (row) =>
+      rowMatchesFilter(row, filters.filter) &&
+      rowMatchesSearch(row, filters.query) &&
+      matchesCatalogValue(row.category_name, filters.category) &&
+      matchesCatalogValue(row.subcategory_name, filters.subcategory),
   );
   const products = filteredRows.map((row, index) =>
     mapProduct(row, index, filters.filter),
@@ -921,7 +954,13 @@ function buildCatalogCategories(
     subcategory_name: string | null;
   }>,
 ): CatalogCategory[] {
-  const categoryByName = new Map<string, Set<string>>();
+  const categoryBySlug = new Map<
+    string,
+    {
+      name: string;
+      subcategories: Map<string, string>;
+    }
+  >();
 
   for (const row of rows) {
     const category = row.category_name?.trim();
@@ -931,21 +970,33 @@ function buildCatalogCategories(
     }
 
     const subcategory = row.subcategory_name?.trim();
-    const subcategories = categoryByName.get(category) ?? new Set<string>();
+    const categorySlug = normalizeCatalogToken(category);
+    const current =
+      categoryBySlug.get(categorySlug) ??
+      {
+        name: category,
+        subcategories: new Map<string, string>(),
+      };
 
     if (subcategory) {
-      subcategories.add(subcategory);
+      const subcategorySlug = normalizeCatalogToken(subcategory);
+      current.subcategories.set(subcategorySlug, subcategory);
     }
 
-    categoryByName.set(category, subcategories);
+    current.name = category;
+    categoryBySlug.set(categorySlug, current);
   }
 
-  return Array.from(categoryByName.entries())
-    .map(([name, subcategories]) => ({
+  return Array.from(categoryBySlug.entries())
+    .map(([slug, { name, subcategories }]) => ({
       name,
-      subcategories: Array.from(subcategories)
-        .sort((first, second) => first.localeCompare(second, "pt-BR"))
-        .map((subcategory) => ({ name: subcategory })),
+      slug,
+      subcategories: Array.from(subcategories.entries())
+        .sort((first, second) => first[1].localeCompare(second[1], "pt-BR"))
+        .map(([subcategorySlug, subcategoryName]) => ({
+          name: subcategoryName,
+          slug: subcategorySlug,
+        })),
     }))
     .sort((first, second) => {
       const firstIndex = categoryOrder.indexOf(first.name);

@@ -77,6 +77,7 @@ export function MegaMenu({
           </Link>
           {universeGroups.map((group) => {
             const groupCategories = getGroupCategories(group.categories, categories);
+            const firstCategory = groupCategories[0];
 
             return (
               <section key={group.label} className="rounded-lg bg-slate-900/64 p-3">
@@ -87,8 +88,8 @@ export function MegaMenu({
                   {groupCategories.length > 0 ? (
                     groupCategories.map((category) => (
                       <Link
-                        key={category.name}
-                        href={categoryHref(category.name)}
+                        key={category.slug}
+                        href={categoryHref(category.slug)}
                         prefetch={false}
                         className="rounded-md px-2 py-1 text-sm font-semibold text-slate-200 hover:bg-cyan-400/12"
                       >
@@ -97,7 +98,7 @@ export function MegaMenu({
                     ))
                   ) : (
                     <Link
-                      href={categoryHref(group.categories[0])}
+                      href={firstCategory ? categoryHref(firstCategory.slug) : "/catalogo"}
                       prefetch={false}
                       className="rounded-md px-2 py-1 text-sm font-semibold text-slate-400 hover:bg-cyan-400/12"
                     >
@@ -160,8 +161,8 @@ export function MobileMegaMenu({
         </Link>
         {categories.slice(0, 8).map((category) => (
           <Link
-            key={category.name}
-            href={categoryHref(category.name)}
+            key={category.slug}
+            href={categoryHref(category.slug)}
             prefetch={false}
             className="rounded-md px-2 py-2 text-sm font-semibold text-slate-200 hover:bg-cyan-400/12"
           >
