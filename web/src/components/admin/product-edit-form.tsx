@@ -346,7 +346,7 @@ export function ProductEditForm({
   suppliers: Option[];
 }) {
   const router = useRouter();
-  const uploadFormRef = useRef<HTMLFormElement>(null);
+  const uploadFormRef = useRef<HTMLFormElement | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState(product.main_image_url ?? "");

@@ -26,6 +26,8 @@ Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e re
 - webhooks de baixa;
 - nota fiscal;
 - checkout completo.
+- BI avancado;
+- lotes/importacao.
 
 ## Proxima sprint
 

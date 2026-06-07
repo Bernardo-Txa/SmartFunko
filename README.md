@@ -119,6 +119,8 @@ migration. Aplique as migrations para criar/atualizar:
 - leitura publica para catalogo, home e pagina de produto;
 - escrita direta no Storage restrita a usuario autenticado com role owner/admin.
 
+Produtos podem continuar usando uma URL manual em `products.main_image_url` ou receber imagens por upload na galeria do admin. A URL principal tem prioridade sobre a primeira imagem de `product_images`.
+
 O upload usado pelo admin passa pela API server-side e usa `SUPABASE_SERVICE_ROLE_KEY`
 somente no servidor. O cliente nunca recebe a service role.
 

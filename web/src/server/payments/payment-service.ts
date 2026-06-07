@@ -49,6 +49,7 @@ type RefundRpcResult = {
   payment_id: string;
   pending_amount: number;
   previous_status: string;
+  refund_cash_entry_id: string;
   refunded_amount: number;
 };
 
