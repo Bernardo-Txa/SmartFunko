@@ -5,15 +5,15 @@ export type WishlistClientItem = {
   product_id: string;
 };
 
-let wishlistCache:
-  | {
-      errorMessage?: string;
-      items: WishlistClientItem[];
-      isAuthenticated: boolean;
-      isCustomerLinked: boolean;
-    }
-  | undefined;
-let wishlistPromise: Promise<typeof wishlistCache> | undefined;
+type WishlistCache = {
+  errorMessage?: string;
+  items: WishlistClientItem[];
+  isAuthenticated: boolean;
+  isCustomerLinked: boolean;
+};
+
+let wishlistCache: WishlistCache | undefined;
+let wishlistPromise: Promise<WishlistCache> | undefined;
 
 const wishlistEventName = "smartfunkos:wishlist";
 
@@ -31,7 +31,7 @@ export function getCachedWishlistItem(productId: string) {
   return wishlistCache?.items.find((item) => item.product_id === productId);
 }
 
-export async function loadWishlist() {
+export async function loadWishlist(): Promise<WishlistCache> {
   if (wishlistCache) {
     return wishlistCache;
   }

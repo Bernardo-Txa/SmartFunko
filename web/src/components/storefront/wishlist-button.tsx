@@ -44,7 +44,7 @@ export function WishlistButton({
     let isMounted = true;
 
     loadWishlist().then((wishlist) => {
-      if (!isMounted || !wishlist) {
+      if (!isMounted) {
         return;
       }
 
