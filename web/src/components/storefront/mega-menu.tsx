@@ -68,6 +68,13 @@ export function MegaMenu({
       </summary>
       <div className="absolute left-0 top-12 w-[760px] max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--border)] bg-[#020617] p-4 shadow-[0_28px_70px_rgba(2,6,23,0.56)]">
         <div className="grid gap-4 md:grid-cols-3">
+          <Link
+            href="/catalogo"
+            prefetch={false}
+            className="rounded-lg border border-cyan-300/20 bg-cyan-400/10 p-3 text-sm font-black text-slate-100 hover:bg-cyan-400/16 md:col-span-3"
+          >
+            Todos os produtos
+          </Link>
           {universeGroups.map((group) => {
             const groupCategories = getGroupCategories(group.categories, categories);
 
@@ -140,10 +147,17 @@ export function MobileMegaMenu({
   return (
     <details className="rounded-lg border border-[var(--border)] bg-slate-950/48">
       <summary className="flex h-11 cursor-pointer list-none items-center justify-between px-3 text-sm font-black text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
-        Universos
+        Catálogo
         <ChevronDown size={16} aria-hidden="true" />
       </summary>
       <div className="grid gap-2 border-t border-[var(--border)] p-3">
+        <Link
+          href="/catalogo"
+          prefetch={false}
+          className="rounded-md px-2 py-2 text-sm font-black text-slate-100 hover:bg-cyan-400/12"
+        >
+          Todos os produtos
+        </Link>
         {categories.slice(0, 8).map((category) => (
           <Link
             key={category.name}
@@ -168,4 +182,3 @@ export function MobileMegaMenu({
     </details>
   );
 }
-

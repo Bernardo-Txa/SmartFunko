@@ -28,28 +28,28 @@ export const metadata: Metadata = {
 
 const commercialTiles = [
   {
-    description: "Produtos disponíveis para reservar agora.",
-    href: "/pronta-entrega",
+    description: "Produtos disponíveis aparecem com badge no catálogo único.",
+    href: "/catalogo",
     label: "Pronta-entrega",
   },
   {
     description: "Itens acompanhados desde a abertura da pré-venda.",
-    href: "/pre-venda",
+    href: "/catalogo",
     label: "Pré-venda",
   },
   {
     description: "Chase, exclusivos, glow e peças com rótulos especiais.",
-    href: "/specials",
+    href: "/catalogo",
     label: "Specials",
   },
   {
     description: "Entradas recentes do catálogo ativo.",
-    href: "/novidades",
+    href: "/catalogo",
     label: "Novidades",
   },
   {
     description: "Importações e pedidos sob consulta pelo atendimento.",
-    href: "/encomendas",
+    href: "/catalogo",
     label: "Encomendas",
   },
   {
@@ -107,13 +107,13 @@ export default async function Home() {
       <HeroBanner products={featuredProducts.length > 0 ? featuredProducts : heroProducts} />
 
       <CommercialSection
-        eyebrow="Vitrines"
-        title="Escolha pelo momento da coleção"
-        description="A navegação separa pronta-entrega, pré-venda, specials, novidades e encomendas sem esconder o catálogo operacional."
+        eyebrow="Catálogo único"
+        title="Explore por atributos do produto"
+        description="Pronta-entrega, pré-venda, encomenda e specials aparecem como informações do produto dentro do mesmo catálogo Smart Funkos."
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {commercialTiles.map((tile) => (
-            <CategoryTile key={tile.href} {...tile} />
+            <CategoryTile key={tile.label} {...tile} />
           ))}
         </div>
       </CommercialSection>
@@ -128,7 +128,7 @@ export default async function Home() {
       <CommercialSection
         eyebrow="Universos"
         title="Franquias em destaque"
-        description="Entre por franquia ou universo e refine depois por fornecedor, status e tipo."
+        description="Entre por franquia ou universo e refine depois por busca, categoria e ordenação."
         ctaHref="/catalogo"
         ctaLabel="Explorar catálogo"
       >

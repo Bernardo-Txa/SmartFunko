@@ -16,10 +16,7 @@ export async function SiteHeader() {
   const accountLabel = currentUser?.profile.name || currentUser?.profile.email || currentUser?.authUser.email;
   const ordersHref = currentUser ? "/conta/pedidos" : "/login?next=/conta/pedidos";
   const links: Array<{ href: string; label: string }> = [
-    { href: "/pronta-entrega", label: "Pronta-entrega" },
-    { href: "/pre-venda", label: "Pré-venda" },
-    { href: "/specials", label: "Specials" },
-    { href: "/fornecedores", label: "Fornecedores" },
+    { href: "/fornecedores", label: "Collabs" },
     { href: "/#como-funciona", label: "Como funciona" },
     { href: ordersHref, label: "Meus pedidos" },
   ];
@@ -141,20 +138,6 @@ export async function SiteHeader() {
                     {link.label}
                   </Link>
                 ))}
-                <Link
-                  href="/novidades"
-                  prefetch={false}
-                  className="rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
-                >
-                  Novidades
-                </Link>
-                <Link
-                  href="/encomendas"
-                  prefetch={false}
-                  className="rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
-                >
-                  Encomendas
-                </Link>
                 <CartNavButton className="mt-1 w-full justify-center" />
               </div>
             </div>

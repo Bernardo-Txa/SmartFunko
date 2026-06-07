@@ -4,6 +4,7 @@ import { CommercialFilter } from "@/components/storefront/commercial-filter";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import {
   getCatalogCategories,
+  getCatalogFranchises,
   getCatalogProductsPage,
   getCatalogSuppliers,
   type CatalogProductFilter,
@@ -14,6 +15,7 @@ import { createWhatsAppTextUrl } from "@/lib/whatsapp";
 export type CommercialPageSearchParams = {
   category?: string;
   filter?: CatalogProductFilter;
+  franchise?: string;
   page?: string;
   q?: string;
   sort?: CatalogProductSort;
@@ -27,7 +29,9 @@ export type CommercialPageConfig = {
   emptyDescription: string;
   filter: CatalogProductFilter;
   pathname: string;
+  showFranchiseFilter?: boolean;
   showSubcategoryFilter?: boolean;
+  showSupplierFilter?: boolean;
   sort?: CatalogProductSort;
   subtitle: string;
   title: string;
@@ -52,17 +56,19 @@ function pageHref(
 function hasActiveFilters({
   category,
   filter,
+  franchise,
   query,
   subcategory,
   supplier,
 }: {
   category: string;
   filter: CatalogProductFilter;
+  franchise: string;
   query: string;
   subcategory: string;
   supplier: string;
 }) {
-  return Boolean(category || query || subcategory || supplier || filter !== "all");
+  return Boolean(category || franchise || query || subcategory || supplier || filter !== "all");
 }
 
 export async function CommercialProductPage({
@@ -75,18 +81,21 @@ export async function CommercialProductPage({
   const params = await searchParams;
   const category = params?.category ?? "";
   const filter = config.allowFilterParam ? params?.filter ?? config.filter : config.filter;
+  const franchise = config.showFranchiseFilter === false ? "" : params?.franchise ?? "";
   const page = Number(params?.page ?? 1);
   const query = params?.q ?? "";
-  const sort = params?.sort ?? config.sort ?? "ready_first";
+  const sort = params?.sort ?? config.sort ?? "relevance";
   const subcategory = config.showSubcategoryFilter ? params?.subcategory ?? "" : "";
-  const supplier = params?.supplier ?? "";
+  const supplier = config.showSupplierFilter ? params?.supplier ?? "" : "";
 
-  const [categories, suppliers, productPage] = await Promise.all([
+  const [categories, franchises, suppliers, productPage] = await Promise.all([
     getCatalogCategories(),
-    getCatalogSuppliers(),
+    getCatalogFranchises(),
+    config.showSupplierFilter ? getCatalogSuppliers() : Promise.resolve([]),
     getCatalogProductsPage({
       category,
       filter,
+      franchise,
       page,
       pageSize: 24,
       query,
@@ -98,12 +107,13 @@ export async function CommercialProductPage({
   const isFiltered = hasActiveFilters({
     category,
     filter,
+    franchise,
     query,
     subcategory,
     supplier,
   });
   const emptyDescription = isFiltered
-    ? "Nenhum produto ativo combina com os filtros atuais. Ajuste a busca, fornecedor, categoria ou vitrine comercial."
+    ? "Tente ajustar busca, categoria ou ordenação."
     : config.emptyDescription;
 
   return (
@@ -136,13 +146,17 @@ export async function CommercialProductPage({
           categories={categories}
           currentCategory={category}
           currentFilter={filter}
+          currentFranchise={franchise}
           currentSort={sort}
           currentSubcategory={subcategory}
           currentSupplier={supplier}
+          franchises={franchises}
           pathname={config.pathname}
           query={query}
           showFilter={config.allowFilterParam}
+          showFranchise={config.showFranchiseFilter !== false}
           showSubcategory={config.showSubcategoryFilter}
+          showSupplier={config.showSupplierFilter === true}
           suppliers={suppliers}
         />
       </section>
@@ -156,7 +170,7 @@ export async function CommercialProductPage({
         emptyActionHref={config.pathname}
         emptyActionLabel="Limpar filtros"
         emptyDescription={emptyDescription}
-        emptyTitle={`Nenhum produto em ${config.title.toLowerCase()}`}
+        emptyTitle="Nenhum produto encontrado."
         products={productPage.data}
       />
 
@@ -165,6 +179,7 @@ export async function CommercialProductPage({
           href={pageHref(config.pathname, {
             category,
             filter: config.allowFilterParam ? filter : undefined,
+            franchise,
             page: Math.max(1, productPage.meta.page - 1),
             q: query,
             sort,
@@ -184,6 +199,7 @@ export async function CommercialProductPage({
           href={pageHref(config.pathname, {
             category,
             filter: config.allowFilterParam ? filter : undefined,
+            franchise,
             page: Math.min(productPage.meta.totalPages, productPage.meta.page + 1),
             q: query,
             sort,

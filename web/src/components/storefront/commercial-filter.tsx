@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
-import { clsx } from "clsx";
 import type {
   CatalogCategory,
   CatalogProductFilter,
@@ -11,7 +10,13 @@ import type {
   CatalogSupplier,
 } from "@/lib/catalog";
 
-const filters: Array<{ label: string; value: CatalogProductFilter }> = [
+type FranchiseOption = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+const commercialFilters: Array<{ label: string; value: CatalogProductFilter }> = [
   { label: "Todos", value: "all" },
   { label: "Pronta-entrega", value: "ready" },
   { label: "Pré-venda", value: "preorder" },
@@ -21,11 +26,10 @@ const filters: Array<{ label: string; value: CatalogProductFilter }> = [
 ];
 
 const sorts: Array<{ label: string; value: CatalogProductSort }> = [
-  { label: "Pronta-entrega primeiro", value: "ready_first" },
+  { label: "Relevância", value: "relevance" },
   { label: "Novidades", value: "newest" },
   { label: "Menor preço", value: "price_asc" },
   { label: "Maior preço", value: "price_desc" },
-  { label: "Specials primeiro", value: "specials_first" },
   { label: "Nome", value: "name" },
 ];
 
@@ -33,25 +37,33 @@ export function CommercialFilter({
   categories,
   currentCategory,
   currentFilter = "all",
+  currentFranchise = "",
   currentSort,
   currentSubcategory = "",
   currentSupplier,
+  franchises = [],
   pathname,
   query,
   showFilter = false,
+  showFranchise = true,
   showSubcategory = false,
+  showSupplier = false,
   suppliers,
 }: {
   categories: CatalogCategory[];
   currentCategory: string;
   currentFilter?: CatalogProductFilter;
+  currentFranchise?: string;
   currentSort: CatalogProductSort;
   currentSubcategory?: string;
   currentSupplier: string;
+  franchises?: FranchiseOption[];
   pathname: string;
   query: string;
   showFilter?: boolean;
+  showFranchise?: boolean;
   showSubcategory?: boolean;
+  showSupplier?: boolean;
   suppliers: CatalogSupplier[];
 }) {
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>(currentCategory);
@@ -62,14 +74,7 @@ export function CommercialFilter({
 
   return (
     <form className="rounded-xl border border-cyan-400/20 bg-[#030816]/88 p-3 shadow-[0_18px_44px_rgba(2,6,23,0.2)]">
-      <div
-        className={clsx(
-          "grid gap-3",
-          showFilter || showSubcategory
-            ? "lg:grid-cols-[minmax(220px,1.35fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(160px,0.75fr)_auto]"
-            : "lg:grid-cols-[minmax(220px,1.3fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(170px,0.8fr)_auto]",
-        )}
-      >
+      <div className="grid gap-3 lg:grid-cols-[minmax(260px,1.4fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_auto]">
         <label className="relative block">
           <span className="sr-only">Buscar produto</span>
           <Search
@@ -81,7 +86,7 @@ export function CommercialFilter({
             defaultValue={query}
             name="q"
             type="search"
-            placeholder="Buscar nesta vitrine"
+            placeholder="Buscar no catálogo"
             className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-10 text-sm text-slate-100 outline-none focus:border-cyan-300/70"
           />
         </label>
@@ -126,21 +131,41 @@ export function CommercialFilter({
           </label>
         ) : null}
 
-        <label className="block">
-          <span className="sr-only">Fornecedor</span>
-          <select
-            name="supplier"
-            defaultValue={currentSupplier}
-            className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
-          >
-            <option value="">Fornecedores</option>
-            {suppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.slug}>
-                {supplier.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showFranchise ? (
+          <label className="block">
+            <span className="sr-only">Franquia</span>
+            <select
+              name="franchise"
+              defaultValue={currentFranchise}
+              className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
+            >
+              <option value="">Franquias</option>
+              {franchises.map((franchise) => (
+                <option key={franchise.id} value={franchise.slug}>
+                  {franchise.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        {showSupplier ? (
+          <label className="block">
+            <span className="sr-only">Fornecedor</span>
+            <select
+              name="supplier"
+              defaultValue={currentSupplier}
+              className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
+            >
+              <option value="">Fornecedores</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.slug}>
+                  {supplier.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         {showFilter ? (
           <label className="block">
@@ -150,7 +175,7 @@ export function CommercialFilter({
               defaultValue={currentFilter}
               className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
             >
-              {filters.map((filter) => (
+              {commercialFilters.map((filter) => (
                 <option key={filter.value} value={filter.value}>
                   {filter.label}
                 </option>

@@ -78,6 +78,7 @@ export type CatalogProductFilter = "all" | "new" | "ready" | "order" | "preorder
 
 export type CatalogProductSort =
   | "name"
+  | "relevance"
   | "newest"
   | "price_asc"
   | "price_desc"
@@ -397,6 +398,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
   const validFilters: CatalogProductFilter[] = ["all", "new", "ready", "order", "preorder", "specials"];
   const validSorts: CatalogProductSort[] = [
     "name",
+    "relevance",
     "newest",
     "price_asc",
     "price_desc",
@@ -418,7 +420,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
       ? filters.sort
       : filter === "new"
         ? "newest"
-        : "ready_first";
+        : "relevance";
   const subcategory = filters.subcategory?.trim() ?? "";
   const supplier = filters.supplier?.trim() ?? "";
 
@@ -574,6 +576,10 @@ function sortCatalogProducts(products: Product[], filter: CatalogProductFilter) 
 
 function sortProducts(products: Product[], filters: ReturnType<typeof normalizeCatalogFilters>) {
   return products.sort((first, second) => {
+    if (filters.sort === "relevance") {
+      return 0;
+    }
+
     if (filters.sort === "newest") {
       const firstDate = first.createdAt ? new Date(first.createdAt).getTime() : 0;
       const secondDate = second.createdAt ? new Date(second.createdAt).getTime() : 0;

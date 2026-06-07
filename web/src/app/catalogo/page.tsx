@@ -5,14 +5,14 @@ import {
 } from "@/components/storefront/commercial-product-page";
 
 export const metadata: Metadata = {
-  title: "Catalogo",
-  description: "Catalogo publico da Smart Funkos com pronta-entrega, pre-venda, encomendas e colecionaveis especiais.",
+  title: "Catálogo Smart Funkos",
+  description: "Catálogo principal da Smart Funkos com produtos, pré-vendas, encomendas e peças especiais em um só lugar.",
   alternates: {
     canonical: "/catalogo",
   },
   openGraph: {
-    title: "Catalogo | Smart Funkos",
-    description: "Explore produtos ativos, colecionaveis especiais e vitrines comerciais da Smart Funkos.",
+    title: "Catálogo Smart Funkos",
+    description: "Explore produtos, pré-vendas, encomendas e peças especiais em um só lugar.",
     images: ["/brand/SmartFunko.png"],
   },
 };
@@ -25,16 +25,15 @@ export default function CatalogPage({ searchParams }: Props) {
   return (
     <CommercialProductPage
       config={{
-        allowFilterParam: true,
         emptyDescription:
-          "Use busca, categoria, fornecedor e ordenação para encontrar produtos ativos no catálogo.",
+          "Tente ajustar busca, categoria, franquia ou ordenação.",
         filter: "all",
         pathname: "/catalogo",
         showSubcategoryFilter: true,
-        sort: "ready_first",
+        sort: "relevance",
         subtitle:
-          "Catálogo geral com a mesma experiência premium das vitrines comerciais.",
-        title: "Catálogo",
+          "Explore produtos, pré-vendas, encomendas e peças especiais em um só lugar.",
+        title: "Catálogo Smart Funkos",
       }}
       searchParams={searchParams}
     />

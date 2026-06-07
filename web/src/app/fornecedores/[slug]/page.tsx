@@ -2,18 +2,42 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CommercialFilter } from "@/components/storefront/commercial-filter";
 import { ProductCard } from "@/components/product/product-card";
-import { getCatalogProductsPage, getCatalogSupplierBySlug } from "@/lib/catalog";
+import {
+  getCatalogCategories,
+  getCatalogFranchises,
+  getCatalogProductsPage,
+  getCatalogSupplierBySlug,
+  type CatalogProductSort,
+} from "@/lib/catalog";
 
 type Props = {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{
+    category?: string;
+    franchise?: string;
     page?: string;
+    q?: string;
+    sort?: CatalogProductSort;
+    subcategory?: string;
   }>;
 };
 
-function supplierHref(slug: string, page: number) {
-  return page > 1 ? `/fornecedores/${slug}?page=${page}` : `/fornecedores/${slug}`;
+function supplierHref(
+  slug: string,
+  params: Record<string, string | number | undefined>,
+) {
+  const search = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") {
+      search.set(key, String(value));
+    }
+  }
+
+  const query = search.toString();
+  return query ? `/fornecedores/${slug}?${query}` : `/fornecedores/${slug}`;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -54,11 +78,34 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
 
   const queryParams = await searchParams;
   const page = Number(queryParams?.page ?? 1);
-  const productPage = await getCatalogProductsPage({
+  const category = queryParams?.category ?? "";
+  const franchise = queryParams?.franchise ?? "";
+  const query = queryParams?.q ?? "";
+  const sort = queryParams?.sort ?? "relevance";
+  const subcategory = queryParams?.subcategory ?? "";
+  const [categories, franchises, productPage] = await Promise.all([
+    getCatalogCategories(),
+    getCatalogFranchises(),
+    getCatalogProductsPage({
+      category,
+      franchise,
+      page,
+      pageSize: 24,
+      query,
+      sort,
+      subcategory,
+      supplier: slug,
+    }),
+  ]);
+
+  const filterState = {
+    category,
+    franchise,
     page,
-    pageSize: 24,
-    supplier: slug,
-  });
+    q: query,
+    sort,
+    subcategory,
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -123,12 +170,28 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
           </p>
         </div>
         <Link
-          href={`/catalogo?supplier=${supplier.slug}`}
+          href="/fornecedores"
           prefetch={false}
           className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
         >
-          Filtrar no catalogo
+          Ver outras collabs
         </Link>
+      </section>
+
+      <section className="mb-5">
+        <CommercialFilter
+          categories={categories}
+          currentCategory={category}
+          currentFranchise={franchise}
+          currentSort={sort}
+          currentSubcategory={subcategory}
+          currentSupplier={supplier.slug}
+          franchises={franchises}
+          pathname={`/fornecedores/${supplier.slug}`}
+          query={query}
+          showSubcategory
+          suppliers={[]}
+        />
       </section>
 
       {productPage.data.length > 0 ? (
@@ -139,14 +202,17 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
         </div>
       ) : (
         <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--muted)]">
-          Nenhum produto encontrado para este fornecedor.
+          Nenhum produto encontrado para esta collab. Tente ajustar busca, categoria ou ordenação.
         </p>
       )}
 
       {productPage.meta.totalPages > 1 ? (
         <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Paginacao">
           <Link
-            href={supplierHref(slug, Math.max(1, productPage.meta.page - 1))}
+            href={supplierHref(slug, {
+              ...filterState,
+              page: Math.max(1, productPage.meta.page - 1),
+            })}
             prefetch={false}
             aria-disabled={productPage.meta.page <= 1}
             className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"
@@ -157,7 +223,10 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
             {productPage.meta.page} / {productPage.meta.totalPages}
           </span>
           <Link
-            href={supplierHref(slug, Math.min(productPage.meta.totalPages, productPage.meta.page + 1))}
+            href={supplierHref(slug, {
+              ...filterState,
+              page: Math.min(productPage.meta.totalPages, productPage.meta.page + 1),
+            })}
             prefetch={false}
             aria-disabled={productPage.meta.page >= productPage.meta.totalPages}
             className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"

@@ -38,9 +38,10 @@ Cliente escolhe no site, compra pelo WhatsApp, acompanha pela conta e a Smart Fu
 A camada publica agora organiza descoberta e intencao de compra por cima do core operacional:
 
 - home premium com hero, vitrines comerciais, universos, fornecedores/collabs, fluxo assistido e bloco de confianca;
-- mega menu por universos/categorias e links diretos para vitrines comerciais;
-- paginas publicas `/pronta-entrega`, `/pre-venda`, `/specials`, `/novidades` e `/encomendas`;
-- `/catalogo` unificado com a experiencia premium de busca, vitrine, categoria, linha, fornecedor e ordenacao;
+- mega menu por universos/categorias apontando para o catalogo principal;
+- `/catalogo` como catalogo principal unico da Smart Funkos, com busca, categoria, linha, franquia e ordenacao;
+- pronta-entrega, pre-venda, encomenda e special aparecem como atributos/badges do produto, nao como catalogos separados;
+- catálogos separados ficam reservados para collabs/fornecedores em `/fornecedores` e `/fornecedores/[slug]`;
 - pagina de produto com galeria, badges comerciais, CTA "Tenho interesse", favoritos, carrinho assistido e relacionados;
 - cards de produto com favoritos e carrinho em acoes compactas, sem transformar o card em checkout;
 - favoritos reais em cards, produto e `/conta/wishlist`, usando `/api/v1/me/wishlist`;
@@ -173,7 +174,7 @@ Principais fluxos:
 - auditar estoque por unidade em `/admin/estoque` e `/admin/estoque/[id]`.
 - consultar pagamentos, caixa e relatorio financeiro em `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
 
-Fornecedores/collabs ficam em `suppliers`. Piticas, Copag e Panini sao seedados por migration e aparecem em `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`. `/collabs` redireciona para fornecedores, e `/marcas` permanece como vitrine especial compativel. Para vincular um produto, edite `Fornecedor/marca` em `/admin/produtos/[id]` ou use uma coluna CSV opcional.
+Fornecedores/collabs ficam em `suppliers`. Piticas, Copag e Panini sao seedados por migration e aparecem em `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`. `/collabs` redireciona para fornecedores, e `/marcas` permanece como vitrine especial compativel. O catalogo principal nao expoe filtro de fornecedor; a separacao por collab acontece no slug do fornecedor. Para vincular um produto, edite `Fornecedor/marca` em `/admin/produtos/[id]` ou use uma coluna CSV opcional.
 
 Status continuam em ingles no banco. A apresentacao em portugues fica centralizada em `web/src/lib/status-labels.ts`.
 

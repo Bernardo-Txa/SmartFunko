@@ -23,9 +23,9 @@ export default async function SuppliersPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <section className="mb-6">
-        <h1 className="text-3xl font-black text-[var(--foreground)]">Fornecedores e collabs</h1>
+        <h1 className="text-3xl font-black text-[var(--foreground)]">Collabs e fornecedores</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-          Parceiros e colecoes especiais vinculados ao catalogo operacional da Smart Funkos.
+          Catálogos separados para Piticas, Copag, Panini e outras collabs ativas da Smart Funkos.
         </p>
       </section>
 
@@ -53,12 +53,12 @@ export default async function SuppliersPage() {
               )}
               <div>
                 <h2 className="text-xl font-black text-[var(--foreground)]">{supplier.name}</h2>
-                <p className="text-xs font-bold uppercase text-[var(--muted)]">Fornecedor</p>
+                <p className="text-xs font-bold uppercase text-[var(--muted)]">Collab</p>
               </div>
             </div>
 
             <p className="mt-4 min-h-16 text-sm leading-6 text-[var(--muted)]">
-              {supplier.description ?? "Colecao especial disponivel no catalogo Smart Funkos."}
+              {supplier.description ?? "Coleção especial com catálogo próprio na Smart Funkos."}
             </p>
 
             <Link
@@ -66,7 +66,7 @@ export default async function SuppliersPage() {
               prefetch={false}
               className="mt-auto inline-flex h-10 w-fit items-center gap-2 rounded-md bg-[var(--accent)] px-3 text-sm font-black text-[#020617] hover:brightness-110"
             >
-              Ver produtos
+              Ver catálogo
               <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </article>

@@ -40,7 +40,6 @@ Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e re
 - Evoluir `/admin/demanda` com notificacoes manuais/automaticas para interessados e criacao controlada de encomendas.
 - Automatizar Pix e baixa de pagamento.
 - Criar checkout proprio apenas depois do fluxo WhatsApp estabilizar.
-- Melhorar wishlist com prioridade/preco desejado editaveis pelo cliente.
 - Preparar Flutter mobile depois da V1 web/admin.
 - Manter Gamificacao / Clube Smart Funkos no radar como modulo futuro.
 - Planejar leilao, rifa/campanha e notificacoes automaticas fora do MVP operacional.

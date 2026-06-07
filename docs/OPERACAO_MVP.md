@@ -60,12 +60,11 @@
 
 ## Rotas publicas comerciais
 
-- `/`: home premium com hero, vitrines, universos, fornecedores, fluxo assistido e confianca.
-- `/pronta-entrega`: produtos com estoque proprio ou status disponivel.
-- `/pre-venda`: produtos com origem/status de pre-venda, com aviso de prazo variavel.
-- `/specials`: produtos com tipo especial, special label ou tags especiais.
-- `/novidades`: produtos ativos mais recentes por data de cadastro.
-- `/encomendas`: produtos sob encomenda/importacao, com CTA para WhatsApp.
+- `/`: home premium com hero, atalhos para o catalogo unico, universos, fornecedores, fluxo assistido e confianca.
+- `/catalogo`: catalogo principal unico da Smart Funkos, com busca, categoria, linha, franquia e ordenacao.
+- `/pronta-entrega`, `/pre-venda`, `/specials`, `/novidades` e `/encomendas`: redirects para `/catalogo` para preservar links antigos sem criar catalogos concorrentes.
+- `/fornecedores`: lista collabs/fornecedores ativos.
+- `/fornecedores/[slug]`: catalogo separado de uma collab/fornecedor, com filtro implicito pelo slug.
 - `/carrinho`: carrinho local para intencao de compra assistida.
 - `/conta/wishlist`: favoritos do cliente autenticado.
 
@@ -98,9 +97,9 @@
 - `/api/v1/me/orders` e `/api/v1/me/orders/[orderNumber]` retornam pedidos sanitizados, sem `internal_notes`, custos, margem, logs ou token publico.
 - Status internos continuam em ingles no banco, mas badges e textos de UI usam `web/src/lib/status-labels.ts`.
 - Fornecedores/collabs usam `suppliers`; publicos ativos aparecem em `/fornecedores` e `/fornecedores/[slug]`.
-- O catalogo aceita filtro adicional por fornecedor: `/catalogo?supplier=piticas`.
-- O catalogo e as paginas comerciais aceitam busca, fornecedor, categoria e ordenacao comercial (`sort`).
-- Filtros comerciais aceitos: `ready`, `preorder`, `specials`, `new` e `order`.
+- O catalogo principal nao expoe filtro de fornecedor nem filtros principais de pronta-entrega/pre-venda/encomenda/specials.
+- Pronta-entrega, pre-venda, encomenda e special sao atributos/badges do produto.
+- Catálogos separados sao reservados para collabs/fornecedores, por exemplo `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
 - Produtos sao criados em `/admin/produtos/novo` e editados em `/admin/produtos/[id]`, incluindo fornecedor, imagem, descricao, status e variantes.
 - `/admin/produtos/[id]` mostra resumo simples de estoque do produto por status e link para `/admin/estoque`.
 - `/admin/estoque` mostra cards reais de total, disponiveis, reservadas, vendidas, em transito, avariadas, indisponiveis, valor estimado e valor disponivel, alem de filtros por produto/SKU/status/localizacao e links para detalhe por unidade.
@@ -144,7 +143,7 @@ SUPABASE_SERVICE_ROLE_KEY=...
 13. Conferir saida de caixa `refund`, status do pedido e log administrativo.
 14. Abrir `/admin/dashboard`, `/admin/pedidos`, `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
 15. Abrir `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
-16. Editar produto em `/admin/produtos/[id]`, trocar fornecedor/imagem/preco e conferir em `/catalogo?supplier=piticas`.
+16. Editar produto em `/admin/produtos/[id]`, trocar fornecedor/imagem/preco e conferir em `/fornecedores/piticas`.
 17. Em `/admin/produtos/[id]`, enviar imagem valida na secao "Imagens do produto".
 18. Testar rejeicao de arquivo acima de 5MB e de arquivo que nao seja imagem aceita.
 19. Definir a imagem enviada como principal e conferir card no catalogo/home e galeria em `/produto/[slug]`.
