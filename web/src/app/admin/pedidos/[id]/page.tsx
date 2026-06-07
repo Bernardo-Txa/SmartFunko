@@ -5,7 +5,11 @@ import { OrderDetailActions } from "@/components/admin/order-detail-actions";
 import { OrderItemStatusBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { env } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { getOperationalStatusMeta } from "@/lib/status-labels";
+import {
+  getOperationalStatusMeta,
+  getOrderItemStatusMeta,
+  getPaymentStatusMeta,
+} from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { OrderService } from "@/server/orders/order-service";
@@ -17,6 +21,7 @@ type Props = {
 type OrderDetail = {
   id: string;
   order_number: string;
+  customer_id: string;
   channel: string;
   status: string;
   subtotal: number;
@@ -190,21 +195,25 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {(order.order_items ?? []).map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-3 font-semibold text-[var(--foreground)]">
-                      {item.product_variants?.products?.name ?? "Produto"}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--muted)]">{item.product_variants?.sku ?? "-"}</td>
-                    <td className="px-4 py-3 text-[var(--muted)]">{sourceLabels[item.source] ?? item.source}</td>
-                    <td className="px-4 py-3">
-                      <OrderItemStatusBadge status={item.status} />
-                    </td>
-                    <td className="px-4 py-3 text-[var(--muted)]">{item.quantity}</td>
-                    <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.unit_price)}</td>
-                    <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.total_price)}</td>
-                  </tr>
-                ))}
+                {(order.order_items ?? []).map((item) => {
+                  const statusMeta = getOrderItemStatusMeta(item.status);
+
+                  return (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3 font-semibold text-[var(--foreground)]">
+                        {item.product_variants?.products?.name ?? "Produto"}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{item.product_variants?.sku ?? "-"}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{sourceLabels[item.source] ?? item.source}</td>
+                      <td className="px-4 py-3" title={statusMeta.label}>
+                        <OrderItemStatusBadge status={item.status} />
+                      </td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{item.quantity}</td>
+                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.unit_price)}</td>
+                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.total_price)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -214,21 +223,27 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           <h2 className="text-lg font-bold text-[var(--foreground)]">Pagamentos</h2>
           <div className="mt-4 grid gap-3">
             {payments.length > 0 ? (
-              payments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="grid gap-2 rounded-lg border border-[var(--border)] p-4 text-sm md:grid-cols-[1fr_auto]"
-                >
-                  <div>
-                    <strong className="text-[var(--foreground)]">{payment.method}</strong>
-                    <p className="mt-1 flex flex-wrap items-center gap-2 text-[var(--muted)]">
-                      <PaymentStatusBadge status={payment.status} />
-                      <span>{payment.paid_at ? formatDate(payment.paid_at) : "Sem data de baixa"}</span>
-                    </p>
+              payments.map((payment) => {
+                const statusMeta = getPaymentStatusMeta(payment.status);
+
+                return (
+                  <div
+                    key={payment.id}
+                    className="grid gap-2 rounded-lg border border-[var(--border)] p-4 text-sm md:grid-cols-[1fr_auto]"
+                  >
+                    <div>
+                      <strong className="text-[var(--foreground)]">{payment.method}</strong>
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-[var(--muted)]">
+                        <PaymentStatusBadge status={payment.status} />
+                        <span>{payment.paid_at ? formatDate(payment.paid_at) : "Sem data de baixa"}</span>
+                        <span title={statusMeta.label}>Taxa {formatCurrency(payment.fee_amount)}</span>
+                        <span>Líquido {formatCurrency(payment.net_amount)}</span>
+                      </p>
+                    </div>
+                    <span className="font-semibold text-[var(--foreground)]">{formatCurrency(payment.amount)}</span>
                   </div>
-                  <span className="font-semibold text-[var(--foreground)]">{formatCurrency(payment.amount)}</span>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p className="text-sm text-[var(--muted)]">Nenhum pagamento registrado.</p>
             )}
@@ -249,9 +264,13 @@ export default async function AdminOrderDetailPage({ params }: Props) {
         </section>
 
         <OrderDetailActions
+          customerId={order.customer_id}
           inventory={inventory as unknown as InventoryOption[]}
           items={(order.order_items ?? []).map((item) => ({ id: item.id, status: item.status }))}
           orderId={order.id}
+          orderTotal={Number(order.total)}
+          paidAmount={paidAmount}
+          pendingAmount={pendingAmount}
           publicLink={publicLink}
         />
 

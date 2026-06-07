@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Plus } from "lucide-react";
+import { PaymentCreateForm } from "@/components/admin/payment-create-form";
 import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
@@ -55,24 +56,27 @@ function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftIt
 }
 
 export function OrderDetailActions({
+  customerId,
   inventory,
   items,
   orderId,
+  orderTotal,
+  paidAmount,
+  pendingAmount,
   publicLink,
 }: {
+  customerId: string;
   inventory: InventoryOption[];
   items: OrderItemOption[];
   orderId: string;
+  orderTotal: number;
+  paidAmount: number;
+  pendingAmount: number;
   publicLink: string;
 }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [payment, setPayment] = useState({
-    amount: 0,
-    feeAmount: 0,
-    method: "pix",
-  });
   const [draftItem, setDraftItem] = useState<DraftItem>({
     inventoryItemId: "",
     productVariantId: "",
@@ -131,18 +135,6 @@ export function OrderDetailActions({
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  async function recordPayment(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await submitJson("/api/v1/admin/payments/manual", "POST", {
-      amount: payment.amount,
-      feeAmount: payment.feeAmount,
-      method: payment.method,
-      orderId,
-    });
-    setPayment({ amount: 0, feeAmount: 0, method: "pix" });
-    showSuccess("Pagamento registrado.");
   }
 
   async function addItem(event: React.FormEvent<HTMLFormElement>) {
@@ -211,54 +203,13 @@ export function OrderDetailActions({
         </div>
       </section>
 
-      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-        <h2 className="text-lg font-bold text-[var(--foreground)]">Registrar pagamento</h2>
-        <form onSubmit={recordPayment} className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
-          <label className="block">
-            <span className="text-sm font-semibold text-[var(--foreground)]">Metodo</span>
-            <select
-              value={payment.method}
-              onChange={(event) => setPayment((current) => ({ ...current, method: event.target.value }))}
-              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-            >
-              <option value="pix">Pix</option>
-              <option value="credit_card">Credito</option>
-              <option value="debit_card">Debito</option>
-              <option value="cash">Dinheiro</option>
-              <option value="manual">Manual</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-sm font-semibold text-[var(--foreground)]">Valor</span>
-            <input
-              value={payment.amount}
-              onChange={(event) => setPayment((current) => ({ ...current, amount: Number(event.target.value) }))}
-              min={0}
-              required
-              step="0.01"
-              type="number"
-              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-semibold text-[var(--foreground)]">Taxa</span>
-            <input
-              value={payment.feeAmount}
-              onChange={(event) => setPayment((current) => ({ ...current, feeAmount: Number(event.target.value) }))}
-              min={0}
-              step="0.01"
-              type="number"
-              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-            />
-          </label>
-          <button
-            disabled={isSubmitting}
-            className="inline-flex h-11 items-center justify-center rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Registrar
-          </button>
-        </form>
-      </section>
+      <PaymentCreateForm
+        customerId={customerId}
+        orderId={orderId}
+        orderTotal={orderTotal}
+        paidAmount={paidAmount}
+        pendingAmount={pendingAmount}
+      />
 
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Adicionar item</h2>

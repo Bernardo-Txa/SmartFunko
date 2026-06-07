@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { conflict, notFound } from "@/server/http/errors";
+import { badRequest, conflict, notFound } from "@/server/http/errors";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
@@ -119,6 +119,60 @@ function startOfMonth() {
   return date;
 }
 
+function throwFriendlyPaymentRpcError(error: Parameters<typeof throwQueryError>[0]): never {
+  const message = error?.message ?? "";
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("maior que o saldo pendente")) {
+    throw conflict("Pagamento maior que o saldo pendente");
+  }
+
+  if (normalized.includes("maior que zero")) {
+    throw badRequest("Valor do pagamento deve ser maior que zero");
+  }
+
+  if (normalized.includes("taxa") && normalized.includes("maior")) {
+    throw badRequest("Taxa do pagamento nao pode ser maior que o valor bruto");
+  }
+
+  if (normalized.includes("cliente informado")) {
+    throw conflict("Cliente informado nao pertence ao pedido");
+  }
+
+  if (normalized.includes("nao recebe pagamento")) {
+    throw conflict("Pedido com este status nao recebe pagamento");
+  }
+
+  throwQueryError(error, "Falha ao registrar pagamento manual");
+}
+
+function throwFriendlyRefundRpcError(error: Parameters<typeof throwQueryError>[0]): never {
+  const message = error?.message ?? "";
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("justificativa")) {
+    throw badRequest("Justificativa do estorno e obrigatoria");
+  }
+
+  if (normalized.includes("somente pagamento pago")) {
+    throw conflict("Somente pagamento pago pode ser estornado");
+  }
+
+  if (normalized.includes("maior que o pagamento")) {
+    throw conflict("Valor de estorno maior que o pagamento");
+  }
+
+  if (normalized.includes("parcial")) {
+    throw conflict("Estorno parcial ainda nao esta disponivel");
+  }
+
+  if (normalized.includes("maior que zero")) {
+    throw badRequest("Valor de estorno deve ser maior que zero");
+  }
+
+  throwQueryError(error, "Falha ao estornar pagamento");
+}
+
 export class PaymentService {
   constructor(
     private readonly supabase: SupabaseAdminClient = createSupabaseAdminClient(),
@@ -223,6 +277,22 @@ export class PaymentService {
   }
 
   async recordManualPayment(input: ManualPaymentInput) {
+    const order = await this.getOrderPaymentBase(input.orderId);
+    const paidAmount = await this.calculateOrderPaidAmount(input.orderId);
+    const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
+
+    if (input.customerId && input.customerId !== order.customer_id) {
+      throw conflict("Cliente informado nao pertence ao pedido");
+    }
+
+    if (input.amount > pendingAmount + 0.001) {
+      throw conflict("Pagamento maior que o saldo pendente");
+    }
+
+    if (input.feeAmount > input.amount) {
+      throw badRequest("Taxa do pagamento nao pode ser maior que o valor bruto");
+    }
+
     const { data, error } = await this.supabase.rpc("record_manual_payment", {
       p_amount: input.amount,
       p_created_by: this.actorId ?? null,
@@ -235,7 +305,7 @@ export class PaymentService {
     });
 
     if (error) {
-      throwQueryError(error, "Falha ao registrar pagamento manual");
+      throwFriendlyPaymentRpcError(error);
     }
 
     return data as PaymentRpcResult;
@@ -250,7 +320,7 @@ export class PaymentService {
     });
 
     if (error) {
-      throwQueryError(error, "Falha ao estornar pagamento");
+      throwFriendlyRefundRpcError(error);
     }
 
     return data as RefundRpcResult;

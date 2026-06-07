@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { notFound } from "@/server/http/errors";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
@@ -10,11 +11,19 @@ export const wishlistCreateSchema = z.object({
   notes: z.string().trim().optional().nullable(),
 });
 
+export const wishlistUpdateSchema = z.object({
+  desiredPrice: z.number().nonnegative().optional().nullable(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
+  notes: z.string().trim().optional().nullable(),
+});
+
+type WishlistPriority = "low" | "medium" | "high";
+
 type DemandWishlistRow = {
   created_at: string;
   desired_price: number | string | null;
   id: string;
-  priority: "low" | "medium" | "high";
+  priority: WishlistPriority;
   customers?: {
     email: string | null;
     id: string;
@@ -31,6 +40,39 @@ type DemandWishlistRow = {
     franchises?: { name: string; slug: string } | { name: string; slug: string }[] | null;
     suppliers?: { name: string; slug: string } | { name: string; slug: string }[] | null;
   } | null;
+};
+
+type WishlistProductVariantRow = {
+  id: string;
+  market_price: number | string | null;
+  sale_price: number | string;
+  sku: string;
+  source: "own_stock" | "national" | "international" | "preorder";
+  special_label: string | null;
+  special_tags: string[] | null;
+  status: "available" | "order_only" | "preorder" | "sold_out" | "hidden";
+  type: "common" | "exclusive" | "chase" | "glow" | "special";
+};
+
+type WishlistProductRow = {
+  category_name: string | null;
+  funko_number: string | null;
+  id: string;
+  main_image_url: string | null;
+  name: string;
+  slug: string;
+  product_variants?: WishlistProductVariantRow[] | null;
+};
+
+type WishlistRowWithProduct = {
+  created_at: string;
+  customer_id: string;
+  desired_price: number | string | null;
+  id: string;
+  notes: string | null;
+  priority: WishlistPriority;
+  product_id: string;
+  products?: WishlistProductRow | WishlistProductRow[] | null;
 };
 
 export type WishlistDemandProduct = {
@@ -68,6 +110,28 @@ export type WishlistDemandDashboard = {
   totalItems: number;
 };
 
+export type WishlistProductListItem = {
+  createdAt: string;
+  customerId: string;
+  desiredPrice: number | null;
+  id: string;
+  notes: string | null;
+  priority: WishlistPriority;
+  product: {
+    category: string | null;
+    currentPrice: number | null;
+    funkoNumber: string | null;
+    id: string;
+    imageUrl: string | null;
+    isReady: boolean;
+    isSpecial: boolean;
+    name: string;
+    slug: string;
+    sku: string | null;
+  } | null;
+  productId: string;
+};
+
 const priorityScore: Record<"low" | "medium" | "high", number> = {
   high: 3,
   low: 1,
@@ -92,6 +156,71 @@ function toRanking(map: Map<string, number>) {
     .sort((first, second) => second.total - first.total || first.label.localeCompare(second.label, "pt-BR"));
 }
 
+function isVisibleVariant(variant: WishlistProductVariantRow) {
+  return variant.status !== "hidden";
+}
+
+function variantPriority(variant: WishlistProductVariantRow) {
+  let score = 0;
+
+  if (variant.source === "own_stock") {
+    score -= 10;
+  }
+
+  if (variant.status === "available") {
+    score -= 8;
+  }
+
+  if (variant.type !== "common") {
+    score -= 3;
+  }
+
+  if (variant.status === "sold_out") {
+    score += 20;
+  }
+
+  return score;
+}
+
+function pickWishlistVariant(product: WishlistProductRow | null | undefined) {
+  return (product?.product_variants ?? [])
+    .filter(isVisibleVariant)
+    .slice()
+    .sort((first, second) => variantPriority(first) - variantPriority(second))[0];
+}
+
+function mapWishlistRow(row: WishlistRowWithProduct): WishlistProductListItem {
+  const product = Array.isArray(row.products) ? row.products[0] ?? null : row.products ?? null;
+  const variant = pickWishlistVariant(product);
+  const specialTags = variant?.special_tags?.filter(Boolean) ?? [];
+
+  return {
+    createdAt: row.created_at,
+    customerId: row.customer_id,
+    desiredPrice: row.desired_price === null ? null : Number(row.desired_price),
+    id: row.id,
+    notes: row.notes,
+    priority: row.priority,
+    product: product
+      ? {
+          category: product.category_name,
+          currentPrice: variant ? Number(variant.sale_price) : null,
+          funkoNumber: product.funko_number,
+          id: product.id,
+          imageUrl: product.main_image_url,
+          isReady: variant ? variant.source === "own_stock" || variant.status === "available" : false,
+          isSpecial: variant
+            ? variant.type !== "common" || Boolean(variant.special_label) || specialTags.length > 0
+            : false,
+          name: product.name,
+          sku: variant?.sku ?? null,
+          slug: product.slug,
+        }
+      : null,
+    productId: row.product_id,
+  };
+}
+
 export class WishlistService {
   constructor(private readonly supabase: SupabaseAdminClient = createSupabaseAdminClient()) {}
 
@@ -107,6 +236,28 @@ export class WishlistService {
     }
 
     return data ?? [];
+  }
+
+  async listWishlistWithProducts(customerId: string): Promise<WishlistProductListItem[]> {
+    const { data, error } = await this.supabase
+      .from("wishlist_items")
+      .select(
+        `
+          id,customer_id,product_id,desired_price,priority,notes,created_at,
+          products(
+            id,name,slug,funko_number,category_name,main_image_url,
+            product_variants(id,sku,source,status,type,sale_price,market_price,special_label,special_tags)
+          )
+        `,
+      )
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throwQueryError(error, "Falha ao listar wishlist");
+    }
+
+    return ((data ?? []) as unknown as WishlistRowWithProduct[]).map(mapWishlistRow);
   }
 
   async addWishlistItem(customerId: string, input: z.infer<typeof wishlistCreateSchema>) {
@@ -133,15 +284,63 @@ export class WishlistService {
   }
 
   async deleteWishlistItem(customerId: string, id: string) {
-    const { error } = await this.supabase
+    const { data, error } = await this.supabase
       .from("wishlist_items")
       .delete()
       .eq("id", id)
-      .eq("customer_id", customerId);
+      .eq("customer_id", customerId)
+      .select("id")
+      .maybeSingle();
 
     if (error) {
       throwQueryError(error, "Falha ao remover wishlist");
     }
+
+    if (!data) {
+      throw notFound("Favorito nao encontrado");
+    }
+  }
+
+  async updateWishlistItem(
+    customerId: string,
+    id: string,
+    input: z.infer<typeof wishlistUpdateSchema>,
+  ) {
+    const update: {
+      desired_price?: number | null;
+      notes?: string | null;
+      priority?: WishlistPriority;
+    } = {};
+
+    if ("desiredPrice" in input) {
+      update.desired_price = input.desiredPrice ?? null;
+    }
+
+    if ("notes" in input) {
+      update.notes = input.notes ?? null;
+    }
+
+    if (input.priority) {
+      update.priority = input.priority;
+    }
+
+    const { data, error } = await this.supabase
+      .from("wishlist_items")
+      .update(update)
+      .eq("id", id)
+      .eq("customer_id", customerId)
+      .select("id,customer_id,product_id,desired_price,priority,notes,created_at")
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao atualizar wishlist");
+    }
+
+    if (!data) {
+      throw notFound("Favorito nao encontrado");
+    }
+
+    return data;
   }
 
   async getDemandDashboard(): Promise<WishlistDemandDashboard> {

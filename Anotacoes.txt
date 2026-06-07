@@ -1,0 +1,10 @@
+Melhorias
+
+pagina inicial ficar com cards passando com varios temas e nao so imagens
+
+Corrijir os filtros
+
+melhorar aba de favoritos
+
+corrijir registro de pagamentos
+

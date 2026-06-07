@@ -49,6 +49,22 @@ function pageHref(
   return query ? `${pathname}?${query}` : pathname;
 }
 
+function hasActiveFilters({
+  category,
+  filter,
+  query,
+  subcategory,
+  supplier,
+}: {
+  category: string;
+  filter: CatalogProductFilter;
+  query: string;
+  subcategory: string;
+  supplier: string;
+}) {
+  return Boolean(category || query || subcategory || supplier || filter !== "all");
+}
+
 export async function CommercialProductPage({
   config,
   searchParams,
@@ -79,6 +95,16 @@ export async function CommercialProductPage({
       supplier,
     }),
   ]);
+  const isFiltered = hasActiveFilters({
+    category,
+    filter,
+    query,
+    subcategory,
+    supplier,
+  });
+  const emptyDescription = isFiltered
+    ? "Nenhum produto ativo combina com os filtros atuais. Ajuste a busca, fornecedor, categoria ou vitrine comercial."
+    : config.emptyDescription;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -129,7 +155,7 @@ export async function CommercialProductPage({
       <ProductGrid
         emptyActionHref={config.pathname}
         emptyActionLabel="Limpar filtros"
-        emptyDescription={config.emptyDescription}
+        emptyDescription={emptyDescription}
         emptyTitle={`Nenhum produto em ${config.title.toLowerCase()}`}
         products={productPage.data}
       />
