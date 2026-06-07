@@ -14,16 +14,16 @@ export type WishlistClientState = {
 
 export type WishlistAddResult =
   | {
-      errorMessage?: string;
       isAuthenticated: false;
       isCustomerLinked: false;
       item: null;
+      errorMessage?: string;
     }
   | {
-      errorMessage?: string;
       isAuthenticated: true;
       isCustomerLinked: false;
       item: null;
+      errorMessage?: string;
     }
   | {
       isAuthenticated: true;
@@ -33,14 +33,14 @@ export type WishlistAddResult =
 
 export type WishlistRemoveResult =
   | {
-      errorMessage?: string;
       isAuthenticated: false;
       isCustomerLinked: false;
+      errorMessage?: string;
     }
   | {
-      errorMessage?: string;
       isAuthenticated: true;
       isCustomerLinked: false;
+      errorMessage?: string;
     }
   | {
       isAuthenticated: true;
