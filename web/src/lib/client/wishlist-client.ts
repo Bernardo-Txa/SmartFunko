@@ -5,14 +5,14 @@ export type WishlistClientItem = {
   product_id: string;
 };
 
-type WishlistClientState = {
+export type WishlistClientState = {
   errorMessage?: string;
   items: WishlistClientItem[];
   isAuthenticated: boolean;
   isCustomerLinked: boolean;
 };
 
-type WishlistAddResult =
+export type WishlistAddResult =
   | {
       errorMessage?: string;
       isAuthenticated: false;
@@ -31,7 +31,7 @@ type WishlistAddResult =
       item: WishlistClientItem;
     };
 
-type WishlistRemoveResult =
+export type WishlistRemoveResult =
   | {
       errorMessage?: string;
       isAuthenticated: false;
@@ -52,7 +52,7 @@ let wishlistPromise: Promise<WishlistClientState> | undefined;
 
 const wishlistEventName = "smartfunkos:wishlist";
 
-function dispatchWishlistEvent() {
+function dispatchWishlistEvent(): void {
   window.dispatchEvent(new Event(wishlistEventName));
 }
 
