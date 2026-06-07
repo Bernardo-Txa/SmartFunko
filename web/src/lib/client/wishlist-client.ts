@@ -5,15 +5,50 @@ export type WishlistClientItem = {
   product_id: string;
 };
 
-type WishlistCache = {
+type WishlistClientState = {
   errorMessage?: string;
   items: WishlistClientItem[];
   isAuthenticated: boolean;
   isCustomerLinked: boolean;
 };
 
-let wishlistCache: WishlistCache | undefined;
-let wishlistPromise: Promise<WishlistCache> | undefined;
+type WishlistAddResult =
+  | {
+      errorMessage?: string;
+      isAuthenticated: false;
+      isCustomerLinked: false;
+      item: null;
+    }
+  | {
+      errorMessage?: string;
+      isAuthenticated: true;
+      isCustomerLinked: false;
+      item: null;
+    }
+  | {
+      isAuthenticated: true;
+      isCustomerLinked: true;
+      item: WishlistClientItem;
+    };
+
+type WishlistRemoveResult =
+  | {
+      errorMessage?: string;
+      isAuthenticated: false;
+      isCustomerLinked: false;
+    }
+  | {
+      errorMessage?: string;
+      isAuthenticated: true;
+      isCustomerLinked: false;
+    }
+  | {
+      isAuthenticated: true;
+      isCustomerLinked: true;
+    };
+
+let wishlistCache: WishlistClientState | undefined;
+let wishlistPromise: Promise<WishlistClientState> | undefined;
 
 const wishlistEventName = "smartfunkos:wishlist";
 
@@ -21,17 +56,17 @@ function dispatchWishlistEvent() {
   window.dispatchEvent(new Event(wishlistEventName));
 }
 
-export function subscribeWishlist(listener: () => void) {
+export function subscribeWishlist(listener: () => void): () => void {
   window.addEventListener(wishlistEventName, listener);
 
   return () => window.removeEventListener(wishlistEventName, listener);
 }
 
-export function getCachedWishlistItem(productId: string) {
+export function getCachedWishlistItem(productId: string): WishlistClientItem | undefined {
   return wishlistCache?.items.find((item) => item.product_id === productId);
 }
 
-export async function loadWishlist(): Promise<WishlistCache> {
+export async function loadWishlist(): Promise<WishlistClientState> {
   if (wishlistCache) {
     return wishlistCache;
   }
@@ -95,7 +130,7 @@ export async function loadWishlist(): Promise<WishlistCache> {
   return wishlistPromise;
 }
 
-export async function addWishlistProduct(productId: string) {
+export async function addWishlistProduct(productId: string): Promise<WishlistAddResult> {
   const response = await fetch("/api/v1/me/wishlist", {
     body: JSON.stringify({
       priority: "medium",
@@ -155,7 +190,7 @@ export async function addWishlistProduct(productId: string) {
   };
 }
 
-export async function removeWishlistProduct(itemId: string) {
+export async function removeWishlistProduct(itemId: string): Promise<WishlistRemoveResult> {
   const response = await fetch(`/api/v1/me/wishlist/${itemId}`, {
     method: "DELETE",
   });

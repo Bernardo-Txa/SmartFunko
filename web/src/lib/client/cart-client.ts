@@ -19,7 +19,7 @@ const emptyCart: CartItem[] = [];
 let lastCartSerialized: string | null | undefined;
 let cartSnapshot: CartItem[] | undefined;
 
-function dispatchCartEvent() {
+function dispatchCartEvent(): void {
   window.dispatchEvent(new Event(cartEventName));
 }
 
@@ -52,7 +52,7 @@ function safeParseCart(value: string | null): CartItem[] {
   }
 }
 
-function writeCart(items: CartItem[]) {
+function writeCart(items: CartItem[]): void {
   const serialized = JSON.stringify(items);
 
   cartSnapshot = items;
@@ -61,7 +61,7 @@ function writeCart(items: CartItem[]) {
   dispatchCartEvent();
 }
 
-export function readCart() {
+export function readCart(): CartItem[] {
   if (typeof window === "undefined") {
     return emptyCart;
   }
@@ -77,11 +77,11 @@ export function readCart() {
   return cartSnapshot;
 }
 
-export function readServerCart() {
+export function readServerCart(): CartItem[] {
   return emptyCart;
 }
 
-export function subscribeCart(listener: () => void) {
+export function subscribeCart(listener: () => void): () => void {
   window.addEventListener(cartEventName, listener);
   window.addEventListener("storage", listener);
 
@@ -91,7 +91,7 @@ export function subscribeCart(listener: () => void) {
   };
 }
 
-export function addProductToCart(product: Product, quantity = 1) {
+export function addProductToCart(product: Product, quantity = 1): CartItem {
   const items = readCart();
   const current = items.find((item) => item.id === product.id);
   const nextQuantity = Math.max(1, quantity);
@@ -117,7 +117,7 @@ export function addProductToCart(product: Product, quantity = 1) {
   return item;
 }
 
-export function updateCartItemQuantity(productId: string, quantity: number) {
+export function updateCartItemQuantity(productId: string, quantity: number): void {
   const nextQuantity = Math.max(1, quantity);
   writeCart(
     readCart().map((item) =>
@@ -126,10 +126,10 @@ export function updateCartItemQuantity(productId: string, quantity: number) {
   );
 }
 
-export function removeCartItem(productId: string) {
+export function removeCartItem(productId: string): void {
   writeCart(readCart().filter((item) => item.id !== productId));
 }
 
-export function clearCart() {
+export function clearCart(): void {
   writeCart([]);
 }
