@@ -1,6 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
-import type { CatalogCategory, CatalogProductSort, CatalogSupplier } from "@/lib/catalog";
+import { clsx } from "clsx";
+import type {
+  CatalogCategory,
+  CatalogProductFilter,
+  CatalogProductSort,
+  CatalogSupplier,
+} from "@/lib/catalog";
+
+const filters: Array<{ label: string; value: CatalogProductFilter }> = [
+  { label: "Todos", value: "all" },
+  { label: "Pronta-entrega", value: "ready" },
+  { label: "Pré-venda", value: "preorder" },
+  { label: "Encomendas", value: "order" },
+  { label: "Especiais", value: "specials" },
+  { label: "Novidades", value: "new" },
+];
 
 const sorts: Array<{ label: string; value: CatalogProductSort }> = [
   { label: "Pronta-entrega primeiro", value: "ready_first" },
@@ -14,23 +32,44 @@ const sorts: Array<{ label: string; value: CatalogProductSort }> = [
 export function CommercialFilter({
   categories,
   currentCategory,
+  currentFilter = "all",
   currentSort,
+  currentSubcategory = "",
   currentSupplier,
   pathname,
   query,
+  showFilter = false,
+  showSubcategory = false,
   suppliers,
 }: {
   categories: CatalogCategory[];
   currentCategory: string;
+  currentFilter?: CatalogProductFilter;
   currentSort: CatalogProductSort;
+  currentSubcategory?: string;
   currentSupplier: string;
   pathname: string;
   query: string;
+  showFilter?: boolean;
+  showSubcategory?: boolean;
   suppliers: CatalogSupplier[];
 }) {
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>(currentCategory);
+  const [selectedSubcategoryName, setSelectedSubcategoryName] =
+    useState<string>(currentSubcategory);
+  const activeCategory = categories.find((category) => category.name === selectedCategoryName);
+  const subcategoryOptions = activeCategory?.subcategories ?? [];
+
   return (
     <form className="rounded-xl border border-cyan-400/20 bg-[#030816]/88 p-3 shadow-[0_18px_44px_rgba(2,6,23,0.2)]">
-      <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.3fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(170px,0.8fr)_auto]">
+      <div
+        className={clsx(
+          "grid gap-3",
+          showFilter || showSubcategory
+            ? "lg:grid-cols-[minmax(220px,1.35fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(160px,0.75fr)_auto]"
+            : "lg:grid-cols-[minmax(220px,1.3fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(170px,0.8fr)_auto]",
+        )}
+      >
         <label className="relative block">
           <span className="sr-only">Buscar produto</span>
           <Search
@@ -51,7 +90,11 @@ export function CommercialFilter({
           <span className="sr-only">Categoria</span>
           <select
             name="category"
-            defaultValue={currentCategory}
+            value={selectedCategoryName}
+            onChange={(event) => {
+              setSelectedCategoryName(event.target.value);
+              setSelectedSubcategoryName("");
+            }}
             className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
           >
             <option value="">Categorias</option>
@@ -62,6 +105,26 @@ export function CommercialFilter({
             ))}
           </select>
         </label>
+
+        {showSubcategory ? (
+          <label className="block">
+            <span className="sr-only">Linha</span>
+            <select
+              name="subcategory"
+              value={selectedCategoryName ? selectedSubcategoryName : ""}
+              disabled={!selectedCategoryName}
+              onChange={(event) => setSelectedSubcategoryName(event.target.value)}
+              className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70 disabled:cursor-not-allowed disabled:text-slate-500"
+            >
+              <option value="">{selectedCategoryName ? "Linhas" : "Escolha categoria"}</option>
+              {subcategoryOptions.map((item) => (
+                <option key={item.name} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="block">
           <span className="sr-only">Fornecedor</span>
@@ -78,6 +141,23 @@ export function CommercialFilter({
             ))}
           </select>
         </label>
+
+        {showFilter ? (
+          <label className="block">
+            <span className="sr-only">Vitrine</span>
+            <select
+              name="filter"
+              defaultValue={currentFilter}
+              className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
+            >
+              {filters.map((filter) => (
+                <option key={filter.value} value={filter.value}>
+                  {filter.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="block">
           <span className="sr-only">Ordenação</span>
@@ -111,4 +191,3 @@ export function CommercialFilter({
     </form>
   );
 }
-

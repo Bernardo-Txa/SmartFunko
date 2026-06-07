@@ -16,16 +16,19 @@ export function CartButton({
   className,
   label = "Adicionar ao carrinho",
   product,
+  showLabel = true,
 }: {
   className?: string;
   label?: string;
   product: Product;
+  showLabel?: boolean;
 }) {
-  const [added, setAdded] = useState(false);
+  const [added, setAdded] = useState<boolean>(false);
 
   return (
     <button
       type="button"
+      aria-label={added ? `${product.name} no carrinho` : `Adicionar ${product.name} ao carrinho`}
       onClick={() => {
         addProductToCart(product);
         setAdded(true);
@@ -37,7 +40,7 @@ export function CartButton({
       )}
     >
       {added ? <Check size={16} aria-hidden="true" /> : <ShoppingCart size={16} aria-hidden="true" />}
-      {added ? "No carrinho" : label}
+      {showLabel ? <span>{added ? "No carrinho" : label}</span> : null}
     </button>
   );
 }

@@ -13,17 +13,21 @@ import { createWhatsAppTextUrl } from "@/lib/whatsapp";
 
 export type CommercialPageSearchParams = {
   category?: string;
+  filter?: CatalogProductFilter;
   page?: string;
   q?: string;
   sort?: CatalogProductSort;
+  subcategory?: string;
   supplier?: string;
 };
 
 export type CommercialPageConfig = {
+  allowFilterParam?: boolean;
   ctaMessage?: string;
   emptyDescription: string;
   filter: CatalogProductFilter;
   pathname: string;
+  showSubcategoryFilter?: boolean;
   sort?: CatalogProductSort;
   subtitle: string;
   title: string;
@@ -36,7 +40,7 @@ function pageHref(
   const search = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+    if (value !== undefined && value !== "" && value !== "all") {
       search.set(key, String(value));
     }
   }
@@ -54,9 +58,11 @@ export async function CommercialProductPage({
 }) {
   const params = await searchParams;
   const category = params?.category ?? "";
+  const filter = config.allowFilterParam ? params?.filter ?? config.filter : config.filter;
   const page = Number(params?.page ?? 1);
   const query = params?.q ?? "";
   const sort = params?.sort ?? config.sort ?? "ready_first";
+  const subcategory = config.showSubcategoryFilter ? params?.subcategory ?? "" : "";
   const supplier = params?.supplier ?? "";
 
   const [categories, suppliers, productPage] = await Promise.all([
@@ -64,11 +70,12 @@ export async function CommercialProductPage({
     getCatalogSuppliers(),
     getCatalogProductsPage({
       category,
-      filter: config.filter,
+      filter,
       page,
       pageSize: 24,
       query,
       sort,
+      subcategory,
       supplier,
     }),
   ]);
@@ -102,10 +109,14 @@ export async function CommercialProductPage({
         <CommercialFilter
           categories={categories}
           currentCategory={category}
+          currentFilter={filter}
           currentSort={sort}
+          currentSubcategory={subcategory}
           currentSupplier={supplier}
           pathname={config.pathname}
           query={query}
+          showFilter={config.allowFilterParam}
+          showSubcategory={config.showSubcategoryFilter}
           suppliers={suppliers}
         />
       </section>
@@ -127,9 +138,11 @@ export async function CommercialProductPage({
         <Link
           href={pageHref(config.pathname, {
             category,
+            filter: config.allowFilterParam ? filter : undefined,
             page: Math.max(1, productPage.meta.page - 1),
             q: query,
             sort,
+            subcategory: config.showSubcategoryFilter ? subcategory : undefined,
             supplier,
           })}
           prefetch={false}
@@ -144,9 +157,11 @@ export async function CommercialProductPage({
         <Link
           href={pageHref(config.pathname, {
             category,
+            filter: config.allowFilterParam ? filter : undefined,
             page: Math.min(productPage.meta.totalPages, productPage.meta.page + 1),
             q: query,
             sort,
+            subcategory: config.showSubcategoryFilter ? subcategory : undefined,
             supplier,
           })}
           prefetch={false}

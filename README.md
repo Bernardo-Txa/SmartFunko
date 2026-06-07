@@ -40,12 +40,14 @@ A camada publica agora organiza descoberta e intencao de compra por cima do core
 - home premium com hero, vitrines comerciais, universos, fornecedores/collabs, fluxo assistido e bloco de confianca;
 - mega menu por universos/categorias e links diretos para vitrines comerciais;
 - paginas publicas `/pronta-entrega`, `/pre-venda`, `/specials`, `/novidades` e `/encomendas`;
+- `/catalogo` unificado com a experiencia premium de busca, vitrine, categoria, linha, fornecedor e ordenacao;
 - pagina de produto com galeria, badges comerciais, CTA "Tenho interesse", favoritos, carrinho assistido e relacionados;
+- cards de produto com favoritos e carrinho em acoes compactas, sem transformar o card em checkout;
 - favoritos reais em cards, produto e `/conta/wishlist`, usando `/api/v1/me/wishlist`;
 - carrinho assistido em `/carrinho`, persistido no navegador e finalizado por mensagem de WhatsApp;
 - admin de demanda em `/admin/demanda`, restrito a owner, com ranking real de wishlist.
 
-O carrinho assistido nao e checkout: nao reserva estoque automaticamente, nao calcula frete, nao cobra pagamento e nao cria pedido sozinho.
+O carrinho assistido nao e checkout: nao reserva estoque automaticamente, nao calcula frete, nao cobra pagamento, nao cria pedido sozinho e nao inclui Pix nesta fase.
 
 ## Como rodar localmente
 

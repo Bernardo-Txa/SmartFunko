@@ -23,12 +23,31 @@ Copie `.env.example` para `.env.local` e preencha:
 ## Rotas iniciais
 
 - `/`
-- `/catalogo`
+- `/catalogo` com busca, vitrine, categoria, linha, fornecedor e ordenacao premium
+- `/pronta-entrega`
+- `/pre-venda`
+- `/specials`
+- `/novidades`
+- `/encomendas`
 - `/produto/[slug]`
+- `/carrinho`
 - `/login`
 - `/cadastro`
 - `/conta`
 - `/conta/pedidos`
+- `/conta/wishlist`
 - `/admin/dashboard`
+- `/admin/demanda`
 - `/api/v1/health`
 - `/api/v1/public/products`
+
+## Premium Pack
+
+O Premium Pack estabilizado mantém descoberta comercial sem checkout completo:
+
+- cards com favorito e carrinho local em ações compactas;
+- vitrines comerciais reaproveitando filtros por busca, categoria, fornecedor e ordenação;
+- `/catalogo` usando a mesma experiência visual das vitrines, com filtro de vitrine e linha;
+- carrinho assistido persistido no navegador e finalizado por WhatsApp.
+
+Não há Pix, reserva automática, frete, pedido automático, Flutter ou leilão nesta etapa.

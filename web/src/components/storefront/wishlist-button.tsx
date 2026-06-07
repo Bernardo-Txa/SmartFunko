@@ -31,8 +31,8 @@ export function WishlistButton({
 }) {
   const [itemId, setItemId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isCustomerLinked, setIsCustomerLinked] = useState(true);
-  const [isPending, setIsPending] = useState(false);
+  const [isCustomerLinked, setIsCustomerLinked] = useState<boolean>(true);
+  const [isPending, setIsPending] = useState<boolean>(false);
   const isActive = Boolean(itemId);
 
   const ariaLabel = useMemo(

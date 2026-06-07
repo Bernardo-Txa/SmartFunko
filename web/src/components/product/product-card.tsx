@@ -110,8 +110,17 @@ export function ProductCard({
           Special
         </div>
       ) : null}
-      <div className="absolute left-3 top-3 z-20">
-        <WishlistButton productId={product.id} productName={product.name} />
+      <div className="absolute left-3 top-3 z-20 flex gap-2">
+        <WishlistButton
+          className="h-9 w-9 bg-slate-950/72 px-0 backdrop-blur"
+          productId={product.id}
+          productName={product.name}
+        />
+        <CartButton
+          className="h-9 w-9 bg-slate-950/72 px-0 backdrop-blur"
+          product={product}
+          showLabel={false}
+        />
       </div>
 
       <Link href={`/produto/${product.slug}`} prefetch={false} aria-label={product.name}>
@@ -176,13 +185,12 @@ export function ProductCard({
             size="sm"
           />
 
-          <div className="mt-5 grid gap-2">
-            <CartButton className="w-full" label="Adicionar" product={product} />
+          <div className="mt-5">
             <a
               href={createProductWhatsAppUrl(product)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-4 text-sm font-black text-[#052e16] hover:brightness-110"
+              className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-lg bg-[var(--green)] px-3 text-xs font-black text-[#052e16] hover:brightness-110"
             >
               <MessageCircle size={16} aria-hidden="true" />
               Tenho interesse
