@@ -2,9 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Plus, Save } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Eye,
+  ImageIcon,
+  Plus,
+  Save,
+  Star,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import { productVariantStatusOptions } from "@/lib/status-labels";
 
 type Option = {
@@ -26,6 +36,14 @@ type ProductVariant = {
   type: "common" | "exclusive" | "chase" | "glow" | "special";
 };
 
+type ProductImage = {
+  created_at?: string;
+  id: string;
+  image_url: string;
+  product_id: string;
+  sort_order: number;
+};
+
 export type AdminProductEditData = {
   category_name: string | null;
   description: string | null;
@@ -35,6 +53,7 @@ export type AdminProductEditData = {
   id: string;
   main_image_url: string | null;
   name: string;
+  product_images?: ProductImage[] | null;
   product_variants?: ProductVariant[] | null;
   slug: string;
   status: "active" | "inactive" | "archived";
@@ -42,13 +61,33 @@ export type AdminProductEditData = {
   supplier_id: string | null;
 };
 
-type ApiPayload = {
-  data?: {
-    id?: string;
-  };
+type ApiPayload<T = { id?: string }> = {
+  data?: T;
   error?: {
     message?: string;
   };
+};
+
+type ProductImageApi = {
+  id: string;
+  imageUrl: string;
+  productId: string;
+  sortOrder: number;
+};
+
+type ProductMainApi = {
+  product?: {
+    id: string;
+    mainImageUrl: string | null;
+  };
+};
+
+type ProductImageUploadApi = ProductMainApi & {
+  image: ProductImageApi;
+};
+
+type ProductImagesApi = ProductMainApi & {
+  images?: ProductImageApi[];
 };
 
 const conditionOptions = [
@@ -72,6 +111,9 @@ const sourceOptions = [
   { label: "Pré-venda", value: "preorder" },
 ] as const;
 
+const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+const maxImageSizeBytes = 5 * 1024 * 1024;
+
 function nullable(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
   return text || null;
@@ -87,6 +129,39 @@ function tagsFromForm(value: FormDataEntryValue | null) {
     .split(/[|,]/)
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+function sortProductImages(images: ProductImage[] | null | undefined) {
+  return (images ?? [])
+    .slice()
+    .sort((first, second) => {
+      if (first.sort_order !== second.sort_order) {
+        return first.sort_order - second.sort_order;
+      }
+
+      return (first.created_at ?? "").localeCompare(second.created_at ?? "");
+    });
+}
+
+function productImageFromApi(image: ProductImageApi): ProductImage {
+  return {
+    id: image.id,
+    image_url: image.imageUrl,
+    product_id: image.productId,
+    sort_order: image.sortOrder,
+  };
+}
+
+function validateClientImageFile(file: File) {
+  if (!allowedImageTypes.includes(file.type)) {
+    return "Tipo de imagem nao permitido.";
+  }
+
+  if (file.size > maxImageSizeBytes) {
+    return "Imagem deve ter ate 5MB.";
+  }
+
+  return "";
 }
 
 function SelectField({
@@ -271,12 +346,28 @@ export function ProductEditForm({
   suppliers: Option[];
 }) {
   const router = useRouter();
+  const uploadFormRef = useRef<HTMLFormElement>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState(product.main_image_url ?? "");
+  const [productImages, setProductImages] = useState<ProductImage[]>(() =>
+    sortProductImages(product.product_images),
+  );
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [uploadAsMain, setUploadAsMain] = useState(true);
+  const [imageMessage, setImageMessage] = useState("");
+  const [imageError, setImageError] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageAction, setImageAction] = useState("");
   const [slug, setSlug] = useState(product.slug);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canPreviewImage = /^https?:\/\//.test(imageUrl);
+  const currentMainImageUrl = imageUrl.trim();
+
+  useEffect(() => {
+    setImageUrl(product.main_image_url ?? "");
+    setProductImages(sortProductImages(product.product_images));
+  }, [product.id, product.main_image_url, product.product_images]);
 
   function onSaved(text: string) {
     setError("");
@@ -322,6 +413,192 @@ export function ProductEditForm({
       setError(submitError instanceof Error ? submitError.message : "Falha ao salvar produto");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function onUploadFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setImageError("");
+    setImageMessage("");
+
+    if (!file) {
+      setSelectedUploadFile(null);
+      return;
+    }
+
+    const validationError = validateClientImageFile(file);
+
+    if (validationError) {
+      setSelectedUploadFile(null);
+      setImageError(validationError);
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedUploadFile(file);
+  }
+
+  async function submitImageUpload(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setImageError("");
+    setImageMessage("");
+
+    if (!selectedUploadFile) {
+      setImageError("Selecione uma imagem.");
+      return;
+    }
+
+    const validationError = validateClientImageFile(selectedUploadFile);
+
+    if (validationError) {
+      setImageError(validationError);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedUploadFile);
+    formData.append("setAsMain", String(uploadAsMain));
+    setIsUploadingImage(true);
+
+    try {
+      const response = await fetch(`/api/v1/admin/products/${product.id}/images`, {
+        body: formData,
+        method: "POST",
+      });
+      const body = (await response.json()) as ApiPayload<ProductImageUploadApi>;
+
+      if (!response.ok || !body.data?.image) {
+        throw new Error(body.error?.message ?? "Falha ao enviar imagem");
+      }
+
+      const uploadedImage = body.data.image;
+      const uploadedProduct = body.data.product;
+
+      setProductImages((currentImages) =>
+        sortProductImages([...currentImages, productImageFromApi(uploadedImage)]),
+      );
+
+      if (uploadedProduct) {
+        setImageUrl(uploadedProduct.mainImageUrl ?? "");
+      }
+
+      uploadFormRef.current?.reset();
+      setSelectedUploadFile(null);
+      setUploadAsMain(true);
+      setImageMessage("Imagem enviada.");
+      router.refresh();
+    } catch (uploadError) {
+      setImageError(uploadError instanceof Error ? uploadError.message : "Falha ao enviar imagem");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }
+
+  async function defineMainImage(image: ProductImage) {
+    setImageError("");
+    setImageMessage("");
+    setImageAction(`main:${image.id}`);
+
+    try {
+      const response = await fetch(
+        `/api/v1/admin/products/${product.id}/images/${image.id}/main`,
+        { method: "PATCH" },
+      );
+      const body = (await response.json()) as ApiPayload<ProductMainApi>;
+
+      if (!response.ok || !body.data?.product) {
+        throw new Error(body.error?.message ?? "Falha ao definir imagem principal");
+      }
+
+      const updatedProduct = body.data.product;
+
+      setImageUrl(updatedProduct.mainImageUrl ?? "");
+      setImageMessage("Imagem principal atualizada.");
+      router.refresh();
+    } catch (mainError) {
+      setImageError(mainError instanceof Error ? mainError.message : "Falha ao definir imagem principal");
+    } finally {
+      setImageAction("");
+    }
+  }
+
+  async function removeImage(image: ProductImage) {
+    if (!window.confirm("Remover esta imagem da galeria?")) {
+      return;
+    }
+
+    setImageError("");
+    setImageMessage("");
+    setImageAction(`delete:${image.id}`);
+
+    try {
+      const response = await fetch(
+        `/api/v1/admin/products/${product.id}/images/${image.id}`,
+        { method: "DELETE" },
+      );
+      const body = (await response.json()) as ApiPayload<ProductImagesApi>;
+
+      if (!response.ok) {
+        throw new Error(body.error?.message ?? "Falha ao remover imagem");
+      }
+
+      setProductImages(
+        body.data?.images
+          ? sortProductImages(body.data.images.map(productImageFromApi))
+          : productImages.filter((productImage) => productImage.id !== image.id),
+      );
+
+      if (body.data?.product) {
+        setImageUrl(body.data.product.mainImageUrl ?? "");
+      }
+
+      setImageMessage("Imagem removida.");
+      router.refresh();
+    } catch (deleteError) {
+      setImageError(deleteError instanceof Error ? deleteError.message : "Falha ao remover imagem");
+    } finally {
+      setImageAction("");
+    }
+  }
+
+  async function moveImage(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+
+    if (targetIndex < 0 || targetIndex >= productImages.length) {
+      return;
+    }
+
+    const reordered = [...productImages];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    const imageIds = reordered.map((image) => image.id);
+
+    setImageError("");
+    setImageMessage("");
+    setImageAction("reorder");
+
+    try {
+      const response = await fetch(`/api/v1/admin/products/${product.id}/images/reorder`, {
+        body: JSON.stringify({ imageIds }),
+        headers: { "content-type": "application/json" },
+        method: "PATCH",
+      });
+      const body = (await response.json()) as ApiPayload<ProductImagesApi>;
+
+      if (!response.ok) {
+        throw new Error(body.error?.message ?? "Falha ao reordenar imagens");
+      }
+
+      setProductImages(
+        body.data?.images
+          ? sortProductImages(body.data.images.map(productImageFromApi))
+          : reordered.map((image, sortOrder) => ({ ...image, sort_order: sortOrder })),
+      );
+      setImageMessage("Ordem atualizada.");
+      router.refresh();
+    } catch (reorderError) {
+      setImageError(reorderError instanceof Error ? reorderError.message : "Falha ao reordenar imagens");
+    } finally {
+      setImageAction("");
     }
   }
 
@@ -463,6 +740,9 @@ export function ProductEditForm({
               onChange={(event) => setImageUrl(event.target.value)}
               className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             />
+            <p className="mt-2 break-all text-xs text-[var(--muted)]">
+              {currentMainImageUrl || "Sem URL principal"}
+            </p>
           </label>
         </div>
 
@@ -485,6 +765,153 @@ export function ProductEditForm({
           {isSubmitting ? "Salvando..." : "Salvar produto"}
         </button>
       </form>
+
+      <section className="grid gap-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Imagens do produto</h2>
+          <Link
+            href={`/produto/${slug || product.slug}`}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          >
+            <Eye size={16} aria-hidden="true" />
+            Ver no catalogo
+          </Link>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+          <div>
+            <div className="relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-md border border-[var(--border)] bg-slate-950/60">
+              {canPreviewImage ? (
+                <Image src={imageUrl} alt={product.name} fill sizes="220px" className="object-contain p-3" />
+              ) : (
+                <div className="grid justify-items-center gap-2 text-[var(--muted)]">
+                  <ImageIcon size={26} aria-hidden="true" />
+                  <span className="text-xs font-semibold">Sem imagem</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            <form
+              ref={uploadFormRef}
+              onSubmit={submitImageUpload}
+              className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+            >
+              <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+                <label className="block">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">Upload de imagem</span>
+                  <input
+                    name="file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/avif"
+                    onChange={onUploadFileChange}
+                    className="mt-2 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--accent)] file:px-3 file:py-2 file:text-xs file:font-black file:text-[#020617]"
+                  />
+                </label>
+                <button
+                  disabled={isUploadingImage || Boolean(imageAction)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <UploadCloud size={16} aria-hidden="true" />
+                  {isUploadingImage ? "Enviando..." : "Enviar imagem"}
+                </button>
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                <input
+                  type="checkbox"
+                  checked={uploadAsMain}
+                  onChange={(event) => setUploadAsMain(event.target.checked)}
+                  className="h-4 w-4 rounded border-[var(--border)]"
+                />
+                Definir como principal
+              </label>
+              {selectedUploadFile ? (
+                <p className="text-xs text-[var(--muted)]">
+                  {selectedUploadFile.name} · {(selectedUploadFile.size / 1024 / 1024).toFixed(2)}MB
+                </p>
+              ) : null}
+            </form>
+
+            {imageMessage ? <p className="text-sm font-semibold text-[var(--foreground)]">{imageMessage}</p> : null}
+            {imageError ? <p className="text-sm font-semibold text-red-300">{imageError}</p> : null}
+          </div>
+        </div>
+
+        {productImages.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {productImages.map((image, index) => {
+              const isMainImage = image.image_url === currentMainImageUrl;
+
+              return (
+                <div
+                  key={image.id}
+                  className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3"
+                >
+                  <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-md border border-[var(--border)] bg-slate-950/60">
+                    <Image
+                      src={image.image_url}
+                      alt={`${product.name} ${index + 1}`}
+                      fill
+                      sizes="(min-width: 1280px) 28vw, (min-width: 768px) 42vw, 100vw"
+                      className="object-contain p-2"
+                    />
+                    {isMainImage ? (
+                      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-yellow-300 px-2 py-1 text-[10px] font-black uppercase text-slate-950">
+                        <Star size={12} aria-hidden="true" />
+                        Principal
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="line-clamp-2 break-all text-xs text-[var(--muted)]">{image.image_url}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={isMainImage || isUploadingImage || Boolean(imageAction)}
+                      onClick={() => defineMainImage(image)}
+                      className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Star size={14} aria-hidden="true" />
+                      Principal
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === 0 || isUploadingImage || Boolean(imageAction)}
+                      onClick={() => moveImage(index, -1)}
+                      className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <ArrowUp size={14} aria-hidden="true" />
+                      Subir
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === productImages.length - 1 || isUploadingImage || Boolean(imageAction)}
+                      onClick={() => moveImage(index, 1)}
+                      className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <ArrowDown size={14} aria-hidden="true" />
+                      Descer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isUploadingImage || Boolean(imageAction)}
+                      onClick={() => removeImage(image)}
+                      className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300/40 px-3 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--background)] p-4 text-sm text-[var(--muted)]">
+            Nenhuma imagem na galeria.
+          </div>
+        )}
+      </section>
 
       <section className="grid gap-4">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Variantes</h2>

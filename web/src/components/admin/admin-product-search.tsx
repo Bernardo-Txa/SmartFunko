@@ -26,6 +26,10 @@ type AdminProduct = {
     name?: string;
     slug?: string;
   }> | null;
+  product_images?: Array<{
+    image_url: string;
+    sort_order: number | null;
+  }> | null;
   product_variants?: Array<{
     sale_price: number;
     special_label?: string | null;
@@ -49,6 +53,14 @@ function firstRelation<T>(relation: T | T[] | null | undefined) {
   }
 
   return relation ?? null;
+}
+
+function getAdminProductImageUrl(product: AdminProduct) {
+  const firstGalleryImage = (product.product_images ?? [])
+    .slice()
+    .sort((first, second) => (first.sort_order ?? 0) - (second.sort_order ?? 0))[0];
+
+  return product.main_image_url ?? firstGalleryImage?.image_url;
 }
 
 export function AdminProductSearch() {
@@ -151,6 +163,7 @@ export function AdminProductSearch() {
                 const variant = product.product_variants?.[0];
                 const franchise = firstRelation(product.franchises);
                 const supplier = firstRelation(product.suppliers);
+                const imageUrl = getAdminProductImageUrl(product);
                 const isSpecial = Boolean(
                   variant?.special_label ||
                     variant?.special_tags?.length ||
@@ -162,9 +175,9 @@ export function AdminProductSearch() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[var(--border)] bg-slate-950/60">
-                          {product.main_image_url ? (
+                          {imageUrl ? (
                             <Image
-                              src={product.main_image_url}
+                              src={imageUrl}
                               alt={product.name}
                               fill
                               sizes="48px"

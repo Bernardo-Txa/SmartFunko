@@ -21,6 +21,10 @@
 - `GET|PATCH /api/v1/admin/customers/[id]`
 - `GET|POST /api/v1/admin/products`
 - `GET|PATCH /api/v1/admin/products/[id]`
+- `POST /api/v1/admin/products/[id]/images`
+- `PATCH /api/v1/admin/products/[id]/images/reorder`
+- `PATCH /api/v1/admin/products/[id]/images/[imageId]/main`
+- `DELETE /api/v1/admin/products/[id]/images/[imageId]`
 - `POST /api/v1/admin/products/[id]/variants`
 - `PATCH /api/v1/admin/product-variants/[id]`
 - `GET|POST /api/v1/admin/suppliers`
@@ -75,6 +79,11 @@
 - O catalogo e as paginas comerciais aceitam busca, fornecedor, categoria e ordenacao comercial (`sort`).
 - Filtros comerciais aceitos: `ready`, `preorder`, `specials`, `new` e `order`.
 - Produtos sao criados em `/admin/produtos/novo` e editados em `/admin/produtos/[id]`, incluindo fornecedor, imagem, descricao, status e variantes.
+- `/admin/produtos/[id]` possui a secao "Imagens do produto" para upload real via Supabase Storage, preview, definicao de imagem principal, remocao da galeria e reordenacao por botoes.
+- O bucket de imagens e `product-images`, publico para leitura e restrito a owner/admin para escrita.
+- Upload aceita `image/jpeg`, `image/png`, `image/webp` e `image/avif`, com limite de 5MB por arquivo.
+- `products.main_image_url` continua aceitando URL manual e tem prioridade sobre a primeira imagem de `product_images`.
+- Catalogo, home, ProductCard e pagina de produto usam `main_image_url`, depois `product_images` ordenadas por `sort_order`, depois fallback visual.
 - Mock do catalogo so e permitido fora de `production`.
 - Carrinho assistido persiste apenas no navegador e nao grava pedido, pagamento, frete ou reserva de estoque.
 - Wishlist exige login e customer vinculado; customer so ve/remove a propria lista.
@@ -105,9 +114,14 @@ SUPABASE_SERVICE_ROLE_KEY=...
 9. Abrir `/admin/dashboard`, `/admin/pedidos`, `/admin/pagamentos` e `/admin/caixa`.
 10. Abrir `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
 11. Editar produto em `/admin/produtos/[id]`, trocar fornecedor/imagem/preco e conferir em `/catalogo?supplier=piticas`.
-12. Abrir `/pedido/[orderNumber]?token=...`.
-13. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
-14. Testar token errado no link publico.
+12. Em `/admin/produtos/[id]`, enviar imagem valida na secao "Imagens do produto".
+13. Testar rejeicao de arquivo acima de 5MB e de arquivo que nao seja imagem aceita.
+14. Definir a imagem enviada como principal e conferir card no catalogo/home e galeria em `/produto/[slug]`.
+15. Reordenar imagens e conferir a ordem da galeria publica.
+16. Remover uma imagem e confirmar que o fallback por `main_image_url`, primeira imagem restante ou `ProductArtwork` continua funcionando.
+17. Abrir `/pedido/[orderNumber]?token=...`.
+18. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
+19. Testar token errado no link publico.
 
 ## Contratos para app futuro
 
@@ -137,3 +151,4 @@ Pedidos retornados em `/me` sao sanitizados: podem conter numero, status, client
 - Leiloes.
 - BI avancado.
 - Integracao fiscal/frete.
+- Gamificacao / Clube Smart Funkos.

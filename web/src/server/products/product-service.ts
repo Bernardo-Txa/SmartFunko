@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { notFound } from "@/server/http/errors";
+import { badRequest, notFound } from "@/server/http/errors";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -162,6 +162,14 @@ type ProductSearchRow = {
   }> | null;
 };
 
+export type ProductImageRow = {
+  created_at: string;
+  id: string;
+  image_url: string;
+  product_id: string;
+  sort_order: number;
+};
+
 export type ProductVariantSearchResult = {
   id: string;
   productId: string;
@@ -188,8 +196,13 @@ function productSelect() {
     category_name,subcategory_name,external_catalog_code,
     franchises(id,name,slug),
     suppliers(id,name,slug),
+    product_images(id,product_id,image_url,sort_order,created_at),
     product_variants(id,sku,condition,type,source,sale_price,market_price,estimated_cost,special_label,special_tags,status,created_at,updated_at)
   `;
+}
+
+function productImageSelect() {
+  return "id,product_id,image_url,sort_order,created_at";
 }
 
 function variantSelect() {
@@ -488,6 +501,205 @@ export class ProductService {
     });
 
     return data;
+  }
+
+  async listProductImages(productId: string) {
+    const { data, error } = await this.supabase
+      .from("product_images")
+      .select(productImageSelect())
+      .eq("product_id", productId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throwQueryError(error, "Falha ao listar imagens do produto");
+    }
+
+    return (data ?? []) as ProductImageRow[];
+  }
+
+  private async getProductImage(productId: string, imageId: string) {
+    const { data, error } = await this.supabase
+      .from("product_images")
+      .select(productImageSelect())
+      .eq("id", imageId)
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao buscar imagem do produto");
+    }
+
+    if (!data) {
+      throw notFound("Imagem do produto nao encontrada");
+    }
+
+    return data as ProductImageRow;
+  }
+
+  async addProductImage(productId: string, imageUrl: string, sortOrder?: number) {
+    await this.getProductById(productId);
+
+    const nextSortOrder =
+      sortOrder ??
+      ((await this.listProductImages(productId)).reduce(
+        (max, image) => Math.max(max, image.sort_order),
+        -1,
+      ) + 1);
+
+    const { data, error } = await this.supabase
+      .from("product_images")
+      .insert({
+        image_url: imageUrl,
+        product_id: productId,
+        sort_order: nextSortOrder,
+      })
+      .select(productImageSelect())
+      .single();
+
+    if (error) {
+      throwQueryError(error, "Falha ao adicionar imagem do produto");
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "product_image.create",
+      adminId: this.actorId,
+      entityId: (data as ProductImageRow).id,
+      entityType: "product_image",
+      newValue: data,
+    });
+
+    return data as ProductImageRow;
+  }
+
+  async setMainProductImage(productId: string, imageId: string) {
+    const [current, image] = await Promise.all([
+      this.getProductById(productId),
+      this.getProductImage(productId, imageId),
+    ]);
+
+    const { data, error } = await this.supabase
+      .from("products")
+      .update({ main_image_url: image.image_url })
+      .eq("id", productId)
+      .select(productSelect())
+      .single();
+
+    if (error) {
+      throwQueryError(error, "Falha ao definir imagem principal");
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "product_image.set_main",
+      adminId: this.actorId,
+      entityId: productId,
+      entityType: "product",
+      newValue: { image, main_image_url: image.image_url },
+      oldValue: { main_image_url: current.main_image_url },
+    });
+
+    return data;
+  }
+
+  async deleteProductImage(productId: string, imageId: string) {
+    const [current, image] = await Promise.all([
+      this.getProductById(productId),
+      this.getProductImage(productId, imageId),
+    ]);
+
+    const { error } = await this.supabase
+      .from("product_images")
+      .delete()
+      .eq("id", imageId)
+      .eq("product_id", productId);
+
+    if (error) {
+      throwQueryError(error, "Falha ao remover imagem do produto");
+    }
+
+    const images = await this.listProductImages(productId);
+    let product = current;
+
+    if (current.main_image_url === image.image_url) {
+      const nextMainImageUrl = images[0]?.image_url ?? null;
+      const updateResult = await this.supabase
+        .from("products")
+        .update({ main_image_url: nextMainImageUrl })
+        .eq("id", productId)
+        .select(productSelect())
+        .single();
+
+      if (updateResult.error) {
+        throwQueryError(updateResult.error, "Falha ao atualizar imagem principal");
+      }
+
+      product = updateResult.data;
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "product_image.delete",
+      adminId: this.actorId,
+      entityId: imageId,
+      entityType: "product_image",
+      newValue: {
+        main_image_url: product.main_image_url,
+        remaining_images: images,
+      },
+      oldValue: image,
+    });
+
+    return {
+      deletedImage: image,
+      images,
+      product,
+    };
+  }
+
+  async reorderProductImages(productId: string, imageIdsInOrder: string[]) {
+    await this.getProductById(productId);
+
+    const uniqueIds = new Set(imageIdsInOrder);
+
+    if (uniqueIds.size !== imageIdsInOrder.length) {
+      throw badRequest("Ordem de imagens invalida");
+    }
+
+    const currentImages = await this.listProductImages(productId);
+    const currentIds = new Set(currentImages.map((image) => image.id));
+    const hasAllCurrentImages =
+      imageIdsInOrder.length === currentImages.length &&
+      imageIdsInOrder.every((imageId) => currentIds.has(imageId));
+
+    if (!hasAllCurrentImages) {
+      throw badRequest("Ordem de imagens invalida");
+    }
+
+    await Promise.all(
+      imageIdsInOrder.map(async (imageId, index) => {
+        const { error } = await this.supabase
+          .from("product_images")
+          .update({ sort_order: index })
+          .eq("id", imageId)
+          .eq("product_id", productId);
+
+        if (error) {
+          throwQueryError(error, "Falha ao reordenar imagens do produto");
+        }
+      }),
+    );
+
+    const images = await this.listProductImages(productId);
+
+    await this.audit.createAdminActionLog({
+      action: "product_image.reorder",
+      adminId: this.actorId,
+      entityId: productId,
+      entityType: "product",
+      newValue: images,
+      oldValue: currentImages,
+    });
+
+    return images;
   }
 
   async listVariants(productId: string) {

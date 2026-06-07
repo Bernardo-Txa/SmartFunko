@@ -78,6 +78,28 @@ Em ambiente local, `supabase db reset` aplica migrations e seed. Em ambiente rem
 aplique as migrations com `npm run supabase:push` e rode o seed conforme o fluxo do
 projeto/ambiente.
 
+### Storage de imagens de produto
+
+A sprint Imagens Profissionais 1.0 cria o bucket publico `product-images` por
+migration. Aplique as migrations para criar/atualizar:
+
+- bucket `product-images`;
+- limite de 5MB por arquivo;
+- tipos aceitos: `image/jpeg`, `image/png`, `image/webp` e `image/avif`;
+- leitura publica para catalogo, home e pagina de produto;
+- escrita direta no Storage restrita a usuario autenticado com role owner/admin.
+
+O upload usado pelo admin passa pela API server-side e usa `SUPABASE_SERVICE_ROLE_KEY`
+somente no servidor. O cliente nunca recebe a service role.
+
+As imagens sobem em:
+
+```txt
+products/{productId}/{timestamp}-{uuid}-{safeFilename}
+```
+
+O nome original e sanitizado antes de compor o caminho.
+
 O owner local do seed usa:
 
 - e-mail: `owner@smartfunko.local`
@@ -133,9 +155,10 @@ Admin de produto:
 
 - `/admin/produtos` lista produtos reais e permite busca;
 - `/admin/produtos/novo` cria produto com primeira variante;
-- `/admin/produtos/[id]` edita dados, imagem por URL, fornecedor, status e variantes;
-- alteracoes de produto/variante registram `admin_action_logs`;
-- upload direto via Supabase Storage ainda nao faz parte desta sprint.
+- `/admin/produtos/[id]` edita dados, imagem por URL, fornecedor, status, variantes e galeria;
+- imagem por URL em `products.main_image_url` continua valida como fallback/manual;
+- a secao "Imagens do produto" permite upload real, preview, definir principal, remover da galeria e reordenar por botoes;
+- alteracoes de produto/variante/imagem registram `admin_action_logs`.
 
 Teste operacional manual:
 
@@ -159,6 +182,10 @@ Nao ha app Flutter nesta V1. Os contratos web/API preparados sao:
 - `GET /api/v1/public/products/[slug]`: publico; detalhe de produto ativo.
 - `GET /api/v1/public/suppliers`: publico; lista suppliers ativos.
 - `GET /api/v1/public/suppliers/[slug]`: publico; detalhe de supplier ativo.
+- `POST /api/v1/admin/products/[id]/images`: owner; upload multipart com `file` e `setAsMain`.
+- `PATCH /api/v1/admin/products/[id]/images/reorder`: owner; reordena `product_images`.
+- `PATCH /api/v1/admin/products/[id]/images/[imageId]/main`: owner; define a imagem como `main_image_url`.
+- `DELETE /api/v1/admin/products/[id]/images/[imageId]`: owner; remove o registro da galeria.
 
 ## Importacao do catalogo CSV
 
@@ -177,3 +204,21 @@ npm run catalog:import -- --skip-invalid
 O importador usa `Smartfunkos(Produtos).csv` por padrao, preserva metadados de categoria/especial, grava `main_image_url` e `product_images`, e e idempotente por slug de produto, SKU de variante e URL de imagem.
 
 Colunas opcionais de marca/fornecedor: `fornecedor`, `marca`, `supplier`, `collab` ou `parceiro`. Valores conhecidos `Piticas`, `Copag` e `Panini` sao normalizados para os slugs oficiais; sem coluna, o produto entra sem `supplier_id`.
+
+Produtos importados por CSV continuam usando URL externa em `main_image_url` e/ou
+`product_images`. Upload pelo admin nao e obrigatorio para produtos antigos.
+
+## Ordem de imagens no catalogo
+
+Catalogo, home, cards e pagina de produto usam:
+
+1. `products.main_image_url`;
+2. primeira imagem de `product_images` ordenada por `sort_order`;
+3. fallback visual `ProductArtwork`.
+
+Na pagina de produto, a galeria usa todas as imagens disponiveis nessa ordem.
+
+## Radar futuro
+
+Gamificacao / Clube Smart Funkos permanece no radar, mas nao foi implementado na
+sprint Imagens Profissionais 1.0.
