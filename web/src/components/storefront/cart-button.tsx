@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Check, ShoppingCart } from "lucide-react";
 import { clsx } from "clsx";
@@ -8,8 +8,8 @@ import type { Product } from "@/types/product";
 import {
   addProductToCart,
   readCart,
+  readServerCart,
   subscribeCart,
-  type CartItem,
 } from "@/lib/client/cart-client";
 
 export function CartButton({
@@ -43,12 +43,7 @@ export function CartButton({
 }
 
 export function CartNavButton({ className }: { className?: string }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-
-  useEffect(() => {
-    setItems(readCart());
-    return subscribeCart(() => setItems(readCart()));
-  }, []);
+  const items = useSyncExternalStore(subscribeCart, readCart, readServerCart);
 
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -72,4 +67,3 @@ export function CartNavButton({ className }: { className?: string }) {
     </Link>
   );
 }
-

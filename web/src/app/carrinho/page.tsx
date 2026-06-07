@@ -21,6 +21,8 @@ export default async function CartPage() {
   const currentUser = await getCurrentUser();
   const customerName =
     currentUser?.customer?.name || currentUser?.profile.name || currentUser?.authUser.email;
+  const customerContact =
+    currentUser?.customer?.phone || currentUser?.customer?.email || currentUser?.profile.email;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -30,8 +32,7 @@ export default async function CartPage() {
           Monte sua intenção de compra no site e finalize pelo WhatsApp. Ainda não é checkout automático.
         </p>
       </div>
-      <AssistedCart customerName={customerName} />
+      <AssistedCart customerContact={customerContact} customerName={customerName} />
     </div>
   );
 }
-

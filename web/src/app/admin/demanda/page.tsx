@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Bell, PackagePlus } from "lucide-react";
 import { CopyInterestedButton } from "@/components/admin/copy-interested-button";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { requireOwnerPage } from "@/server/auth/require-admin-page";
 import { WishlistService } from "@/server/wishlist/wishlist-service";
 
@@ -89,6 +89,7 @@ export default async function AdminDemandPage() {
                 <th className="px-4 py-3">Categoria</th>
                 <th className="px-4 py-3">Preço desejado médio</th>
                 <th className="px-4 py-3">Prioridade média</th>
+                <th className="px-4 py-3">Último interesse</th>
                 <th className="px-4 py-3">Ações</th>
               </tr>
             </thead>
@@ -131,8 +132,17 @@ export default async function AdminDemandPage() {
                   <td className="px-4 py-3 text-[var(--muted)]">
                     {formatAverage(product.priorityAverage)}
                   </td>
+                  <td className="px-4 py-3 text-[var(--muted)]">
+                    {formatDate(product.lastInterestAt)}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/admin/produtos/${product.productId}`}
+                        className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+                      >
+                        Manutenção
+                      </Link>
                       <CopyInterestedButton text={interestedText(product)} />
                       <button
                         type="button"

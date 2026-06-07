@@ -45,6 +45,7 @@ export type WishlistDemandProduct = {
   desiredPriceAverage: number | null;
   franchise: string;
   imageUrl: string | null;
+  lastInterestAt: string;
   priorityAverage: number | null;
   productId: string;
   productName: string;
@@ -198,6 +199,7 @@ export class WishlistService {
           desiredPriceTotal: 0,
           franchise,
           imageUrl: product.main_image_url,
+          lastInterestAt: row.created_at,
           priorityAverage: null,
           prioritySum: 0,
           productId: product.id,
@@ -209,6 +211,10 @@ export class WishlistService {
 
       current.total += 1;
       current.prioritySum += priorityScore[row.priority];
+
+      if (new Date(row.created_at).getTime() > new Date(current.lastInterestAt).getTime()) {
+        current.lastInterestAt = row.created_at;
+      }
 
       if (row.desired_price !== null) {
         current.desiredPriceSum += Number(row.desired_price);

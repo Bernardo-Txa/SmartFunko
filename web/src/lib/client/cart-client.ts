@@ -10,10 +10,14 @@ export type CartItem = {
   quantity: number;
   sku: string;
   slug: string;
+  variantId?: string;
 };
 
 const cartStorageKey = "smartfunkos.cart.v1";
 const cartEventName = "smartfunkos:cart";
+const emptyCart: CartItem[] = [];
+let lastCartSerialized: string | null | undefined;
+let cartSnapshot: CartItem[] | undefined;
 
 function dispatchCartEvent() {
   window.dispatchEvent(new Event(cartEventName));
@@ -40,6 +44,7 @@ function safeParseCart(value: string | null): CartItem[] {
         quantity: Math.max(1, Number(item.quantity ?? 1)),
         sku: String(item.sku ?? ""),
         slug: String(item.slug ?? ""),
+        variantId: typeof item.variantId === "string" ? item.variantId : undefined,
       }))
       .filter((item) => item.id && item.name && item.slug && item.sku);
   } catch {
@@ -48,16 +53,32 @@ function safeParseCart(value: string | null): CartItem[] {
 }
 
 function writeCart(items: CartItem[]) {
-  window.localStorage.setItem(cartStorageKey, JSON.stringify(items));
+  const serialized = JSON.stringify(items);
+
+  cartSnapshot = items;
+  lastCartSerialized = serialized;
+  window.localStorage.setItem(cartStorageKey, serialized);
   dispatchCartEvent();
 }
 
 export function readCart() {
   if (typeof window === "undefined") {
-    return [];
+    return emptyCart;
   }
 
-  return safeParseCart(window.localStorage.getItem(cartStorageKey));
+  const serialized = window.localStorage.getItem(cartStorageKey);
+
+  if (cartSnapshot && serialized === lastCartSerialized) {
+    return cartSnapshot;
+  }
+
+  lastCartSerialized = serialized;
+  cartSnapshot = safeParseCart(serialized);
+  return cartSnapshot;
+}
+
+export function readServerCart() {
+  return emptyCart;
 }
 
 export function subscribeCart(listener: () => void) {
@@ -89,6 +110,7 @@ export function addProductToCart(product: Product, quantity = 1) {
     quantity: nextQuantity,
     sku: product.sku,
     slug: product.slug,
+    variantId: product.variantId,
   };
 
   writeCart([...items, item]);
@@ -111,4 +133,3 @@ export function removeCartItem(productId: string) {
 export function clearCart() {
   writeCart([]);
 }
-

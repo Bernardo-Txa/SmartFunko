@@ -10,6 +10,7 @@ import {
 
 type VariantRow = {
   condition: "new" | "used" | "damaged_box";
+  id?: string;
   market_price: number | string | null;
   sale_price: number | string;
   sku: string;
@@ -41,6 +42,13 @@ type ProductRow = {
     sort_order: number | null;
   }> | null;
   product_variants?: VariantRow[] | null;
+};
+
+type CatalogQueryError = {
+  code?: string;
+  details?: string | null;
+  hint?: string | null;
+  message?: string;
 };
 
 const toneByIndex: Product["tone"][] = ["teal", "pink", "amber", "indigo"];
@@ -172,10 +180,10 @@ const CATALOG_DETAIL_REVALIDATE_SECONDS = 300;
 const CATALOG_OPTIONS_REVALIDATE_SECONDS = 900;
 
 const catalogListSelect =
-  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(id,sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 const catalogDetailSelect =
-  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,description,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,description,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(id,sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 function getPublicSupabase() {
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -360,6 +368,7 @@ function mapProduct(row: ProductRow, index: number, filter: CatalogProductFilter
     supplierSlug: getSupplier(row.suppliers)?.slug,
     tone: toneByIndex[index % toneByIndex.length],
     type: typeLabel[variant?.type ?? "common"],
+    variantId: variant?.id,
   };
 }
 
@@ -369,6 +378,20 @@ function fallbackOrThrow<T>(data: T, context: string) {
   }
 
   throw new Error(`${context}: Supabase indisponivel em producao`);
+}
+
+function isSchemaFallbackError(error: unknown) {
+  const code = (error as CatalogQueryError | null)?.code;
+
+  return code === "PGRST200" || code === "PGRST205" || code === "42P01";
+}
+
+function logCatalogError(context: string, error: unknown) {
+  if (isSchemaFallbackError(error)) {
+    return;
+  }
+
+  console.error(context, error);
 }
 
 function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
@@ -557,7 +580,7 @@ async function getFranchiseIdBySlug(
     .maybeSingle();
 
   if (error) {
-    console.error("Failed to resolve catalog franchise", error);
+    logCatalogError("Failed to resolve catalog franchise", error);
     return undefined;
   }
 
@@ -576,7 +599,7 @@ async function getSupplierIdBySlug(
     .maybeSingle();
 
   if (error) {
-    console.error("Failed to resolve catalog supplier", error);
+    logCatalogError("Failed to resolve catalog supplier", error);
     return undefined;
   }
 
@@ -598,11 +621,16 @@ async function getSearchRelationIds(
     };
   }
 
-  const [variantResult, supplierResult, franchiseResult] = await Promise.all([
+  const [variantResult, tagResult, supplierResult, franchiseResult] = await Promise.all([
     supabase
       .from("product_variants")
       .select("product_id")
       .or(`sku.ilike.%${safeQuery}%,special_label.ilike.%${safeQuery}%`)
+      .limit(500),
+    supabase
+      .from("product_variants")
+      .select("product_id")
+      .contains("special_tags", [safeQuery])
       .limit(500),
     supabase
       .from("suppliers")
@@ -619,20 +647,30 @@ async function getSearchRelationIds(
   ]);
 
   if (variantResult.error) {
-    console.error("Failed to search catalog variants", variantResult.error);
+    logCatalogError("Failed to search catalog variants", variantResult.error);
+  }
+
+  if (tagResult.error) {
+    logCatalogError("Failed to search catalog variant tags", tagResult.error);
   }
 
   if (supplierResult.error) {
-    console.error("Failed to search catalog suppliers", supplierResult.error);
+    logCatalogError("Failed to search catalog suppliers", supplierResult.error);
   }
 
   if (franchiseResult.error) {
-    console.error("Failed to search catalog franchises", franchiseResult.error);
+    logCatalogError("Failed to search catalog franchises", franchiseResult.error);
   }
 
   return {
     franchiseIds: Array.from(new Set((franchiseResult.data ?? []).map((row) => row.id as string))),
-    productIds: Array.from(new Set((variantResult.data ?? []).map((row) => row.product_id as string))),
+    productIds: Array.from(
+      new Set(
+        [...(variantResult.data ?? []), ...(tagResult.data ?? [])].map(
+          (row) => row.product_id as string,
+        ),
+      ),
+    ),
     safeQuery,
     supplierIds: Array.from(new Set((supplierResult.data ?? []).map((row) => row.id as string))),
   };
@@ -697,6 +735,10 @@ async function getCatalogProductsPageUncached(
   }
 
   if (filters.supplier && !supplierId) {
+    if (shouldUseCatalogFallback()) {
+      return fallbackOrThrow(filterFallbackProducts(filters), "Catalogo publico");
+    }
+
     return {
       data: [],
       meta: {
@@ -770,7 +812,7 @@ async function getCatalogProductsPageUncached(
   const { count, data, error } = await query;
 
   if (error || !data) {
-    console.error("Failed to load catalog products", error);
+    logCatalogError("Failed to load catalog products", error);
     return fallbackOrThrow(filterFallbackProducts(filters), "Catalogo publico");
   }
 
@@ -824,7 +866,7 @@ async function getCatalogProductBySlugUncached(slug: string) {
     .maybeSingle();
 
   if (error || !data) {
-    console.error("Failed to load catalog product", error);
+    logCatalogError("Failed to load catalog product", error);
     return undefined;
   }
 
@@ -863,7 +905,7 @@ async function getCatalogFranchisesUncached() {
     .order("name", { ascending: true });
 
   if (error || !data) {
-    console.error("Failed to load catalog franchises", error);
+    logCatalogError("Failed to load catalog franchises", error);
     return fallbackOrThrow(fallbackFranchises, "Franquias publicas");
   }
 
@@ -897,7 +939,7 @@ async function getCatalogSuppliersUncached() {
     .order("name", { ascending: true });
 
   if (error || !data) {
-    console.error("Failed to load catalog suppliers", error);
+    logCatalogError("Failed to load catalog suppliers", error);
     return fallbackOrThrow(fallbackSuppliers, "Fornecedores publicos");
   }
 
@@ -934,7 +976,7 @@ async function getCatalogSupplierBySlugUncached(slug: string) {
     .maybeSingle();
 
   if (error || !data) {
-    console.error("Failed to load catalog supplier", error);
+    logCatalogError("Failed to load catalog supplier", error);
     return shouldUseCatalogFallback()
       ? fallbackSuppliers.find((supplier) => supplier.slug === slug)
       : undefined;

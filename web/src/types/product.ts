@@ -39,4 +39,5 @@ export type Product = {
   supplierSlug?: string;
   tone: ProductTone;
   type: ProductType;
+  variantId?: string;
 };

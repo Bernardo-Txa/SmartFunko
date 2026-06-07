@@ -116,6 +116,8 @@ export async function CommercialProductPage({
       </p>
 
       <ProductGrid
+        emptyActionHref={config.pathname}
+        emptyActionLabel="Limpar filtros"
         emptyDescription={config.emptyDescription}
         emptyTitle={`Nenhum produto em ${config.title.toLowerCase()}`}
         products={productPage.data}
@@ -157,4 +159,3 @@ export async function CommercialProductPage({
     </div>
   );
 }
-

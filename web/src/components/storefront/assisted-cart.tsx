@@ -3,31 +3,33 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import {
   clearCart,
   readCart,
+  readServerCart,
   removeCartItem,
   subscribeCart,
   updateCartItemQuantity,
-  type CartItem,
 } from "@/lib/client/cart-client";
 import { formatCurrency } from "@/lib/format";
 import { createCartWhatsAppUrl } from "@/lib/whatsapp";
 
-export function AssistedCart({ customerName }: { customerName?: string | null }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-
-  useEffect(() => {
-    setItems(readCart());
-    return subscribeCart(() => setItems(readCart()));
-  }, []);
+export function AssistedCart({
+  customerContact,
+  customerName,
+}: {
+  customerContact?: string | null;
+  customerName?: string | null;
+}) {
+  const items = useSyncExternalStore(subscribeCart, readCart, readServerCart);
 
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
     [items],
   );
   const whatsappUrl = createCartWhatsAppUrl({
+    customerContact,
     customerName,
     items,
   });
@@ -156,6 +158,13 @@ export function AssistedCart({ customerName }: { customerName?: string | null })
           <MessageCircle size={17} aria-hidden="true" />
           Finalizar pelo WhatsApp
         </a>
+        <Link
+          href="/catalogo"
+          prefetch={false}
+          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-full border border-[var(--border)] text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+        >
+          Continuar comprando
+        </Link>
         <button
           type="button"
           onClick={clearCart}

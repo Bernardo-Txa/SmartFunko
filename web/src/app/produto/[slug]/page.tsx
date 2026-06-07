@@ -12,6 +12,7 @@ import { WishlistButton } from "@/components/storefront/wishlist-button";
 import { getCatalogProductBySlug, getCatalogProducts } from "@/lib/catalog";
 import { getProductVariantStatusMeta } from "@/lib/status-labels";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
+import type { Product } from "@/types/product";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -40,7 +41,7 @@ function getHowItWorks(productSource: string) {
     return {
       icon: PackageCheck,
       title: "Reserva e envio",
-      text: "A Smart Funkos confirma a disponibilidade e organiza reserva, pagamento manual e envio pelo atendimento.",
+      text: "Produto disponível para reserva via atendimento. Após confirmação, você acompanha o pedido pela sua conta.",
     };
   }
 
@@ -48,15 +49,28 @@ function getHowItWorks(productSource: string) {
     return {
       icon: Timer,
       title: "Pré-venda acompanhada",
-      text: "Prazos podem variar. A equipe confirma previsão, reserva e status antes de registrar o pedido.",
+      text: "Pré-vendas dependem de prazo do fornecedor e serão acompanhadas pelo sistema.",
     };
   }
 
   return {
     icon: Truck,
     title: "Encomenda sob consulta",
-    text: "Disponibilidade, prazo e valor final são confirmados pelo atendimento antes da criação do pedido.",
+    text: "Confirmamos disponibilidade, prazo e condições pelo WhatsApp antes de fechar.",
   };
+}
+
+function uniqueRelatedProducts(products: Product[], currentProductId: string) {
+  const seen = new Set<string>();
+
+  return products.filter((product) => {
+    if (product.id === currentProductId || seen.has(product.id)) {
+      return false;
+    }
+
+    seen.add(product.id);
+    return true;
+  });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -93,13 +107,34 @@ export default async function ProductPage({ params }: Props) {
   const isSpecial = product.isSpecial || specialPills.length > 0;
   const howItWorks = getHowItWorks(product.source);
   const HowItWorksIcon = howItWorks.icon;
-  const relatedProducts = (
-    await getCatalogProducts({
+  const relatedGroups = await Promise.all([
+    getCatalogProducts({
       pageSize: 8,
-      query: product.franchise || product.category || product.supplierName,
+      query: product.franchise,
       sort: "specials_first",
-    })
-  ).filter((relatedProduct) => relatedProduct.id !== product.id);
+    }),
+    product.supplierSlug
+      ? getCatalogProducts({
+          pageSize: 8,
+          supplier: product.supplierSlug,
+          sort: "specials_first",
+        })
+      : Promise.resolve([]),
+    product.category
+      ? getCatalogProducts({
+          category: product.category,
+          pageSize: 8,
+          sort: "specials_first",
+          subcategory: product.subcategory,
+        })
+      : Promise.resolve([]),
+    getCatalogProducts({
+      filter: "specials",
+      pageSize: 8,
+      sort: "specials_first",
+    }),
+  ]);
+  const relatedProducts = uniqueRelatedProducts(relatedGroups.flat(), product.id);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

@@ -15,21 +15,23 @@ export function createProductWhatsAppUrl(product: Product) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smartfunko.com.br";
   const productUrl = `${baseUrl}/produto/${product.slug}`;
   const message = [
-    `Olá! Tenho interesse no ${product.name} (${product.sku || product.slug}).`,
+    `Olá! Tenho interesse no produto ${product.name} (${product.sku || product.slug}).`,
     "",
     `Preço: ${formatCurrency(product.price)}`,
     `Link: ${productUrl}`,
     "",
-    "Pode verificar disponibilidade?",
+    "Pode verificar disponibilidade e condições?",
   ].join("\n");
 
   return createWhatsAppTextUrl(message);
 }
 
 export function createCartWhatsAppUrl({
+  customerContact,
   customerName,
   items,
 }: {
+  customerContact?: string | null;
   customerName?: string | null;
   items: Array<{
     name: string;
@@ -42,22 +44,21 @@ export function createCartWhatsAppUrl({
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smartfunko.com.br";
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const message = [
-    "Olá! Quero finalizar esta intenção de compra com a Smart Funkos:",
+    "Olá! Quero verificar disponibilidade dos produtos abaixo:",
     "",
     customerName ? `Cliente: ${customerName}` : undefined,
-    ...items.flatMap((item, index) => [
-      `${index + 1}. ${item.name}`,
-      `SKU: ${item.sku}`,
-      `Quantidade: ${item.quantity}`,
-      `Valor unitário: ${formatCurrency(item.price)}`,
+    customerContact ? `Contato: ${customerContact}` : undefined,
+    customerName || customerContact ? "" : undefined,
+    ...items.flatMap((item) => [
+      `${item.quantity}x ${item.name} — SKU: ${item.sku || item.slug} — ${formatCurrency(item.price)}`,
       `Link: ${baseUrl}/produto/${item.slug}`,
       "",
     ]),
     `Total estimado: ${formatCurrency(total)}`,
     "",
-    "Pode verificar disponibilidade e próximos passos pelo atendimento?",
+    "Pode confirmar disponibilidade e condições? Entendo que a disponibilidade será confirmada pelo atendimento.",
   ]
-    .filter(Boolean)
+    .filter((line): line is string => line !== undefined)
     .join("\n");
 
   return createWhatsAppTextUrl(message);

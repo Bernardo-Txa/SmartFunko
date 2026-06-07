@@ -31,6 +31,7 @@ export function WishlistButton({
 }) {
   const [itemId, setItemId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isCustomerLinked, setIsCustomerLinked] = useState(true);
   const [isPending, setIsPending] = useState(false);
   const isActive = Boolean(itemId);
 
@@ -48,6 +49,7 @@ export function WishlistButton({
       }
 
       setIsAuthenticated(wishlist.isAuthenticated);
+      setIsCustomerLinked(wishlist.isCustomerLinked);
       setItemId(wishlist.items.find((item) => item.product_id === productId)?.id ?? null);
     });
 
@@ -80,6 +82,11 @@ export function WishlistButton({
           return;
         }
 
+        if (!isCustomerLinked) {
+          window.alert("Seu login ainda não tem um cadastro de cliente vinculado para usar favoritos.");
+          return;
+        }
+
         setIsPending(true);
 
         try {
@@ -91,17 +98,38 @@ export function WishlistButton({
               return;
             }
 
+            if (!result.isCustomerLinked) {
+              setIsCustomerLinked(false);
+              const errorMessage = "errorMessage" in result ? result.errorMessage : undefined;
+              window.alert(
+                errorMessage ??
+                  "Seu login ainda não tem um cadastro de cliente vinculado para usar favoritos.",
+              );
+              return;
+            }
+
             setItemId(null);
           } else {
             const result = await addWishlistProduct(productId);
 
-            if (!result.isAuthenticated || !result.item) {
+            if (!result.isAuthenticated) {
               window.location.href = loginHref();
+              return;
+            }
+
+            if (!result.isCustomerLinked || !result.item) {
+              setIsCustomerLinked(false);
+              const errorMessage = "errorMessage" in result ? result.errorMessage : undefined;
+              window.alert(
+                errorMessage ??
+                  "Seu login ainda não tem um cadastro de cliente vinculado para usar favoritos.",
+              );
               return;
             }
 
             setItemId(result.item.id);
             setIsAuthenticated(true);
+            setIsCustomerLinked(true);
           }
         } finally {
           setIsPending(false);
@@ -124,4 +152,3 @@ export function WishlistButton({
     </button>
   );
 }
-

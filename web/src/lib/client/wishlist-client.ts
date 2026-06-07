@@ -7,8 +7,10 @@ export type WishlistClientItem = {
 
 let wishlistCache:
   | {
+      errorMessage?: string;
       items: WishlistClientItem[];
       isAuthenticated: boolean;
+      isCustomerLinked: boolean;
     }
   | undefined;
 let wishlistPromise: Promise<typeof wishlistCache> | undefined;
@@ -39,9 +41,26 @@ export async function loadWishlist() {
       cache: "no-store",
     })
       .then(async (response) => {
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           wishlistCache = {
             isAuthenticated: false,
+            isCustomerLinked: false,
+            items: [],
+          };
+          return wishlistCache;
+        }
+
+        if (response.status === 403) {
+          const payload = (await response.json().catch(() => null)) as {
+            error?: { message?: string };
+          } | null;
+
+          wishlistCache = {
+            errorMessage:
+              payload?.error?.message ??
+              "Seu login ainda não tem um cadastro de cliente vinculado.",
+            isAuthenticated: true,
+            isCustomerLinked: false,
             items: [],
           };
           return wishlistCache;
@@ -57,6 +76,7 @@ export async function loadWishlist() {
 
         wishlistCache = {
           isAuthenticated: true,
+          isCustomerLinked: true,
           items: payload.data ?? [],
         };
 
@@ -65,6 +85,7 @@ export async function loadWishlist() {
       .catch(() => {
         wishlistCache = {
           isAuthenticated: false,
+          isCustomerLinked: false,
           items: [],
         };
         return wishlistCache;
@@ -86,9 +107,25 @@ export async function addWishlistProduct(productId: string) {
     method: "POST",
   });
 
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     return {
       isAuthenticated: false,
+      isCustomerLinked: false,
+      item: null,
+    };
+  }
+
+  if (response.status === 403) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+
+    return {
+      errorMessage:
+        payload?.error?.message ??
+        "Seu login ainda não tem um cadastro de cliente vinculado.",
+      isAuthenticated: true,
+      isCustomerLinked: false,
       item: null,
     };
   }
@@ -103,6 +140,7 @@ export async function addWishlistProduct(productId: string) {
 
   wishlistCache = {
     isAuthenticated: true,
+    isCustomerLinked: true,
     items: [
       ...(wishlistCache?.items.filter((item) => item.product_id !== productId) ?? []),
       payload.data,
@@ -112,6 +150,7 @@ export async function addWishlistProduct(productId: string) {
 
   return {
     isAuthenticated: true,
+    isCustomerLinked: true,
     item: payload.data,
   };
 }
@@ -121,9 +160,24 @@ export async function removeWishlistProduct(itemId: string) {
     method: "DELETE",
   });
 
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     return {
       isAuthenticated: false,
+      isCustomerLinked: false,
+    };
+  }
+
+  if (response.status === 403) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+
+    return {
+      errorMessage:
+        payload?.error?.message ??
+        "Seu login ainda não tem um cadastro de cliente vinculado.",
+      isAuthenticated: true,
+      isCustomerLinked: false,
     };
   }
 
@@ -133,12 +187,13 @@ export async function removeWishlistProduct(itemId: string) {
 
   wishlistCache = {
     isAuthenticated: true,
+    isCustomerLinked: true,
     items: wishlistCache?.items.filter((item) => item.id !== itemId) ?? [],
   };
   dispatchWishlistEvent();
 
   return {
     isAuthenticated: true,
+    isCustomerLinked: true,
   };
 }
-
