@@ -190,8 +190,8 @@ export function WishlistButton({
       ) : (
         <>
           <Heart
-            size={showLabel ? 16 : 19}
-            strokeWidth={showLabel ? 2 : 2.6}
+            size={16}
+            strokeWidth={showLabel ? 2 : 2.5}
             aria-hidden="true"
             className={clsx(
               "transition-transform duration-200 motion-reduce:transition-none",

@@ -88,14 +88,14 @@ export function CartButton({
     >
       {added ? (
         <Check
-          size={showLabel ? 16 : 19}
-          strokeWidth={showLabel ? 2 : 2.8}
+          size={16}
+          strokeWidth={showLabel ? 2 : 2.7}
           aria-hidden="true"
           className="transition-transform duration-200 motion-safe:scale-110 motion-reduce:transition-none"
         />
       ) : (
         <ShoppingCart
-          size={showLabel ? 16 : 19}
+          size={16}
           strokeWidth={showLabel ? 2 : 2.5}
           aria-hidden="true"
         />
