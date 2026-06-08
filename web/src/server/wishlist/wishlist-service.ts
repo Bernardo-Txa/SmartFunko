@@ -61,6 +61,7 @@ type WishlistProductRow = {
   main_image_url: string | null;
   name: string;
   slug: string;
+  franchises?: { name: string; slug: string } | { name: string; slug: string }[] | null;
   product_variants?: WishlistProductVariantRow[] | null;
 };
 
@@ -120,6 +121,7 @@ export type WishlistProductListItem = {
   product: {
     category: string | null;
     currentPrice: number | null;
+    franchise: string | null;
     funkoNumber: string | null;
     id: string;
     imageUrl: string | null;
@@ -127,7 +129,12 @@ export type WishlistProductListItem = {
     isSpecial: boolean;
     name: string;
     slug: string;
+    source: WishlistProductVariantRow["source"] | null;
+    specialLabel: string | null;
+    specialTags: string[];
+    status: WishlistProductVariantRow["status"] | null;
     sku: string | null;
+    variantId: string | null;
   } | null;
   productId: string;
 };
@@ -193,6 +200,7 @@ function mapWishlistRow(row: WishlistRowWithProduct): WishlistProductListItem {
   const product = Array.isArray(row.products) ? row.products[0] ?? null : row.products ?? null;
   const variant = pickWishlistVariant(product);
   const specialTags = variant?.special_tags?.filter(Boolean) ?? [];
+  const franchise = firstRelation(product?.franchises)?.name ?? null;
 
   return {
     createdAt: row.created_at,
@@ -205,6 +213,7 @@ function mapWishlistRow(row: WishlistRowWithProduct): WishlistProductListItem {
       ? {
           category: product.category_name,
           currentPrice: variant ? Number(variant.sale_price) : null,
+          franchise,
           funkoNumber: product.funko_number,
           id: product.id,
           imageUrl: product.main_image_url,
@@ -213,7 +222,12 @@ function mapWishlistRow(row: WishlistRowWithProduct): WishlistProductListItem {
             ? variant.type !== "common" || Boolean(variant.special_label) || specialTags.length > 0
             : false,
           name: product.name,
+          source: variant?.source ?? null,
+          specialLabel: variant?.special_label ?? null,
+          specialTags,
+          status: variant?.status ?? null,
           sku: variant?.sku ?? null,
+          variantId: variant?.id ?? null,
           slug: product.slug,
         }
       : null,
@@ -246,6 +260,7 @@ export class WishlistService {
           id,customer_id,product_id,desired_price,priority,notes,created_at,
           products(
             id,name,slug,funko_number,category_name,main_image_url,
+            franchises(name,slug),
             product_variants(id,sku,source,status,type,sale_price,market_price,special_label,special_tags)
           )
         `,

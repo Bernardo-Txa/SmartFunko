@@ -73,6 +73,7 @@ export function WishlistButton({
       disabled={isPending}
       aria-label={ariaLabel}
       aria-pressed={isActive}
+      title={ariaLabel}
       onClick={async () => {
         if (isPending) {
           return;
@@ -149,7 +150,8 @@ export function WishlistButton({
       ) : (
         <>
           <Heart
-            size={16}
+            size={showLabel ? 16 : 18}
+            strokeWidth={showLabel ? 2 : 2.6}
             aria-hidden="true"
             className={isActive ? "fill-current" : undefined}
           />

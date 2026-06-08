@@ -24,11 +24,13 @@ export function CartButton({
   showLabel?: boolean;
 }) {
   const [added, setAdded] = useState<boolean>(false);
+  const buttonLabel = added ? `${product.name} no carrinho` : `Adicionar ${product.name} ao carrinho`;
 
   return (
     <button
       type="button"
-      aria-label={added ? `${product.name} no carrinho` : `Adicionar ${product.name} ao carrinho`}
+      aria-label={buttonLabel}
+      title={buttonLabel}
       onClick={() => {
         addProductToCart(product);
         setAdded(true);
@@ -37,9 +39,19 @@ export function CartButton({
       className={clsx(
         "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-4 text-sm font-black text-cyan-50 hover:bg-cyan-400/18",
         className,
+        added && !showLabel ? "text-cyan-200" : undefined,
       )}
     >
-      {added ? <Check size={16} aria-hidden="true" /> : <ShoppingCart size={16} aria-hidden="true" />}
+      {added && showLabel ? (
+        <Check size={16} aria-hidden="true" />
+      ) : (
+        <ShoppingCart
+          size={showLabel ? 16 : 22}
+          strokeWidth={showLabel ? 2 : 2.5}
+          aria-hidden="true"
+          className={added && !showLabel ? "fill-current" : undefined}
+        />
+      )}
       {showLabel ? <span>{added ? "No carrinho" : label}</span> : null}
     </button>
   );

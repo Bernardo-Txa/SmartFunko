@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "lucide-react";
+import { Pencil, Save, X } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 type WishlistPriority = "low" | "medium" | "high";
@@ -14,25 +14,28 @@ const priorityOptions: Array<{ label: string; value: WishlistPriority }> = [
 ];
 
 export function WishlistItemEditForm({
-  desiredPrice,
   itemId,
   notes,
   priority,
 }: {
-  desiredPrice: number | null;
   itemId: string;
   notes: string | null;
   priority: WishlistPriority;
 }) {
   const router = useRouter();
-  const [currentDesiredPrice, setCurrentDesiredPrice] = useState(
-    desiredPrice === null ? "" : String(desiredPrice),
-  );
+  const [isEditing, setIsEditing] = useState(false);
   const [currentNotes, setCurrentNotes] = useState(notes ?? "");
   const [currentPriority, setCurrentPriority] = useState<WishlistPriority>(priority);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function resetForm() {
+    setCurrentNotes(notes ?? "");
+    setCurrentPriority(priority);
+    setError("");
+    setMessage("");
+  }
 
   async function saveWishlistItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +46,6 @@ export function WishlistItemEditForm({
     try {
       const response = await fetch(`/api/v1/me/wishlist/${itemId}`, {
         body: JSON.stringify({
-          desiredPrice: currentDesiredPrice ? Number(currentDesiredPrice) : null,
           notes: currentNotes.trim() || null,
           priority: currentPriority,
         }),
@@ -57,17 +59,41 @@ export function WishlistItemEditForm({
       }
 
       setMessage("Favorito atualizado.");
+      setIsEditing(false);
       router.refresh();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Falha ao atualizar favorito");
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Não foi possível atualizar este desejo agora.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  if (!isEditing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          resetForm();
+          setIsEditing(true);
+        }}
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/24 px-4 text-sm font-black text-slate-100 hover:bg-cyan-400/12"
+      >
+        <Pencil size={16} aria-hidden="true" />
+        Editar desejo
+      </button>
+    );
+  }
+
   return (
-    <form onSubmit={saveWishlistItem} className="grid gap-3">
-      <div className="grid gap-3 sm:grid-cols-[140px_160px_1fr_auto] sm:items-end">
+    <form
+      onSubmit={saveWishlistItem}
+      className="w-full rounded-xl border border-cyan-300/18 bg-slate-950/70 p-3 sm:min-w-[420px]"
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-bold text-[var(--muted)]">Prioridade</span>
           <select
@@ -83,17 +109,6 @@ export function WishlistItemEditForm({
           </select>
         </label>
         <label className="block">
-          <span className="text-xs font-bold text-[var(--muted)]">Preço desejado</span>
-          <input
-            value={currentDesiredPrice}
-            onChange={(event) => setCurrentDesiredPrice(event.target.value)}
-            min={0}
-            step="0.01"
-            type="number"
-            className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
-          />
-        </label>
-        <label className="block">
           <span className="text-xs font-bold text-[var(--muted)]">Notas</span>
           <input
             value={currentNotes}
@@ -101,6 +116,8 @@ export function WishlistItemEditForm({
             className="mt-1 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           />
         </label>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <button
           disabled={isSubmitting}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-3 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
@@ -114,8 +131,20 @@ export function WishlistItemEditForm({
             </>
           )}
         </button>
+        <button
+          type="button"
+          disabled={isSubmitting}
+          onClick={() => {
+            resetForm();
+            setIsEditing(false);
+          }}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-black text-slate-200 hover:bg-slate-800 disabled:cursor-wait disabled:opacity-60"
+        >
+          <X size={15} aria-hidden="true" />
+          Cancelar
+        </button>
       </div>
-      {message ? <p className="text-xs font-semibold text-[var(--foreground)]">{message}</p> : null}
+      {message ? <p className="mt-2 text-xs font-semibold text-[var(--foreground)]">{message}</p> : null}
       {error ? <p className="text-xs font-semibold text-red-300">{error}</p> : null}
     </form>
   );

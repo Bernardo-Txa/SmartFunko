@@ -1,211 +1,270 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { clsx } from "clsx";
+import { ProductMedia } from "@/components/product/product-card";
+import { CartButton } from "@/components/storefront/cart-button";
 import { EmptyState } from "@/components/storefront/empty-state";
-import { WishlistItemEditForm } from "@/components/storefront/wishlist-item-edit-form";
 import { WishlistRemoveButton } from "@/components/storefront/wishlist-remove-button";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { PriceDisplay } from "@/components/storefront/price-display";
+import { ProductStatusBadge } from "@/components/ui/status-badge";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { WishlistService, type WishlistProductListItem } from "@/server/wishlist/wishlist-service";
+import type { Product } from "@/types/product";
 
 export const metadata: Metadata = {
-  title: "Lista de desejos",
+  title: "Minha lista de desejos",
   description: "Favoritos e desejos do cliente na Smart Funkos.",
 };
 
-type WishlistFilter = "all" | "high" | "desired" | "ready" | "specials";
-
-type Props = {
-  searchParams?: Promise<{
-    filter?: WishlistFilter;
-  }>;
-};
-
-const filters: Array<{ label: string; value: WishlistFilter }> = [
-  { label: "Todos", value: "all" },
-  { label: "Alta prioridade", value: "high" },
-  { label: "Com preço desejado", value: "desired" },
-  { label: "Pronta-entrega", value: "ready" },
-  { label: "Specials", value: "specials" },
-];
-
-const priorityLabels: Record<WishlistProductListItem["priority"], string> = {
-  high: "Alta",
-  low: "Baixa",
-  medium: "Média",
-};
-
-function filterHref(filter: WishlistFilter) {
-  return filter === "all" ? "/conta/wishlist" : `/conta/wishlist?filter=${filter}`;
-}
-
-function normalizeFilter(filter: WishlistFilter | undefined): WishlistFilter {
-  return filters.some((option) => option.value === filter) ? filter ?? "all" : "all";
-}
-
-function itemMatchesFilter(item: WishlistProductListItem, filter: WishlistFilter) {
-  if (filter === "high") {
-    return item.priority === "high";
-  }
-
-  if (filter === "desired") {
-    return item.desiredPrice !== null;
-  }
-
-  if (filter === "ready") {
-    return item.product?.isReady === true;
-  }
-
-  if (filter === "specials") {
-    return item.product?.isSpecial === true;
-  }
-
-  return true;
-}
-
-export default async function AccountWishlistPage({ searchParams }: Props) {
-  const { customer } = await requireUserPage("/conta/wishlist");
-  const params = await searchParams;
-  const currentFilter = normalizeFilter(params?.filter);
-
-  if (!customer) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-[var(--foreground)]">Lista de desejos</h1>
+function UnlinkedCustomerState() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="rounded-xl border border-cyan-300/18 bg-[#030816] p-6 shadow-[0_24px_70px_rgba(2,6,23,0.28)]">
+        <h1 className="text-3xl font-black text-[var(--foreground)]">Minha lista de desejos</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Nenhum cadastro de cliente vinculado a este login ainda.
         </p>
       </div>
+    </div>
+  );
+}
+
+function WishlistErrorState() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="rounded-xl border border-red-300/24 bg-red-950/20 p-6">
+        <h1 className="text-3xl font-black text-[var(--foreground)]">Minha lista de desejos</h1>
+        <p className="mt-2 text-sm text-red-100">
+          Não foi possível carregar sua lista agora. Tente novamente em instantes.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function mapWishlistProduct(product: NonNullable<WishlistProductListItem["product"]>): Product {
+  return {
+    category: product.category ?? undefined,
+    condition: "Novo",
+    description: "Produto Smart Funkos salvo na sua lista de desejos.",
+    franchise: product.franchise ?? product.category ?? "Smart Funkos",
+    funkoNumber: product.funkoNumber ?? "000",
+    id: product.id,
+    imageAlt: product.name,
+    imageUrl: product.imageUrl ?? undefined,
+    isSpecial: product.isSpecial,
+    name: product.name,
+    price: product.currentPrice ?? 0,
+    sku: product.sku ?? product.slug,
+    slug: product.slug,
+    source:
+      product.source === "preorder"
+        ? "Pré-venda"
+        : product.source === "national"
+          ? "Encomenda nacional"
+          : product.source === "international"
+            ? "Importado"
+            : "Pronta-entrega",
+    specialLabel: product.specialLabel ?? undefined,
+    specialTags: product.specialTags,
+    status:
+      product.status === "hidden" || product.status === null
+        ? "sold_out"
+        : product.status,
+    tone: "teal",
+    type: product.isSpecial ? "Especial" : "Comum",
+    variantId: product.variantId ?? undefined,
+  };
+}
+
+function getSpecialPills(product: Product) {
+  const pills = [
+    product.specialLabel,
+    ...(product.specialTags ?? []),
+    product.type !== "Comum" ? product.type : undefined,
+  ].filter(Boolean) as string[];
+
+  return Array.from(new Set(pills)).slice(0, 3);
+}
+
+function WishlistCard({ item }: { item: WishlistProductListItem }) {
+  const product = item.product;
+
+  if (!product) {
+    return (
+      <article className="relative flex h-full flex-col rounded-2xl border border-cyan-400/20 bg-[#030816] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.26)]">
+        <h2 className="text-lg font-black text-slate-100">Produto removido do catálogo público</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          Este desejo continua registrado, mas o produto não está mais disponível para visualização.
+        </p>
+        <div className="mt-auto pt-5">
+          <WishlistRemoveButton itemId={item.id} />
+        </div>
+      </article>
     );
   }
 
-  const wishlist = await new WishlistService().listWishlistWithProducts(customer.id);
-  const filteredWishlist = wishlist.filter((item) => itemMatchesFilter(item, currentFilter));
+  const catalogProduct = mapWishlistProduct(product);
+  const specialPills = getSpecialPills(catalogProduct);
+  const isSpecial = catalogProduct.isSpecial || specialPills.length > 0;
+  const cartProduct = {
+    id: catalogProduct.id,
+    imageUrl: catalogProduct.imageUrl,
+    name: catalogProduct.name,
+    price: catalogProduct.price,
+    sku: catalogProduct.sku,
+    slug: catalogProduct.slug,
+    variantId: catalogProduct.variantId,
+  };
+
+  return (
+    <article
+      className={clsx(
+        "relative flex h-full flex-col rounded-2xl border bg-[#030816] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.26)]",
+        isSpecial
+          ? "border-yellow-300/55 shadow-[0_20px_54px_rgba(250,204,21,0.16)]"
+          : "border-cyan-400/20",
+      )}
+    >
+      {isSpecial ? (
+        <div className="absolute right-3 top-3 z-20 rounded-full bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_10px_22px_rgba(250,204,21,0.22)]">
+          Special
+        </div>
+      ) : null}
+
+      <Link href={`/produto/${catalogProduct.slug}`} prefetch={false} aria-label={catalogProduct.name}>
+        <ProductMedia
+          product={catalogProduct}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px"
+        />
+      </Link>
+
+      <div className="mt-4 flex flex-1 flex-col">
+        <div className="flex min-h-7 flex-wrap gap-2">
+          {specialPills.map((label) => (
+            <span
+              key={label}
+              className="inline-flex h-7 items-center rounded-full bg-yellow-300 px-3 text-[11px] font-black uppercase text-slate-950"
+            >
+              {label}
+            </span>
+          ))}
+          <ProductStatusBadge status={catalogProduct.status} />
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <p className="text-xs font-black uppercase text-sky-300">
+            {catalogProduct.franchise}
+          </p>
+        </div>
+
+        <Link
+          href={`/produto/${catalogProduct.slug}`}
+          prefetch={false}
+          className="mt-1 line-clamp-2 min-h-12 text-base font-black leading-6 text-slate-100 hover:text-[var(--accent)]"
+        >
+          {catalogProduct.name}
+        </Link>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="inline-flex h-7 items-center rounded-md bg-slate-800 px-2 text-xs font-semibold text-slate-300 ring-1 ring-slate-700">
+            {catalogProduct.source}
+          </span>
+        </div>
+
+        {item.notes ? (
+          <p className="mt-3 line-clamp-2 min-h-5 text-xs text-slate-400">{item.notes}</p>
+        ) : (
+          <p className="mt-3 min-h-5 text-xs text-slate-500">Salvo na lista de desejos</p>
+        )}
+
+        <div className="mt-auto pt-5">
+          <PriceDisplay
+            price={catalogProduct.price}
+            size="sm"
+          />
+
+          <div className="mt-5 grid gap-2">
+            <CartButton
+              className="h-10 w-full rounded-lg bg-[var(--green)] px-3 text-xs text-[#052e16] hover:brightness-110"
+              label="Comprar"
+              product={cartProduct}
+            />
+            <WishlistRemoveButton itemId={item.id} />
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default async function AccountWishlistPage() {
+  const { customer } = await requireUserPage("/conta/wishlist");
+
+  if (!customer) {
+    return <UnlinkedCustomerState />;
+  }
+
+  let wishlist: WishlistProductListItem[];
+
+  try {
+    wishlist = await new WishlistService().listWishlistWithProducts(customer.id);
+  } catch {
+    return <WishlistErrorState />;
+  }
+
+  const totalItems = wishlist.length;
+  const totalLabel = totalItems === 1 ? "1 item salvo" : `${totalItems} itens salvos`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Heart className="text-pink-200" size={24} aria-hidden="true" />
-            <h1 className="text-3xl font-bold text-[var(--foreground)]">Lista de desejos</h1>
+      <header className="rounded-2xl border border-cyan-300/18 bg-[#030816]/90 px-5 py-4 shadow-[0_18px_54px_rgba(2,6,23,0.24)] sm:px-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-grid h-10 w-10 place-items-center rounded-full border border-pink-300/24 bg-pink-500/10">
+                <Heart className="text-pink-200" size={19} aria-hidden="true" />
+              </span>
+              <div>
+                <h1 className="text-2xl font-black leading-tight text-[var(--foreground)] sm:text-3xl">
+                  Minha lista de desejos
+                </h1>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+                  Produtos salvos para acompanhar e comprar depois.
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Favoritos salvos no seu cadastro e usados como inteligência de demanda pela Smart Funkos.
-          </p>
-        </div>
-        <Link
-          href="/catalogo"
-          prefetch={false}
-          className="inline-flex h-10 w-fit items-center rounded-full bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
-        >
-          Ver catálogo
-        </Link>
-      </div>
 
-      <nav className="mb-5 flex flex-wrap gap-2" aria-label="Filtros da lista de desejos">
-        {filters.map((filter) => (
-          <Link
-            key={filter.value}
-            href={filterHref(filter.value)}
-            prefetch={false}
-            className={clsx(
-              "inline-flex h-9 items-center rounded-full border px-3 text-xs font-black",
-              currentFilter === filter.value
-                ? "border-pink-300/60 bg-pink-500/18 text-pink-100"
-                : "border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-strong)]",
-            )}
-          >
-            {filter.label}
-          </Link>
-        ))}
-      </nav>
-
-      {filteredWishlist.length === 0 ? (
-        <EmptyState
-          actionHref={currentFilter === "all" ? "/catalogo" : "/conta/wishlist"}
-          actionLabel={currentFilter === "all" ? "Ver catálogo" : "Limpar filtros"}
-          description={
-            currentFilter === "all"
-              ? "Você ainda não adicionou produtos à sua lista de desejos."
-              : "Nenhum favorito combina com este filtro."
-          }
-          title={currentFilter === "all" ? "Sua lista está vazia" : "Nenhum favorito encontrado"}
-        />
-      ) : (
-        <section className="grid gap-4">
-          {filteredWishlist.map((item) => (
-            <article
-              key={item.id}
-              className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:grid-cols-[112px_1fr]"
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex h-10 items-center rounded-full border border-cyan-300/20 bg-slate-950/70 px-4 text-sm font-black text-cyan-100">
+              {totalLabel}
+            </span>
+            <Link
+              href="/catalogo"
+              prefetch={false}
+              className="inline-flex h-10 items-center justify-center rounded-full border border-yellow-300/45 px-4 text-sm font-black text-yellow-100 hover:bg-yellow-300/12"
             >
-              <div className="relative h-28 w-28 overflow-hidden rounded-lg border border-[var(--border)] bg-white">
-                {item.product?.imageUrl ? (
-                  <Image
-                    src={item.product.imageUrl}
-                    alt={item.product.name}
-                    fill
-                    sizes="112px"
-                    className="object-contain p-2"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center px-3 text-center text-xs font-bold text-slate-500">
-                    Sem imagem
-                  </div>
-                )}
-              </div>
-              <div className="grid gap-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    {item.product ? (
-                      <Link
-                        href={`/produto/${item.product.slug}`}
-                        className="text-lg font-black text-[var(--foreground)] hover:text-[var(--accent)]"
-                      >
-                        {item.product.name}
-                      </Link>
-                    ) : (
-                      <h2 className="text-lg font-black text-[var(--foreground)]">
-                        Produto removido do catálogo público
-                      </h2>
-                    )}
-                    <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-[var(--muted)]">
-                      <span>Prioridade {priorityLabels[item.priority]}</span>
-                      <span>Criado em {formatDate(item.createdAt)}</span>
-                      {item.product?.sku ? <span>SKU {item.product.sku}</span> : null}
-                      {item.product?.funkoNumber ? <span>Funko #{item.product.funkoNumber}</span> : null}
-                      {item.product?.category ? <span>{item.product.category}</span> : null}
-                    </p>
-                  </div>
-                  <div className="grid gap-1 text-sm md:text-right">
-                    <strong className="text-[var(--foreground)]">
-                      {item.product?.currentPrice === null || item.product?.currentPrice === undefined
-                        ? "Preço sob consulta"
-                        : formatCurrency(item.product.currentPrice)}
-                    </strong>
-                    <span className="text-xs text-[var(--muted)]">
-                      Desejado: {item.desiredPrice === null ? "-" : formatCurrency(item.desiredPrice)}
-                    </span>
-                  </div>
-                </div>
-                {item.notes ? (
-                  <p className="rounded-md border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2 text-sm text-[var(--muted)]">
-                    {item.notes}
-                  </p>
-                ) : null}
-                <div className="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
-                  <WishlistItemEditForm
-                    desiredPrice={item.desiredPrice}
-                    itemId={item.id}
-                    notes={item.notes}
-                    priority={item.priority}
-                  />
-                  <WishlistRemoveButton itemId={item.id} />
-                </div>
-              </div>
-            </article>
+              Ver catálogo
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {wishlist.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState
+            actionHref="/catalogo"
+            actionLabel="Ver catálogo"
+            description="Explore o catálogo e toque no coração para guardar os produtos que quer acompanhar."
+            title="Você ainda não salvou nenhum desejo."
+          />
+        </div>
+      ) : (
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {wishlist.map((item) => (
+            <WishlistCard key={item.id} item={item} />
           ))}
         </section>
       )}
