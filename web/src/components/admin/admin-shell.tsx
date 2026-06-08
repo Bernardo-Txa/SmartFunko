@@ -9,22 +9,27 @@ import {
   PackageSearch,
   Package,
   ReceiptText,
+  Ticket,
   Users,
 } from "lucide-react";
+import { isRafflesEnabled } from "@/lib/env";
 
-const navItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/demanda", label: "Demanda", icon: HeartPulse },
-  { href: "/admin/produtos", label: "Produtos", icon: Package },
-  { href: "/admin/fornecedores", label: "Fornecedores", icon: Handshake },
-  { href: "/admin/clientes", label: "Clientes", icon: Users },
-  { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
-  { href: "/admin/lotes", label: "Lotes", icon: PackageSearch },
-  { href: "/admin/estoque", label: "Estoque", icon: Boxes },
-  { href: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
-  { href: "/admin/caixa", label: "Caixa", icon: ChartNoAxesColumn },
-  { href: "/admin/relatorios/financeiro", label: "Relatorios", icon: ChartNoAxesColumn },
-];
+function getNavItems() {
+  return [
+    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/demanda", label: "Demanda", icon: HeartPulse },
+    { href: "/admin/produtos", label: "Produtos", icon: Package },
+    { href: "/admin/fornecedores", label: "Fornecedores", icon: Handshake },
+    { href: "/admin/clientes", label: "Clientes", icon: Users },
+    { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
+    ...(isRafflesEnabled() ? [{ href: "/admin/rifas", label: "Rifas", icon: Ticket }] : []),
+    { href: "/admin/lotes", label: "Lotes", icon: PackageSearch },
+    { href: "/admin/estoque", label: "Estoque", icon: Boxes },
+    { href: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
+    { href: "/admin/caixa", label: "Caixa", icon: ChartNoAxesColumn },
+    { href: "/admin/relatorios/financeiro", label: "Relatorios", icon: ChartNoAxesColumn },
+  ];
+}
 
 export function AdminShell({
   title,
@@ -39,7 +44,7 @@ export function AdminShell({
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[240px_1fr] lg:px-8">
       <aside className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 lg:self-start">
         <nav className="grid gap-1" aria-label="Admin">
-          {navItems.map((item) => {
+          {getNavItems().map((item) => {
             const Icon = item.icon;
             return (
               <Link

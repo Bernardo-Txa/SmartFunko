@@ -1,0 +1,85 @@
+export type RaffleStats = {
+  available: number;
+  pending: number;
+  reserved: number;
+  revenue: number;
+  sold: number;
+  soldPercent: number;
+  total: number;
+};
+
+export type RaffleCampaign = {
+  code: string;
+  created_at?: string;
+  description: string | null;
+  draw_at: string | null;
+  draw_method: string | null;
+  draw_notes?: string | null;
+  draw_reference: string | null;
+  drawn_at?: string | null;
+  ends_at: string | null;
+  id: string;
+  legal_authorization_code: string | null;
+  legal_authorization_url: string | null;
+  max_numbers_per_customer: number | null;
+  number_end: number;
+  number_start: number;
+  price_per_number: number | string;
+  prize_description: string | null;
+  prize_image_url: string | null;
+  prize_title: string;
+  requires_authorization: boolean;
+  reservation_minutes: number;
+  rules: string | null;
+  slug: string;
+  starts_at: string | null;
+  stats?: RaffleStats;
+  status: string;
+  terms_accepted_by_admin: boolean;
+  title: string;
+  total_numbers: number;
+  winner_customer_id?: string | null;
+  winner_raffle_number_id?: string | null;
+};
+
+export type RaffleNumber = {
+  id: string;
+  label: string;
+  number: number;
+  reserved_until?: string | null;
+  sold_at?: string | null;
+  status: string;
+};
+
+export type RaffleOrder = {
+  cancelled_at: string | null;
+  cash_entry_id: string | null;
+  created_at: string;
+  customer_id: string;
+  expired_at: string | null;
+  id: string;
+  notes: string | null;
+  order_number: string;
+  paid_at: string | null;
+  quantity: number;
+  raffle_campaign_id: string;
+  reserved_until: string | null;
+  status: string;
+  total_amount: number | string;
+  unit_price: number | string;
+  customers?: {
+    email?: string | null;
+    name?: string | null;
+    phone?: string | null;
+  } | null;
+  raffle_campaigns?: {
+    code?: string | null;
+    draw_at?: string | null;
+    id?: string | null;
+    prize_title?: string | null;
+    slug?: string | null;
+    status?: string | null;
+    title?: string | null;
+  } | null;
+  raffle_numbers?: RaffleNumber[];
+};

@@ -94,6 +94,30 @@ O modulo de lotes organiza compras nacionais, importacoes, collabs e outros agru
 
 Nesta versao nao ha multi-moeda, imposto automatico, rateio complexo de frete/taxa, integracao com fornecedor, tracking externo, nota fiscal, Pix, checkout ou baixa financeira automatica.
 
+## Rifas DEV 1.0
+
+Rifas DEV 1.0 e um modulo experimental protegido por feature flag. Ative com:
+
+```bash
+NEXT_PUBLIC_ENABLE_RAFFLES=true
+```
+
+Quando a flag esta desligada, links somem da navegacao e paginas/APIs de rifa retornam bloqueio. Quando ligada, as telas mostram aviso experimental de nao producao.
+
+Fluxos disponiveis:
+
+- admin em `/admin/rifas`, `/admin/rifas/nova` e `/admin/rifas/[id]`;
+- publico em `/rifas` e `/rifas/[slug]`;
+- cliente em `/conta/rifas` e `/conta/rifas/[id]`;
+- criacao de campanha gera numeros no intervalo configurado;
+- abertura, pausa, fechamento e cancelamento sao manuais pelo admin;
+- cliente reserva numeros temporariamente pela tela publica;
+- pagamento e confirmado manualmente pelo admin, gerando entrada de caixa `category = raffle`;
+- reserva nao paga pode ser cancelada manualmente e os numeros voltam a ficar disponiveis;
+- sorteio e registro de ganhador sao manuais, aceitando apenas numero comprado em campanha encerrada.
+
+Este modulo nao esta pronto para producao: nao implementa compliance legal automatizado, gateway/Pix, antifraude, sorteio certificado, notificacoes automaticas, reembolso de pedidos pagos de rifa ou checkout completo.
+
 ## Como rodar localmente
 
 ```bash
@@ -106,6 +130,7 @@ Variaveis esperadas em `web/.env.local`:
 
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`
+- `NEXT_PUBLIC_ENABLE_RAFFLES`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -188,6 +213,7 @@ Principais fluxos:
 - auditar estoque por unidade em `/admin/estoque` e `/admin/estoque/[id]`.
 - consultar pagamentos, caixa e relatorio financeiro em `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
 - organizar compras e encomendas em `/admin/lotes`.
+- operar rifas experimentais em `/admin/rifas` quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`.
 
 Fornecedores/collabs ficam em `suppliers`. Piticas, Copag e Panini sao seedados por migration e aparecem em `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`. `/collabs` redireciona para fornecedores, e `/marcas` permanece como vitrine especial compativel. O catalogo principal nao expoe filtro de fornecedor; a separacao por collab acontece no slug do fornecedor. Para vincular um produto, edite `Fornecedor/marca` em `/admin/produtos/[id]` ou use uma coluna CSV opcional.
 
@@ -199,6 +225,8 @@ Area do cliente:
 - `/conta/pedidos` lista apenas pedidos reais do proprio customer;
 - `/conta/pedidos/[orderNumber]` mostra itens, status, pagamentos e observacoes publicas;
 - `/conta/wishlist` lista e remove favoritos do proprio customer;
+- `/conta/rifas` lista reservas/compras de rifa, numeros, status e datas quando a flag esta ligada;
+- `/conta/rifas/[id]` mostra detalhe, total, reservado ate, pago em e resultado;
 - `/pedido/[orderNumber]?token=...` continua publico por token e sem login.
 
 Admin de produto:
@@ -236,6 +264,12 @@ Nao ha app Flutter nesta V1. Os contratos web/API preparados sao:
 - `GET /api/v1/public/products/[slug]`: publico; detalhe de produto ativo.
 - `GET /api/v1/public/suppliers`: publico; lista suppliers ativos.
 - `GET /api/v1/public/suppliers/[slug]`: publico; detalhe de supplier ativo.
+- `GET /api/v1/public/raffles`: publico com flag ligada; lista rifas publicas.
+- `GET /api/v1/public/raffles/[slug]`: publico com flag ligada; detalhe da rifa.
+- `GET /api/v1/public/raffles/[slug]/numbers`: publico com flag ligada; numeros e status.
+- `POST /api/v1/me/raffles/[slug]/reserve`: autenticado; reserva numeros temporariamente.
+- `GET /api/v1/me/raffles/orders`: autenticado; lista pedidos de rifa do customer.
+- `GET /api/v1/me/raffles/orders/[id]`: autenticado; detalhe de pedido de rifa do customer.
 - `POST /api/v1/admin/products/[id]/images`: owner; upload multipart com `file` e `setAsMain`.
 - `PATCH /api/v1/admin/products/[id]/images/reorder`: owner; reordena `product_images`.
 - `PATCH /api/v1/admin/products/[id]/images/[imageId]/main`: owner; define a imagem como `main_image_url`.

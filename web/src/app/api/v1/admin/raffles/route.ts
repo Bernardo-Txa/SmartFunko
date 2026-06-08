@@ -1,10 +1,12 @@
 import { requireAdmin } from "@/server/auth/require-admin";
 import { handleApi, jsonCreated, jsonOk } from "@/server/http/responses";
+import { assertRafflesEnabled } from "@/server/raffles/raffle-feature";
 import { createRaffleCampaignSchema, RaffleService } from "@/server/raffles/raffle-service";
 import { parseJsonBody } from "@/server/validation/parse-json";
 
 export async function GET(request: Request) {
   return handleApi(async () => {
+    assertRafflesEnabled();
     const searchParams = new URL(request.url).searchParams;
     const admin = await requireAdmin();
     const raffles = await new RaffleService(undefined, admin.profile.id).listRaffleCampaigns({
@@ -18,6 +20,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   return handleApi(async () => {
+    assertRafflesEnabled();
     const admin = await requireAdmin();
     const input = await parseJsonBody(request, createRaffleCampaignSchema);
     const raffle = await new RaffleService(undefined, admin.profile.id).createRaffleCampaign(

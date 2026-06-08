@@ -55,6 +55,36 @@ Custos:
 - margem real simples = preco vendido - custo real;
 - nao ha rateio complexo, multi-moeda ou imposto automatico nesta sprint.
 
+## Rifas DEV 1.0
+
+Rifas estao disponiveis somente quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`. Com a flag desligada, links somem da navegacao e paginas/APIs de rifa ficam bloqueadas. Com a flag ligada, as telas exibem aviso experimental de nao producao.
+
+Fluxo admin:
+
+1. Criar campanha em `/admin/rifas/nova`.
+2. Conferir dados e numeros em `/admin/rifas/[id]`.
+3. Abrir a campanha para reservas.
+4. Pausar, fechar ou cancelar manualmente quando necessario.
+5. Ver pedidos da campanha no detalhe admin.
+6. Confirmar pagamento manual de reserva; o sistema marca numeros como comprados e cria entrada de caixa `category = raffle`.
+7. Cancelar reserva nao paga para liberar numeros.
+8. Fechar campanha e registrar ganhador manualmente informando numero comprado e referencia do sorteio.
+
+Fluxo cliente/publico:
+
+1. Cliente acessa `/rifas` ou `/rifas/[slug]`.
+2. Escolhe numeros disponiveis no `RaffleNumberPicker`.
+3. Sistema cria reserva temporaria vinculada ao customer autenticado.
+4. Cliente acompanha em `/conta/rifas` e `/conta/rifas/[id]`, vendo numeros, status, total, reservado ate, pago em e resultado.
+
+Limites da DEV 1.0:
+
+- reserva expira por RPC/rotina existente e tambem pode ser cancelada manualmente;
+- confirmacao de pagamento e sempre manual;
+- sorteio e resultado sao manuais;
+- nao ha Pix automatico, checkout, notificacao, compliance legal automatizado, sorteio certificado ou reembolso de pedido pago de rifa nesta versao;
+- nao usar em producao.
+
 ## APIs principais
 
 - `GET /api/v1/admin/dashboard`
@@ -106,6 +136,23 @@ Custos:
 - `GET /api/v1/public/orders/[orderNumber]?token=...`
 - `GET /api/v1/public/suppliers`
 - `GET /api/v1/public/suppliers/[slug]`
+- `GET|POST /api/v1/admin/raffles`
+- `GET|PATCH /api/v1/admin/raffles/[id]`
+- `POST /api/v1/admin/raffles/[id]/publish`
+- `POST /api/v1/admin/raffles/[id]/pause`
+- `POST /api/v1/admin/raffles/[id]/close`
+- `POST /api/v1/admin/raffles/[id]/cancel`
+- `GET /api/v1/admin/raffles/[id]/orders`
+- `POST /api/v1/admin/raffles/[id]/draw`
+- `POST /api/v1/admin/raffles/orders/[orderId]/confirm-payment`
+- `POST /api/v1/admin/raffles/orders/[orderId]/cancel`
+- `POST /api/v1/admin/raffles/expire-reservations`
+- `GET /api/v1/public/raffles`
+- `GET /api/v1/public/raffles/[slug]`
+- `GET /api/v1/public/raffles/[slug]/numbers`
+- `POST /api/v1/me/raffles/[slug]/reserve`
+- `GET /api/v1/me/raffles/orders`
+- `GET /api/v1/me/raffles/orders/[id]`
 
 ## Rotas publicas comerciais
 
@@ -116,6 +163,8 @@ Custos:
 - `/fornecedores/[slug]`: catalogo separado de uma collab/fornecedor, com filtro implicito pelo slug.
 - `/carrinho`: carrinho local para intencao de compra assistida.
 - `/conta/wishlist`: favoritos do cliente autenticado.
+- `/rifas` e `/rifas/[slug]`: rifas experimentais quando a flag esta ligada.
+- `/conta/rifas` e `/conta/rifas/[id]`: acompanhamento de rifas do cliente quando a flag esta ligada.
 
 ## Regras implementadas
 
@@ -164,6 +213,11 @@ Custos:
 - Admin de demanda usa dados reais de `wishlist_items` para ranking por produto, franquia, fornecedor e categoria.
 - Lotes usam `purchase_batches` e `purchase_batch_items`; clientes e publico nao acessam esses dados.
 - Item de pedido pode ser rastreado para lote na tela `/admin/pedidos/[id]`.
+- Rifas DEV 1.0 ficam atras de `NEXT_PUBLIC_ENABLE_RAFFLES`.
+- `/admin/rifas` permite listar, criar, abrir, pausar, fechar, cancelar, ver pedidos, confirmar pagamento, cancelar reserva e registrar ganhador manual.
+- `/rifas/[slug]` mostra premio, preco, progresso, regras e seletor de numeros para campanhas abertas.
+- Reserva de numeros e temporaria; pagamento confirmado manualmente muda os numeros para comprados.
+- Sorteio manual exige campanha encerrada e numero comprado.
 
 ## Variaveis necessarias
 
@@ -172,6 +226,7 @@ No `web/.env.local`:
 ```bash
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_WHATSAPP_NUMBER=5511999999999
+NEXT_PUBLIC_ENABLE_RAFFLES=true
 NEXT_PUBLIC_SUPABASE_URL=https://project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
@@ -216,9 +271,13 @@ SUPABASE_SERVICE_ROLE_KEY=...
 35. Conferir `admin_action_logs`.
 36. Abrir o pedido admin e conferir o link pedido -> lote.
 37. Confirmar que cliente nao acessa endpoints/telas admin de lotes.
-38. Abrir `/pedido/[orderNumber]?token=...`.
-39. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
-40. Testar token errado no link publico.
+38. Com `NEXT_PUBLIC_ENABLE_RAFFLES=true`, criar rifa em `/admin/rifas/nova`.
+39. Abrir a rifa, reservar numeros em `/rifas/[slug]` e conferir `/conta/rifas`.
+40. Confirmar pagamento no detalhe admin e conferir caixa com categoria `raffle`.
+41. Fechar a rifa, registrar ganhador manual e conferir resultado na conta do cliente.
+42. Abrir `/pedido/[orderNumber]?token=...`.
+43. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
+44. Testar token errado no link publico.
 
 ## Contratos para app futuro
 
@@ -234,6 +293,12 @@ O app Flutter nao faz parte desta V1. Estes contratos devem ser mantidos estavei
 - `GET /api/v1/public/products/[slug]`: publico; resposta `{ data: Product }` ou 404.
 - `GET /api/v1/public/suppliers`: publico; resposta `{ data: Supplier[] }` somente com suppliers `active`.
 - `GET /api/v1/public/suppliers/[slug]`: publico; resposta `{ data: Supplier }` somente se `active`.
+- `GET /api/v1/public/raffles`: publico com flag ligada; resposta `{ data: RaffleCampaign[] }`.
+- `GET /api/v1/public/raffles/[slug]`: publico com flag ligada; resposta `{ data: RaffleCampaign }`.
+- `GET /api/v1/public/raffles/[slug]/numbers`: publico com flag ligada; resposta `{ data: RaffleNumber[] }`.
+- `POST /api/v1/me/raffles/[slug]/reserve`: autenticado; body `{ numbers: number[] }`; cria reserva temporaria.
+- `GET /api/v1/me/raffles/orders`: autenticado; lista pedidos de rifa do customer.
+- `GET /api/v1/me/raffles/orders/[id]`: autenticado; detalhe de pedido de rifa do customer.
 
 Pedidos retornados em `/me` sao sanitizados: podem conter numero, status, cliente, itens, pagamentos, totais e observacoes publicas; nao devem conter observacoes internas, custos, margem, logs administrativos, token publico ou IDs operacionais desnecessarios.
 

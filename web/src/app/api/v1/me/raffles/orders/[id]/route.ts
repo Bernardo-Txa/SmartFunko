@@ -1,6 +1,7 @@
 import { forbidden } from "@/server/http/errors";
 import { requireUser } from "@/server/auth/require-user";
 import { handleApi, jsonOk } from "@/server/http/responses";
+import { assertRafflesEnabled } from "@/server/raffles/raffle-feature";
 import { RaffleService } from "@/server/raffles/raffle-service";
 
 type Params = {
@@ -9,6 +10,7 @@ type Params = {
 
 export async function GET(_request: Request, { params }: Params) {
   return handleApi(async () => {
+    assertRafflesEnabled();
     const { id } = await params;
     const { customer } = await requireUser();
 

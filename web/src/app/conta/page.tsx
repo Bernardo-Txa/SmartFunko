@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Heart, Package, UserRound } from "lucide-react";
+import { ArrowRight, Heart, Package, Ticket, UserRound } from "lucide-react";
+import { isRafflesEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderService } from "@/server/orders/order-service";
@@ -98,6 +99,18 @@ export default async function AccountPage() {
             Lista de desejos e produtos acompanhados.
           </p>
         </Link>
+        {isRafflesEnabled() ? (
+          <Link
+            href="/conta/rifas"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
+          >
+            <Ticket className="text-[var(--accent)]" size={24} />
+            <strong className="mt-4 block text-sm">Rifas</strong>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Reservas, numeros e resultados das campanhas.
+            </p>
+          </Link>
+        ) : null}
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <strong className="block text-2xl text-[var(--foreground)]">
             {formatCurrency(totalOpen)}

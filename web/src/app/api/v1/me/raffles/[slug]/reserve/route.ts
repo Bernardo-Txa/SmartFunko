@@ -2,6 +2,7 @@ import { forbidden } from "@/server/http/errors";
 import { requireUser } from "@/server/auth/require-user";
 import { handleApi, jsonCreated } from "@/server/http/responses";
 import { parseJsonBody } from "@/server/validation/parse-json";
+import { assertRafflesEnabled } from "@/server/raffles/raffle-feature";
 import { RaffleService, reserveRaffleNumbersSchema } from "@/server/raffles/raffle-service";
 
 type Params = {
@@ -10,6 +11,7 @@ type Params = {
 
 export async function POST(request: Request, { params }: Params) {
   return handleApi(async () => {
+    assertRafflesEnabled();
     const { slug } = await params;
     const { customer } = await requireUser();
 

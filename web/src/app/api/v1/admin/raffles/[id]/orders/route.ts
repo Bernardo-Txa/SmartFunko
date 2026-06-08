@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/server/auth/require-admin";
 import { handleApi, jsonOk } from "@/server/http/responses";
+import { assertRafflesEnabled } from "@/server/raffles/raffle-feature";
 import { RaffleService } from "@/server/raffles/raffle-service";
 
 type Params = {
@@ -8,6 +9,7 @@ type Params = {
 
 export async function GET(request: Request, { params }: Params) {
   return handleApi(async () => {
+    assertRafflesEnabled();
     const { id } = await params;
     const searchParams = new URL(request.url).searchParams;
     const admin = await requireAdmin();

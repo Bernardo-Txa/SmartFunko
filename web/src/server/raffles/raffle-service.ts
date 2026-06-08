@@ -97,10 +97,15 @@ type RaffleCampaignRow = {
   legal_authorization_code: string | null;
   rules: string | null;
   draw_method: string | null;
+  draw_notes?: string | null;
+  draw_reference?: string | null;
+  drawn_at?: string | null;
   starts_at: string | null;
   ends_at: string | null;
   draw_at: string | null;
   terms_accepted_by_admin: boolean;
+  winner_customer_id?: string | null;
+  winner_raffle_number_id?: string | null;
 };
 
 type RaffleOrderRow = {
@@ -109,6 +114,7 @@ type RaffleOrderRow = {
   customer_id: string;
   order_number: string;
   quantity: number;
+  raffle_campaign_id: string;
   status: string;
   total_amount: number | string;
   unit_price: number | string;
@@ -305,7 +311,7 @@ export class RaffleService {
       throwQueryError(error, "Falha ao listar rifas");
     }
 
-    return this.attachCampaignStats(data ?? []);
+    return this.attachCampaignStats((data ?? []) as unknown as RaffleCampaignRow[]);
   }
 
   async getRaffleCampaignById(id: string) {
@@ -323,7 +329,7 @@ export class RaffleService {
       throw notFound("Rifa nao encontrada");
     }
 
-    const [campaign] = await this.attachCampaignStats([data]);
+    const [campaign] = await this.attachCampaignStats([data as unknown as RaffleCampaignRow]);
     return campaign;
   }
 
@@ -342,7 +348,7 @@ export class RaffleService {
       throw notFound("Rifa nao encontrada");
     }
 
-    const [campaign] = await this.attachCampaignStats([data]);
+    const [campaign] = await this.attachCampaignStats([data as unknown as RaffleCampaignRow]);
     return campaign;
   }
 
@@ -377,12 +383,13 @@ export class RaffleService {
       throwQueryError(error, "Falha ao criar rifa");
     }
 
+    const createdCampaign = data as unknown as RaffleCampaignRow;
     const numbers = Array.from({ length: totalNumbers }, (_, index) => {
       const number = numberStart + index;
       return {
         label: labelForNumber(number, numberEnd),
         number,
-        raffle_campaign_id: data.id,
+        raffle_campaign_id: createdCampaign.id,
       };
     });
 
@@ -395,17 +402,17 @@ export class RaffleService {
     await this.audit.createAdminActionLog({
       action: "raffle.create",
       adminId: actorProfileId,
-      entityId: data.id,
+      entityId: createdCampaign.id,
       entityType: "raffle_campaign",
       newValue: data,
     });
 
-    await this.createDrawAudit(data.id, "campaign.created", data, actorProfileId);
-    return this.getRaffleCampaignById(data.id);
+    await this.createDrawAudit(createdCampaign.id, "campaign.created", data, actorProfileId);
+    return this.getRaffleCampaignById(createdCampaign.id);
   }
 
   async updateRaffleCampaign(id: string, input: UpdateRaffleCampaignInput, actorProfileId = this.actorId) {
-    const current = (await this.getRaffleCampaignById(id)) as RaffleCampaignRow & {
+    const current = (await this.getRaffleCampaignById(id)) as unknown as RaffleCampaignRow & {
       stats?: { sold: number };
     };
 
@@ -460,7 +467,7 @@ export class RaffleService {
   }
 
   async publishRaffleCampaign(id: string, actorProfileId = this.actorId) {
-    const campaign = (await this.getRaffleCampaignById(id)) as RaffleCampaignRow;
+    const campaign = (await this.getRaffleCampaignById(id)) as unknown as RaffleCampaignRow;
 
     if (campaign.status === "cancelled" || campaign.status === "drawn") {
       throw conflict("Rifa com este status nao pode ser publicada");
@@ -500,7 +507,7 @@ export class RaffleService {
   }
 
   async drawRaffleCampaign(id: string, input: DrawRaffleCampaignInput, actorProfileId = this.actorId) {
-    const campaign = (await this.getRaffleCampaignById(id)) as RaffleCampaignRow;
+    const campaign = (await this.getRaffleCampaignById(id)) as unknown as RaffleCampaignRow;
 
     if (!["closed", "sold_out"].includes(campaign.status)) {
       throw conflict("Encerre a rifa antes de registrar o sorteio");
@@ -549,6 +556,7 @@ export class RaffleService {
       throwQueryError(error, "Falha ao registrar sorteio");
     }
 
+    const drawnCampaign = data as unknown as RaffleCampaignRow;
     const { error: winnerError } = await this.supabase
       .from("raffle_numbers")
       .update({ status: "winner" })
@@ -564,7 +572,7 @@ export class RaffleService {
       entityId: id,
       entityType: "raffle_campaign",
       oldValue: campaign,
-      newValue: { ...data, winner_number: number },
+      newValue: { ...drawnCampaign, winner_number: number },
     });
 
     await this.createDrawAudit(
@@ -642,7 +650,7 @@ export class RaffleService {
     input: ConfirmRaffleOrderPaymentInput,
     actorProfileId = this.actorId,
   ) {
-    const order = (await this.getRaffleOrderById(orderId)) as RaffleOrderRow & {
+    const order = (await this.getRaffleOrderById(orderId)) as unknown as RaffleOrderRow & {
       raffle_campaigns?: { code?: string; title?: string } | null;
     };
 
@@ -722,7 +730,7 @@ export class RaffleService {
   }
 
   async cancelRaffleOrder(orderId: string, actorProfileId = this.actorId) {
-    const order = (await this.getRaffleOrderById(orderId)) as RaffleOrderRow;
+    const order = (await this.getRaffleOrderById(orderId)) as unknown as RaffleOrderRow;
 
     if (order.status === "paid") {
       throw conflict("Pedido pago nao pode ser cancelado nesta sprint");
@@ -782,11 +790,11 @@ export class RaffleService {
       throwQueryError(error, "Falha ao listar rifas publicas");
     }
 
-    return this.attachCampaignStats(data ?? []);
+    return this.attachCampaignStats((data ?? []) as unknown as RaffleCampaignRow[]);
   }
 
   async getPublicRaffleCampaignBySlug(slug: string) {
-    const campaign = (await this.getRaffleCampaignBySlug(slug)) as RaffleCampaignRow;
+    const campaign = (await this.getRaffleCampaignBySlug(slug)) as unknown as RaffleCampaignRow;
 
     if (!statusAllowsPublicRead(campaign.status)) {
       throw notFound("Rifa nao encontrada");
