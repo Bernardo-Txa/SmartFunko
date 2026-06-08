@@ -121,8 +121,6 @@ export const productStatusOptions = [
 
 export const raffleCampaignStatusOptions = [
   { label: "Rascunho", value: "draft" },
-  { label: "Pendente de autorização", value: "pending_authorization" },
-  { label: "Publicada", value: "published" },
   { label: "Aberta", value: "open" },
   { label: "Pausada", value: "paused" },
   { label: "Esgotada", value: "sold_out" },
@@ -133,7 +131,6 @@ export const raffleCampaignStatusOptions = [
 
 export const raffleNumberStatusOptions = [
   { label: "Disponível", value: "available" },
-  { label: "Reservado", value: "reserved" },
   { label: "Aguardando pagamento", value: "pending_payment" },
   { label: "Comprado", value: "sold" },
   { label: "Cancelado", value: "cancelled" },
@@ -141,7 +138,6 @@ export const raffleNumberStatusOptions = [
 ] as const;
 
 export const raffleOrderStatusOptions = [
-  { label: "Reservado", value: "reserved" },
   { label: "Aguardando pagamento", value: "pending_payment" },
   { label: "Pago", value: "paid" },
   { label: "Expirado", value: "expired" },
@@ -277,8 +273,6 @@ const raffleCampaignStatusMeta = {
   drawn: createMeta("Sorteada", "green"),
   open: createMeta("Aberta", "green"),
   paused: createMeta("Pausada", "yellow"),
-  pending_authorization: createMeta("Pendente de autorização", "yellow"),
-  published: createMeta("Publicada", "blue"),
   sold_out: createMeta("Esgotada", "violet"),
 } satisfies Record<string, StatusMeta>;
 
@@ -286,7 +280,6 @@ const raffleNumberStatusMeta = {
   available: createMeta("Disponível", "green"),
   cancelled: createMeta("Cancelado", "red"),
   pending_payment: createMeta("Aguardando pagamento", "yellow"),
-  reserved: createMeta("Reservado", "blue"),
   sold: createMeta("Comprado", "gray"),
   winner: createMeta("Premiado", "green"),
 } satisfies Record<string, StatusMeta>;
@@ -297,7 +290,6 @@ const raffleOrderStatusMeta = {
   paid: createMeta("Pago", "green"),
   pending_payment: createMeta("Aguardando pagamento", "yellow"),
   refunded: createMeta("Reembolsado", "gray"),
-  reserved: createMeta("Reservado", "blue"),
 } satisfies Record<string, StatusMeta>;
 
 const raffleDrawMethodMeta = {

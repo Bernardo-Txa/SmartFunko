@@ -55,9 +55,9 @@ Custos:
 - margem real simples = preco vendido - custo real;
 - nao ha rateio complexo, multi-moeda ou imposto automatico nesta sprint.
 
-## Rifas DEV 1.0
+## Rifas DEV 1.1
 
-Rifas estao disponiveis somente quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`. Com a flag desligada, links somem da navegacao e paginas/APIs de rifa ficam bloqueadas. Com a flag ligada, as telas exibem aviso experimental de nao producao.
+Rifas estao disponiveis somente quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`. Com a flag desligada, links somem da navegacao, paginas publicas/customer mostram modulo desativado e APIs de rifa ficam bloqueadas. Com a flag ligada, as telas exibem aviso experimental de nao producao.
 
 Fluxo admin:
 
@@ -67,22 +67,22 @@ Fluxo admin:
 4. Pausar, fechar ou cancelar manualmente quando necessario.
 5. Ver pedidos da campanha no detalhe admin.
 6. Confirmar pagamento manual de reserva; o sistema marca numeros como comprados e cria entrada de caixa `category = raffle`.
-7. Cancelar reserva nao paga para liberar numeros.
-8. Fechar campanha e registrar ganhador manualmente informando numero comprado e referencia do sorteio.
+7. Cancelar reserva nao paga ou expirar reservas vencidas para liberar numeros.
+8. Fechar campanha e registrar ganhador manualmente informando numero comprado.
 
 Fluxo cliente/publico:
 
 1. Cliente acessa `/rifas` ou `/rifas/[slug]`.
 2. Escolhe numeros disponiveis no `RaffleNumberPicker`.
 3. Sistema cria reserva temporaria vinculada ao customer autenticado.
-4. Cliente acompanha em `/conta/rifas` e `/conta/rifas/[id]`, vendo numeros, status, total, reservado ate, pago em e resultado.
+4. Cliente ve instrucoes de pagamento manual e acompanha em `/conta/rifas` e `/conta/rifas/[id]`, vendo numeros, status, total, reservado ate, pago em e resultado.
 
-Limites da DEV 1.0:
+Limites da DEV 1.1:
 
-- reserva expira por RPC/rotina existente e tambem pode ser cancelada manualmente;
+- reserva expira por RPC acionada em listagens/reserva ou pelo endpoint/botao manual;
 - confirmacao de pagamento e sempre manual;
 - sorteio e resultado sao manuais;
-- nao ha Pix automatico, checkout, notificacao, compliance legal automatizado, sorteio certificado ou reembolso de pedido pago de rifa nesta versao;
+- nao ha Pix automatico, cartao, gateway, checkout, cron real, notificacao, validacao legal automatizada, sorteio certificado ou reembolso de pedido pago de rifa nesta versao;
 - nao usar em producao.
 
 ## APIs principais
@@ -138,7 +138,8 @@ Limites da DEV 1.0:
 - `GET /api/v1/public/suppliers/[slug]`
 - `GET|POST /api/v1/admin/raffles`
 - `GET|PATCH /api/v1/admin/raffles/[id]`
-- `POST /api/v1/admin/raffles/[id]/publish`
+- `POST /api/v1/admin/raffles/[id]/open`
+- `POST /api/v1/admin/raffles/[id]/publish` (alias legado de `/open`)
 - `POST /api/v1/admin/raffles/[id]/pause`
 - `POST /api/v1/admin/raffles/[id]/close`
 - `POST /api/v1/admin/raffles/[id]/cancel`
@@ -213,7 +214,7 @@ Limites da DEV 1.0:
 - Admin de demanda usa dados reais de `wishlist_items` para ranking por produto, franquia, fornecedor e categoria.
 - Lotes usam `purchase_batches` e `purchase_batch_items`; clientes e publico nao acessam esses dados.
 - Item de pedido pode ser rastreado para lote na tela `/admin/pedidos/[id]`.
-- Rifas DEV 1.0 ficam atras de `NEXT_PUBLIC_ENABLE_RAFFLES`.
+- Rifas DEV 1.1 ficam atras de `NEXT_PUBLIC_ENABLE_RAFFLES`.
 - `/admin/rifas` permite listar, criar, abrir, pausar, fechar, cancelar, ver pedidos, confirmar pagamento, cancelar reserva e registrar ganhador manual.
 - `/rifas/[slug]` mostra premio, preco, progresso, regras e seletor de numeros para campanhas abertas.
 - Reserva de numeros e temporaria; pagamento confirmado manualmente muda os numeros para comprados.

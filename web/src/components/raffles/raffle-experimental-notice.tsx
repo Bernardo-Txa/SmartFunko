@@ -6,9 +6,7 @@ export function RaffleExperimentalNotice() {
       <div className="flex gap-3">
         <FlaskConical className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
         <p>
-          Rifas DEV 1.0 em modo experimental. Use somente para validacao interna:
-          reserva temporaria, confirmacao manual de pagamento e sorteio manual nao
-          representam fluxo pronto para producao.
+          Módulo experimental de desenvolvimento. Não utilizar para campanhas reais sem validação jurídica e operacional.
         </p>
       </div>
     </div>

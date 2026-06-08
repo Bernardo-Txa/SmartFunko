@@ -94,15 +94,15 @@ O modulo de lotes organiza compras nacionais, importacoes, collabs e outros agru
 
 Nesta versao nao ha multi-moeda, imposto automatico, rateio complexo de frete/taxa, integracao com fornecedor, tracking externo, nota fiscal, Pix, checkout ou baixa financeira automatica.
 
-## Rifas DEV 1.0
+## Rifas DEV 1.1
 
-Rifas DEV 1.0 e um modulo experimental protegido por feature flag. Ative com:
+Rifas DEV 1.1 e um modulo experimental protegido por feature flag. Ative com:
 
 ```bash
 NEXT_PUBLIC_ENABLE_RAFFLES=true
 ```
 
-Quando a flag esta desligada, links somem da navegacao e paginas/APIs de rifa retornam bloqueio. Quando ligada, as telas mostram aviso experimental de nao producao.
+Quando a flag esta desligada, links somem da navegacao, paginas publicas/customer mostram modulo desativado e APIs de rifa retornam bloqueio. Quando ligada, as telas mostram aviso experimental de nao producao.
 
 Fluxos disponiveis:
 
@@ -112,11 +112,12 @@ Fluxos disponiveis:
 - criacao de campanha gera numeros no intervalo configurado;
 - abertura, pausa, fechamento e cancelamento sao manuais pelo admin;
 - cliente reserva numeros temporariamente pela tela publica;
+- cliente ve instrucoes de pagamento manual e acompanha status em `/conta/rifas`;
 - pagamento e confirmado manualmente pelo admin, gerando entrada de caixa `category = raffle`;
-- reserva nao paga pode ser cancelada manualmente e os numeros voltam a ficar disponiveis;
-- sorteio e registro de ganhador sao manuais, aceitando apenas numero comprado em campanha encerrada.
+- reserva nao paga pode expirar ou ser cancelada manualmente, liberando os numeros;
+- sorteio e registro de ganhador sao manuais, aceitando apenas numero comprado em campanha encerrada ou esgotada.
 
-Este modulo nao esta pronto para producao: nao implementa compliance legal automatizado, gateway/Pix, antifraude, sorteio certificado, notificacoes automaticas, reembolso de pedidos pagos de rifa ou checkout completo.
+Este modulo nao esta pronto para producao: nao implementa validacao legal automatizada, gateway/Pix, cartao, cron real, antifraude, sorteio certificado, notificacoes automaticas, reembolso de pedidos pagos de rifa ou checkout completo.
 
 ## Como rodar localmente
 
@@ -264,12 +265,14 @@ Nao ha app Flutter nesta V1. Os contratos web/API preparados sao:
 - `GET /api/v1/public/products/[slug]`: publico; detalhe de produto ativo.
 - `GET /api/v1/public/suppliers`: publico; lista suppliers ativos.
 - `GET /api/v1/public/suppliers/[slug]`: publico; detalhe de supplier ativo.
-- `GET /api/v1/public/raffles`: publico com flag ligada; lista rifas publicas.
+- `GET /api/v1/public/raffles`: publico com flag ligada; lista rifas abertas.
 - `GET /api/v1/public/raffles/[slug]`: publico com flag ligada; detalhe da rifa.
 - `GET /api/v1/public/raffles/[slug]/numbers`: publico com flag ligada; numeros e status.
 - `POST /api/v1/me/raffles/[slug]/reserve`: autenticado; reserva numeros temporariamente.
 - `GET /api/v1/me/raffles/orders`: autenticado; lista pedidos de rifa do customer.
 - `GET /api/v1/me/raffles/orders/[id]`: autenticado; detalhe de pedido de rifa do customer.
+- `POST /api/v1/admin/raffles/[id]/open`: owner; abre campanha para reservas.
+- `POST /api/v1/admin/raffles/[id]/publish`: owner; alias legado de `/open`.
 - `POST /api/v1/admin/products/[id]/images`: owner; upload multipart com `file` e `setAsMain`.
 - `PATCH /api/v1/admin/products/[id]/images/reorder`: owner; reordena `product_images`.
 - `PATCH /api/v1/admin/products/[id]/images/[imageId]/main`: owner; define a imagem como `main_image_url`.

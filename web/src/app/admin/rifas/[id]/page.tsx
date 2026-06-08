@@ -5,6 +5,7 @@ import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import {
   RaffleCampaignStatusActions,
   RaffleDrawForm,
+  RaffleExpireReservationsButton,
   RaffleOrderActions,
 } from "@/components/admin/raffle-admin-actions";
 import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
@@ -31,7 +32,6 @@ function getStats(campaign: RaffleCampaign) {
   return campaign.stats ?? {
     available: 0,
     pending: 0,
-    reserved: 0,
     revenue: 0,
     sold: 0,
     soldPercent: 0,
@@ -88,6 +88,7 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
   const numbers = numbersResult as unknown as RaffleNumber[];
   const winnerNumber = numbers.find((number) => number.status === "winner");
   const stats = getStats(campaign);
+  const pendingRevenue = stats.pending * Number(campaign.price_per_number);
   const drawMethod = getRaffleDrawMethodMeta(campaign.draw_method);
 
   return (
@@ -108,15 +109,19 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                 Slug publico: <Link href={`/rifas/${campaign.slug}`} className="hover:text-[var(--accent)]">/rifas/{campaign.slug}</Link>
               </p>
             </div>
-            <RaffleCampaignStatusActions campaignId={campaign.id} status={campaign.status} />
+            <div className="grid gap-3">
+              <RaffleCampaignStatusActions campaignId={campaign.id} status={campaign.status} />
+              <RaffleExpireReservationsButton />
+            </div>
           </div>
         </section>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <MetricCard label="Numeros" value={`${stats.total}`} detail={`${stats.available} disponiveis`} />
           <MetricCard label="Vendidos" value={`${stats.sold}`} detail={`${stats.soldPercent}% da campanha`} />
-          <MetricCard label="Reservados" value={`${stats.reserved + stats.pending}`} detail="Aguardando pagamento" />
-          <MetricCard label="Receita" value={formatCurrency(stats.revenue)} detail="Pagamentos confirmados" />
+          <MetricCard label="Pendentes" value={`${stats.pending}`} detail="Aguardando pagamento" />
+          <MetricCard label="Receita pendente" value={formatCurrency(pendingRevenue)} detail="Reservas abertas" />
+          <MetricCard label="Receita confirmada" value={formatCurrency(stats.revenue)} detail="Pagamentos confirmados" />
         </div>
 
         <section className="grid gap-4 lg:grid-cols-2">

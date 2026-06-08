@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
-import { raffleDrawMethodOptions } from "@/lib/status-labels";
 
 function nullableText(formData: FormData, key: string) {
   const value = String(formData.get(key) ?? "").trim();
@@ -37,11 +36,7 @@ export function RaffleCampaignForm() {
         body: JSON.stringify({
           description: nullableText(formData, "description"),
           drawAt: dateTime(formData, "drawAt"),
-          drawMethod: String(formData.get("drawMethod") ?? "manual_external"),
-          drawReference: nullableText(formData, "drawReference"),
           endsAt: dateTime(formData, "endsAt"),
-          legalAuthorizationCode: nullableText(formData, "legalAuthorizationCode"),
-          legalAuthorizationUrl: nullableText(formData, "legalAuthorizationUrl"),
           maxNumbersPerCustomer: nullableNumber(formData, "maxNumbersPerCustomer"),
           numberEnd: Number(formData.get("numberEnd") ?? 100),
           numberStart: Number(formData.get("numberStart") ?? 1),
@@ -49,12 +44,10 @@ export function RaffleCampaignForm() {
           prizeDescription: nullableText(formData, "prizeDescription"),
           prizeImageUrl: nullableText(formData, "prizeImageUrl"),
           prizeTitle: String(formData.get("prizeTitle") ?? "").trim(),
-          requiresAuthorization: formData.get("requiresAuthorization") === "on",
           reservationMinutes: Number(formData.get("reservationMinutes") ?? 15),
           rules: nullableText(formData, "rules"),
           slug: nullableText(formData, "slug"),
           startsAt: dateTime(formData, "startsAt"),
-          termsAcceptedByAdmin: formData.get("termsAcceptedByAdmin") === "on",
           title: String(formData.get("title") ?? "").trim(),
         }),
         headers: { "content-type": "application/json" },
@@ -76,9 +69,6 @@ export function RaffleCampaignForm() {
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-      <div className="rounded-lg border border-yellow-300/35 bg-yellow-300/10 p-4 text-sm text-yellow-100">
-        Antes de publicar, confirme se esta campanha possui autorização/regulamento aplicável. A Smart Funkos deve validar a conformidade legal antes de vender números.
-      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Titulo</span>
@@ -147,38 +137,6 @@ export function RaffleCampaignForm() {
         <span className="text-sm font-semibold text-[var(--foreground)]">Regulamento</span>
         <textarea name="rules" className="mt-2 min-h-32 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
       </label>
-      <div className="grid gap-4 md:grid-cols-3">
-        <label className="block">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Metodo de sorteio</span>
-          <select name="drawMethod" defaultValue="manual_external" className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]">
-            {raffleDrawMethodOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Codigo autorizacao</span>
-          <input name="legalAuthorizationCode" className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
-        </label>
-        <label className="block">
-          <span className="text-sm font-semibold text-[var(--foreground)]">URL autorizacao</span>
-          <input name="legalAuthorizationUrl" type="url" className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
-        </label>
-      </div>
-      <label className="block">
-        <span className="text-sm font-semibold text-[var(--foreground)]">Referencia do sorteio</span>
-        <input name="drawReference" className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
-      </label>
-      <div className="grid gap-3 text-sm">
-        <label className="inline-flex items-center gap-2 font-semibold text-[var(--foreground)]">
-          <input name="requiresAuthorization" type="checkbox" defaultChecked className="h-4 w-4 accent-cyan-300" />
-          Exige autorizacao regulatoria
-        </label>
-        <label className="inline-flex items-center gap-2 font-semibold text-[var(--foreground)]">
-          <input name="termsAcceptedByAdmin" type="checkbox" className="h-4 w-4 accent-cyan-300" />
-          Admin confirmou regulamento/autorizacao aplicavel
-        </label>
-      </div>
       {error ? <p className="text-sm font-semibold text-red-300">{error}</p> : null}
       <button disabled={isSubmitting} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-fit">
         {isSubmitting ? <SmartButtonLoading message="Criando..." /> : <><Save size={16} aria-hidden="true" />Criar rifa</>}

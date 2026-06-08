@@ -45,9 +45,9 @@ Pendencias:
 - baixa financeira automatica para despesas do lote;
 - RPC transacional para recebimento de lote, itens, pedido, estoque e logs.
 
-## Rifas DEV 1.0 nao produtivas
+## Rifas DEV 1.1 nao produtivas
 
-Rifas DEV 1.0 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao interna de telas e fluxo operacional. Permanecem pendentes antes de qualquer uso produtivo:
+Rifas DEV 1.1 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao interna de telas e fluxo operacional. Permanecem pendentes antes de qualquer uso produtivo:
 
 - revisao juridica/compliance por jurisdicao e tipo de promocao;
 - autorizacao regulatoria validada por processo, nao apenas campo manual;
@@ -73,6 +73,6 @@ Rifas DEV 1.0 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao intern
 - Criar checkout proprio apenas depois do fluxo WhatsApp estabilizar.
 - Preparar Flutter mobile depois da V1 web/admin.
 - Manter Gamificacao / Clube Smart Funkos no radar como modulo futuro.
-- Evoluir Rifas DEV 1.0 apenas depois de resolver compliance, pagamento automatico, notificacoes, sorteio auditavel e reembolso.
+- Evoluir Rifas DEV 1.1 apenas depois de resolver compliance, pagamento automatico, notificacoes, sorteio auditavel e reembolso.
 - Planejar leilao e notificacoes automaticas fora do MVP operacional.
 - Enriquecer metadados de marcas no importador quando cada parceiro exigir campos proprios alem de `supplier_id`.

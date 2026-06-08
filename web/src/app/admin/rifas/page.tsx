@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
+import { RaffleOpenCampaignButton } from "@/components/admin/raffle-admin-actions";
 import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleCampaign } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge } from "@/components/ui/status-badge";
@@ -31,7 +32,6 @@ function getStats(campaign: RaffleCampaign) {
   return campaign.stats ?? {
     available: 0,
     pending: 0,
-    reserved: 0,
     revenue: 0,
     sold: 0,
     soldPercent: 0,
@@ -52,18 +52,23 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
     q: search || undefined,
     status: status || undefined,
   })) as unknown as RaffleCampaign[];
-  const totalRevenue = campaigns.reduce((sum, campaign) => sum + getStats(campaign).revenue, 0);
+  const pendingNumbers = campaigns.reduce((sum, campaign) => sum + getStats(campaign).pending, 0);
+  const soldNumbers = campaigns.reduce((sum, campaign) => sum + getStats(campaign).sold, 0);
+  const projectedRevenue = campaigns.reduce((sum, campaign) => {
+    const stats = getStats(campaign);
+    return sum + (stats.sold + stats.pending) * Number(campaign.price_per_number);
+  }, 0);
   const openCampaigns = campaigns.filter((campaign) => campaign.status === "open").length;
 
   return (
-    <AdminShell title="Rifas" description="Campanhas DEV 1.0 com reserva temporaria e confirmacao manual.">
+    <AdminShell title="Rifas" description="Campanhas DEV 1.1 com reserva temporaria e confirmacao manual.">
       <div className="grid gap-5">
         <RaffleExperimentalNotice />
         <div className="grid gap-4 md:grid-cols-4">
-          <MetricCard label="Campanhas" value={`${campaigns.length}`} detail="No filtro atual" />
           <MetricCard label="Abertas" value={`${openCampaigns}`} detail="Aceitando reservas" />
-          <MetricCard label="Vendidos" value={`${campaigns.reduce((sum, campaign) => sum + getStats(campaign).sold, 0)}`} detail="Numeros pagos" />
-          <MetricCard label="Receita" value={formatCurrency(totalRevenue)} detail="Pagamentos confirmados" />
+          <MetricCard label="Pendentes" value={`${pendingNumbers}`} detail="Aguardando pagamento" />
+          <MetricCard label="Vendidas" value={`${soldNumbers}`} detail="Numeros pagos" />
+          <MetricCard label="Receita prevista" value={formatCurrency(projectedRevenue)} detail="Pendentes + pagos" />
         </div>
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -107,16 +112,18 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
 
         <section className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] text-left text-sm">
+            <table className="w-full min-w-[1180px] text-left text-sm">
               <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
                 <tr>
                   <th className="px-4 py-3">Campanha</th>
-                  <th className="px-4 py-3">Premio</th>
-                  <th className="px-4 py-3">Preco</th>
-                  <th className="px-4 py-3">Progresso</th>
-                  <th className="px-4 py-3">Receita</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Preco</th>
+                  <th className="px-4 py-3">Vendidos</th>
+                  <th className="px-4 py-3">Pendentes</th>
+                  <th className="px-4 py-3">Total</th>
+                  <th className="px-4 py-3">Receita confirmada</th>
                   <th className="px-4 py-3">Sorteio</th>
+                  <th className="px-4 py-3">Acao</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -129,18 +136,25 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
                         <Link href={`/admin/rifas/${campaign.id}`} className="font-semibold text-[var(--foreground)] hover:text-[var(--accent)]">
                           {campaign.title}
                         </Link>
-                        <p className="text-xs text-[var(--muted)]">{campaign.code} · /rifas/{campaign.slug}</p>
+                        <p className="text-xs text-[var(--muted)]">
+                          {campaign.code} · {campaign.prize_title}
+                        </p>
                       </td>
-                      <td className="px-4 py-3 text-[var(--muted)]">{campaign.prize_title}</td>
-                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(Number(campaign.price_per_number))}</td>
-                      <td className="px-4 py-3 text-[var(--muted)]">
-                        {stats.sold}/{stats.total} vendidos · {stats.soldPercent}%
-                      </td>
-                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(stats.revenue)}</td>
                       <td className="px-4 py-3">
                         <RaffleCampaignStatusBadge status={campaign.status} />
                       </td>
+                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(Number(campaign.price_per_number))}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{stats.sold}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{stats.pending}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{stats.total}</td>
+                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(stats.revenue)}</td>
                       <td className="px-4 py-3 text-[var(--muted)]">{campaign.draw_at ? formatDate(campaign.draw_at) : "-"}</td>
+                      <td className="px-4 py-3">
+                        <RaffleOpenCampaignButton
+                          campaignId={campaign.id}
+                          disabled={["open", "drawn", "cancelled"].includes(campaign.status)}
+                        />
+                      </td>
                     </tr>
                   );
                 })}
@@ -150,7 +164,7 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
         </section>
         {campaigns.length === 0 ? (
           <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
-            Nenhuma rifa encontrada com os filtros atuais.
+            Voce ainda nao criou nenhuma rifa.
           </p>
         ) : null}
       </div>

@@ -58,7 +58,16 @@ function resultText(order: RaffleOrder) {
 
 export default async function AccountRaffleDetailPage({ params }: Props) {
   if (!isRafflesEnabled()) {
-    notFound();
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Módulo de rifas desativado</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Suas participacoes de rifa nao estao disponiveis neste ambiente.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const { id } = await params;
@@ -126,6 +135,16 @@ export default async function AccountRaffleDetailPage({ params }: Props) {
             ))}
           </div>
         </section>
+
+        {order.status === "pending_payment" ? (
+          <section className="rounded-lg border border-yellow-300/35 bg-yellow-300/10 p-5">
+            <h2 className="text-lg font-bold text-yellow-100">Instrucoes de pagamento</h2>
+            <p className="mt-3 text-sm leading-6 text-yellow-100/90">
+              Entre em contato com a Smart Funkos pelo atendimento informado no site e envie o comprovante
+              com o pedido {order.order_number}. A reserva permanece pendente ate confirmacao manual.
+            </p>
+          </section>
+        ) : null}
 
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 className="text-lg font-bold text-[var(--foreground)]">Resultado</h2>

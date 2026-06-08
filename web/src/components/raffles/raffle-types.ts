@@ -1,7 +1,6 @@
 export type RaffleStats = {
   available: number;
   pending: number;
-  reserved: number;
   revenue: number;
   sold: number;
   soldPercent: number;

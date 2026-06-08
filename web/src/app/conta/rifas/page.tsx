@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleOrder } from "@/components/raffles/raffle-types";
@@ -37,7 +36,16 @@ function numbersText(order: RaffleOrder) {
 
 export default async function AccountRafflesPage() {
   if (!isRafflesEnabled()) {
-    notFound();
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Módulo de rifas desativado</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Suas participacoes de rifa nao estao disponiveis neste ambiente.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const { customer } = await requireUserPage("/conta/rifas");
@@ -95,7 +103,7 @@ export default async function AccountRafflesPage() {
           </div>
         ) : (
           <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
-            Voce ainda nao possui reservas ou compras de rifa.
+            Você ainda não participou de nenhuma rifa.
           </p>
         )}
       </div>

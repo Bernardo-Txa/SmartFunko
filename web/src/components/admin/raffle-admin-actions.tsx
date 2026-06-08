@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle2, CircleDollarSign, Pause, Play, Trophy, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, CircleDollarSign, Clock3, Pause, Play, Trophy, XCircle } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 type ActionResult = {
@@ -30,7 +30,7 @@ export function RaffleCampaignStatusActions({
   const [error, setError] = useState("");
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const actions = [
-    { endpoint: "publish", icon: Play, label: "Abrir", show: !["open", "drawn", "cancelled"].includes(status) },
+    { endpoint: "open", icon: Play, label: "Abrir", show: !["open", "drawn", "cancelled"].includes(status) },
     { endpoint: "pause", icon: Pause, label: "Pausar", show: status === "open" },
     { endpoint: "close", icon: CheckCircle2, label: "Fechar", show: ["open", "paused", "sold_out"].includes(status) },
     { endpoint: "cancel", icon: Ban, label: "Cancelar", show: !["cancelled", "drawn"].includes(status) },
@@ -87,6 +87,56 @@ export function RaffleCampaignStatusActions({
   );
 }
 
+export function RaffleOpenCampaignButton({
+  campaignId,
+  disabled,
+}: {
+  campaignId: string;
+  disabled: boolean;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function openCampaign() {
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/v1/admin/raffles/${campaignId}/open`, {
+        method: "POST",
+      });
+      await parseActionResult(response);
+      router.refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Falha ao abrir rifa");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-1">
+      <button
+        type="button"
+        disabled={disabled || isSubmitting}
+        onClick={openCampaign}
+        className="inline-flex h-9 w-fit items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isSubmitting ? (
+          <SmartButtonLoading message="Abrindo..." />
+        ) : (
+          <>
+            <Play size={14} aria-hidden="true" />
+            Abrir
+          </>
+        )}
+      </button>
+      {error ? <p className="max-w-40 text-xs font-semibold text-red-300">{error}</p> : null}
+    </div>
+  );
+}
+
 export function RaffleOrderActions({
   orderId,
   status,
@@ -99,7 +149,7 @@ export function RaffleOrderActions({
   const [message, setMessage] = useState("");
   const [notes, setNotes] = useState("");
   const [runningAction, setRunningAction] = useState<string | null>(null);
-  const canConfirmPayment = ["reserved", "pending_payment"].includes(status);
+  const canConfirmPayment = status === "pending_payment";
   const canCancel = status !== "paid" && status !== "cancelled";
 
   async function confirmPayment(event: React.FormEvent<HTMLFormElement>) {
@@ -197,6 +247,61 @@ export function RaffleOrderActions({
   );
 }
 
+export function RaffleExpireReservationsButton() {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function expireReservations() {
+    setError("");
+    setMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/v1/admin/raffles/expire-reservations", {
+        method: "POST",
+      });
+      const payload = (await response.json().catch(() => ({}))) as ActionResult & {
+        data?: { expired?: number };
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error?.message ?? "Falha ao expirar reservas");
+      }
+
+      setMessage(`${payload.data?.expired ?? 0} reserva(s) vencida(s) expirada(s).`);
+      router.refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Falha ao expirar reservas");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-2">
+      <button
+        type="button"
+        disabled={isSubmitting}
+        onClick={expireReservations}
+        className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isSubmitting ? (
+          <SmartButtonLoading message="Expirando..." />
+        ) : (
+          <>
+            <Clock3 size={16} aria-hidden="true" />
+            Expirar reservas vencidas
+          </>
+        )}
+      </button>
+      {message ? <p className="text-xs font-semibold text-emerald-200">{message}</p> : null}
+      {error ? <p className="text-xs font-semibold text-red-300">{error}</p> : null}
+    </div>
+  );
+}
+
 export function RaffleDrawForm({
   campaignId,
   disabled,
@@ -262,7 +367,6 @@ export function RaffleDrawForm({
           <span className="text-sm font-semibold text-[var(--foreground)]">Referencia</span>
           <input
             name="drawReference"
-            required
             disabled={disabled || isSubmitting}
             placeholder="Ex.: link ou ata do sorteio"
             className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"

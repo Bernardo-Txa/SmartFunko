@@ -34,7 +34,6 @@ function getStats(campaign: RaffleCampaign) {
   return campaign.stats ?? {
     available: 0,
     pending: 0,
-    reserved: 0,
     revenue: 0,
     sold: 0,
     soldPercent: 0,
@@ -61,7 +60,16 @@ function formatDateTime(value: string | null | undefined) {
 
 export default async function RaffleDetailPage({ params }: Props) {
   if (!isRafflesEnabled()) {
-    notFound();
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Módulo de rifas desativado</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            As campanhas de rifa nao estao disponiveis neste ambiente.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const { slug } = await params;
@@ -84,6 +92,16 @@ export default async function RaffleDetailPage({ params }: Props) {
         <RaffleExperimentalNotice />
         <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            {raffle.prize_image_url ? (
+              <div className="mb-5 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-strong)]">
+                <div
+                  aria-label={raffle.prize_title}
+                  className="aspect-[4/3] w-full bg-cover bg-center"
+                  role="img"
+                  style={{ backgroundImage: `url(${raffle.prize_image_url})` }}
+                />
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2">
               <RaffleCampaignStatusBadge status={raffle.status} />
               <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-xs font-semibold text-[var(--muted)]">

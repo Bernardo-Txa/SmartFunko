@@ -70,6 +70,12 @@ export function RaffleNumberPicker({
         headers: { "content-type": "application/json" },
         method: "POST",
       });
+
+      if (response.status === 401 || response.status === 403) {
+        router.push(`/login?next=/rifas/${slug}`);
+        return;
+      }
+
       const payload = await response.json();
 
       if (!response.ok) {
@@ -106,7 +112,7 @@ export function RaffleNumberPicker({
         </label>
         <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--muted)]">
           <span className="rounded-md bg-emerald-500/15 px-2 py-1 text-emerald-100">Disponivel</span>
-          <span className="rounded-md bg-yellow-300/18 px-2 py-1 text-yellow-100">Reservado</span>
+          <span className="rounded-md bg-yellow-300/18 px-2 py-1 text-yellow-100">Aguardando pagamento</span>
           <span className="rounded-md bg-slate-500/15 px-2 py-1 text-slate-300">Comprado</span>
           <span className="rounded-md bg-cyan-500/18 px-2 py-1 text-cyan-100">Selecionado</span>
         </div>

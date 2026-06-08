@@ -7,8 +7,6 @@ import { throwQueryError } from "@/server/supabase/query-error";
 
 export const raffleCampaignStatusSchema = z.enum([
   "draft",
-  "pending_authorization",
-  "published",
   "open",
   "paused",
   "sold_out",
@@ -67,7 +65,7 @@ export const confirmRaffleOrderPaymentSchema = z.object({
 
 export const drawRaffleCampaignSchema = z.object({
   drawNotes: optionalText,
-  drawReference: z.string().trim().min(2, "Informe a referencia do sorteio"),
+  drawReference: optionalText,
   drawnAt: z.string().datetime().optional(),
   winnerNumber: z.number().int().positive(),
 });
@@ -275,7 +273,7 @@ function assertPublishCompliance(campaign: RaffleCampaignRow) {
 }
 
 function statusAllowsPublicRead(status: string) {
-  return ["published", "open", "sold_out", "closed", "drawn"].includes(status);
+  return ["open", "sold_out", "closed", "drawn"].includes(status);
 }
 
 export class RaffleService {
@@ -289,6 +287,8 @@ export class RaffleService {
   }
 
   async listRaffleCampaigns(filters: RaffleListFilters = {}) {
+    await this.expireRaffleReservations();
+
     const limit = Math.min(200, Math.max(1, Number(filters.limit ?? 100)));
     let query = this.supabase
       .from("raffle_campaigns")
@@ -315,6 +315,8 @@ export class RaffleService {
   }
 
   async getRaffleCampaignById(id: string) {
+    await this.expireRaffleReservations();
+
     const { data, error } = await this.supabase
       .from("raffle_campaigns")
       .select(campaignSelect())
@@ -466,18 +468,22 @@ export class RaffleService {
     return this.getRaffleCampaignById(id);
   }
 
-  async publishRaffleCampaign(id: string, actorProfileId = this.actorId) {
+  async openRaffleCampaign(id: string, actorProfileId = this.actorId) {
     const campaign = (await this.getRaffleCampaignById(id)) as unknown as RaffleCampaignRow;
 
     if (campaign.status === "cancelled" || campaign.status === "drawn") {
-      throw conflict("Rifa com este status nao pode ser publicada");
+      throw conflict("Rifa com este status nao pode ser aberta");
     }
 
     if (process.env.NODE_ENV === "production") {
       assertPublishCompliance(campaign);
     }
 
-    return this.changeCampaignStatus(id, "open", "raffle.publish", actorProfileId);
+    return this.changeCampaignStatus(id, "open", "raffle.open", actorProfileId);
+  }
+
+  async publishRaffleCampaign(id: string, actorProfileId = this.actorId) {
+    return this.openRaffleCampaign(id, actorProfileId);
   }
 
   async pauseRaffleCampaign(id: string, actorProfileId = this.actorId) {
@@ -497,7 +503,7 @@ export class RaffleService {
         status: "cancelled",
       })
       .eq("raffle_campaign_id", id)
-      .in("status", ["available", "reserved", "pending_payment"]);
+      .in("status", ["available", "pending_payment"]);
 
     if (error) {
       throwQueryError(error, "Falha ao cancelar numeros da rifa");
@@ -537,11 +543,12 @@ export class RaffleService {
     }
 
     const drawnAt = input.drawnAt ?? new Date().toISOString();
+    const drawReference = input.drawReference?.trim() || "manual-dev";
     const { data, error } = await this.supabase
       .from("raffle_campaigns")
       .update({
         draw_notes: input.drawNotes ?? null,
-        draw_reference: input.drawReference,
+        draw_reference: drawReference,
         drawn_at: drawnAt,
         status: "drawn",
         updated_by: actorProfileId ?? null,
@@ -579,7 +586,7 @@ export class RaffleService {
       id,
       "campaign.drawn",
       {
-        drawReference: input.drawReference,
+        drawReference,
         drawnAt,
         winnerNumber: number,
       },
@@ -590,6 +597,8 @@ export class RaffleService {
   }
 
   async listRaffleOrders(campaignId?: string, filters: RaffleListFilters = {}) {
+    await this.expireRaffleReservations();
+
     let query = this.supabase
       .from("raffle_orders")
       .select(orderSelect())
@@ -658,7 +667,7 @@ export class RaffleService {
       throw conflict("Pedido de rifa ja esta pago");
     }
 
-    if (!["reserved", "pending_payment"].includes(order.status)) {
+    if (order.status !== "pending_payment") {
       throw conflict("Pedido de rifa com este status nao recebe pagamento");
     }
 
@@ -760,7 +769,7 @@ export class RaffleService {
         status: "available",
       })
       .eq("raffle_order_id", orderId)
-      .in("status", ["reserved", "pending_payment"]);
+      .eq("status", "pending_payment");
 
     if (numbersError) {
       throwQueryError(numbersError, "Falha ao liberar numeros da rifa");
@@ -780,10 +789,12 @@ export class RaffleService {
   }
 
   async listPublicRaffleCampaigns() {
+    await this.expireRaffleReservations();
+
     const { data, error } = await this.supabase
       .from("raffle_campaigns")
       .select(campaignSelect())
-      .in("status", ["published", "open", "sold_out", "closed", "drawn"])
+      .eq("status", "open")
       .order("draw_at", { ascending: true, nullsFirst: false });
 
     if (error) {
@@ -840,6 +851,8 @@ export class RaffleService {
   }
 
   async getMyRaffleOrders(customerId: string) {
+    await this.expireRaffleReservations();
+
     const { data, error } = await this.supabase
       .from("raffle_orders")
       .select(orderSelect())
@@ -854,6 +867,8 @@ export class RaffleService {
   }
 
   async getMyRaffleOrderById(orderId: string, customerId: string) {
+    await this.expireRaffleReservations();
+
     const { data, error } = await this.supabase
       .from("raffle_orders")
       .select(orderSelect())
@@ -938,7 +953,6 @@ export class RaffleService {
         stats: {
           available: 0,
           pending: 0,
-          reserved: 0,
           revenue: 0,
           sold: 0,
           soldPercent: 0,
@@ -959,14 +973,13 @@ export class RaffleService {
 
     const statsByCampaign = new Map<
       string,
-      { available: number; pending: number; reserved: number; sold: number; total: number }
+      { available: number; pending: number; sold: number; total: number }
     >();
 
     for (const campaign of campaigns) {
       statsByCampaign.set(campaign.id, {
         available: 0,
         pending: 0,
-        reserved: 0,
         sold: 0,
         total: 0,
       });
@@ -983,8 +996,6 @@ export class RaffleService {
 
       if (number.status === "available") {
         stats.available += 1;
-      } else if (number.status === "reserved") {
-        stats.reserved += 1;
       } else if (number.status === "pending_payment") {
         stats.pending += 1;
       } else if (number.status === "sold" || number.status === "winner") {
@@ -996,7 +1007,6 @@ export class RaffleService {
       const stats = statsByCampaign.get(campaign.id) ?? {
         available: 0,
         pending: 0,
-        reserved: 0,
         sold: 0,
         total: 0,
       };
