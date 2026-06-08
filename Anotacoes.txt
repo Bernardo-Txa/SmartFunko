@@ -8,3 +8,23 @@ melhorar aba de favoritos
 
 corrijir registro de pagamentos
 
+Performance 1.0 - medicao 2026-06-08
+
+- npm run build passou com Next 16.2.7/Turbopack.
+- Tempo final: compile 2.7s, TypeScript 4.6s, static pages 1038ms.
+- Next 16 nao exibiu a coluna oficial First Load JS nem no build padrao nem em next build --webpack.
+- Medicao aproximada pelos manifests de client:
+  - /: First Load JS aprox. 471.9 kB, route JS 22.3 kB.
+  - /catalogo: First Load JS aprox. 721.1 kB, route JS 43.9 kB.
+  - /produto/[slug]: First Load JS aprox. 466.1 kB, route JS 16.5 kB.
+
+Performance 2.0 - plano
+
+- Medir com bundle analyzer do Next/Turbopack e registrar chunks por rota.
+- Reduzir JS compartilhado do catalogo: revisar lucide, SafeProductImage e acoes do card.
+- Levar busca textual para o banco com full-text search ou trigram em view/materialized view.
+- Transformar catalog_product_cards em materialized view se o volume crescer e o refresh operacional for aceitavel.
+- Criar ordenacao de variante principal no banco por contexto de filtro, sem Promise.all por produto.
+- Avaliar cursor pagination para catalogo publico em vez de page/offset quando o catalogo crescer.
+- Criar thumbs/card/original no upload e servir card image menor.
+- Validar indices com explain analyze em filtros reais: categoria, franquia, supplier, specials, price e q.

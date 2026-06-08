@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import { MessageCircle } from "lucide-react";
+import { ProductCardActions } from "@/components/product/product-card-actions";
 import { SafeProductImage } from "@/components/product/safe-product-image";
-import { CartButton } from "@/components/storefront/cart-button";
 import { PriceDisplay } from "@/components/storefront/price-display";
-import { WishlistButton } from "@/components/storefront/wishlist-button";
 import type { Product } from "@/types/product";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
 import { ProductStatusBadge } from "@/components/ui/status-badge";
@@ -119,18 +118,11 @@ export function ProductCard({
           Special
         </div>
       ) : null}
-      <div className="absolute left-3 top-3 z-20 flex gap-2">
-        <WishlistButton
-          className="h-9 w-9 bg-slate-950/72 px-0 backdrop-blur"
-          productId={product.id}
-          productName={product.name}
-        />
-        <CartButton
-          className="h-9 w-9 bg-slate-950/72 px-0 backdrop-blur"
-          product={cartProduct}
-          showLabel={false}
-        />
-      </div>
+      <ProductCardActions
+        cartProduct={cartProduct}
+        productId={product.id}
+        productName={product.name}
+      />
 
       <Link href={`/produto/${product.slug}`} prefetch={false} aria-label={product.name}>
         <ProductMedia product={product} priority={priority} />
