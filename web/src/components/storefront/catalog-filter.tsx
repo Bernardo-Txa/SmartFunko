@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
@@ -61,26 +61,6 @@ export function CatalogFilter({
   );
   const [selectedSort, setSelectedSort] = useState<CatalogProductSort>(currentSort);
   const [searchValue, setSearchValue] = useState(query);
-
-  useEffect(() => {
-    setSelectedCategory(normalizeCatalogTokenValue(currentCategory));
-  }, [currentCategory]);
-
-  useEffect(() => {
-    setSelectedSubcategory(normalizeCatalogTokenValue(currentSubcategory));
-  }, [currentSubcategory]);
-
-  useEffect(() => {
-    setSelectedFranchise(normalizeCatalogTokenValue(currentFranchise));
-  }, [currentFranchise]);
-
-  useEffect(() => {
-    setSelectedSort(currentSort);
-  }, [currentSort]);
-
-  useEffect(() => {
-    setSearchValue(query);
-  }, [query]);
 
   const activeCategory = useMemo(
     () => categories.find((category) => category.slug === selectedCategory),

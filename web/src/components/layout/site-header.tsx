@@ -13,7 +13,7 @@ export async function SiteHeader() {
   ]);
   const isOwner = currentUser?.profile.role === "owner";
   const accountLabel = currentUser
-    ? currentUser.profile.name || currentUser.profile.email || currentUser.authUser.email
+    ? currentUser.profile.name || currentUser.profile.email || currentUser.authUser.email || "Minha conta"
     : "";
   const ordersHref = currentUser ? "/conta/pedidos" : "/login?next=/conta/pedidos";
   const links: Array<{ href: string; label: string }> = [
@@ -28,7 +28,7 @@ export async function SiteHeader() {
   const account = currentUser
     ? {
         accountLabel,
-        email: currentUser.profile.email,
+        email: currentUser.profile.email || currentUser.authUser.email || "",
         isOwner,
       }
     : null;

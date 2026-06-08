@@ -576,7 +576,7 @@ export function ProductEditForm({
 
     setImageError("");
     setImageMessage("");
-    setImageAction("reorder");
+    setImageAction(`reorder:${productImages[index].id}:${direction}`);
 
     try {
       const response = await fetch(`/api/v1/admin/products/${product.id}/images/reorder`, {
@@ -856,6 +856,10 @@ export function ProductEditForm({
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {productImages.map((image, index) => {
               const isMainImage = image.image_url === currentMainImageUrl;
+              const isDefiningMain = imageAction === `main:${image.id}`;
+              const isDeleting = imageAction === `delete:${image.id}`;
+              const isMovingUp = imageAction === `reorder:${image.id}:-1`;
+              const isMovingDown = imageAction === `reorder:${image.id}:1`;
 
               return (
                 <div
@@ -885,8 +889,14 @@ export function ProductEditForm({
                       onClick={() => defineMainImage(image)}
                       className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Star size={14} aria-hidden="true" />
-                      Principal
+                      {isDefiningMain ? (
+                        <SmartButtonLoading message="Salvando..." />
+                      ) : (
+                        <>
+                          <Star size={14} aria-hidden="true" />
+                          Principal
+                        </>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -894,8 +904,14 @@ export function ProductEditForm({
                       onClick={() => moveImage(index, -1)}
                       className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <ArrowUp size={14} aria-hidden="true" />
-                      Subir
+                      {isMovingUp ? (
+                        <SmartButtonLoading message="Reordenando..." />
+                      ) : (
+                        <>
+                          <ArrowUp size={14} aria-hidden="true" />
+                          Subir
+                        </>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -903,8 +919,14 @@ export function ProductEditForm({
                       onClick={() => moveImage(index, 1)}
                       className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <ArrowDown size={14} aria-hidden="true" />
-                      Descer
+                      {isMovingDown ? (
+                        <SmartButtonLoading message="Reordenando..." />
+                      ) : (
+                        <>
+                          <ArrowDown size={14} aria-hidden="true" />
+                          Descer
+                        </>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -912,8 +934,14 @@ export function ProductEditForm({
                       onClick={() => removeImage(image)}
                       className="inline-flex h-9 items-center gap-2 rounded-md border border-red-300/40 px-3 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Trash2 size={14} aria-hidden="true" />
-                      Remover
+                      {isDeleting ? (
+                        <SmartButtonLoading message="Removendo..." />
+                      ) : (
+                        <>
+                          <Trash2 size={14} aria-hidden="true" />
+                          Remover
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

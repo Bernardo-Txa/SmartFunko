@@ -85,6 +85,7 @@ export async function CatalogPageContent({
 
       <section className="mb-6">
         <CatalogFilter
+          key={[category, franchise, sort, subcategory, query].join(":")}
           categories={categories}
           currentCategory={category}
           currentFranchise={franchise}
