@@ -2,6 +2,11 @@
 
 import type { Product } from "@/types/product";
 
+export type CartProduct = Pick<
+  Product,
+  "id" | "imageUrl" | "name" | "price" | "sku" | "slug" | "variantId"
+>;
+
 export type CartItem = {
   id: string;
   imageUrl?: string;
@@ -91,7 +96,7 @@ export function subscribeCart(listener: () => void): () => void {
   };
 }
 
-export function addProductToCart(product: Product, quantity = 1): CartItem {
+export function addProductToCart(product: CartProduct, quantity = 1): CartItem {
   const items = readCart();
   const current = items.find((item) => item.id === product.id);
   const nextQuantity = Math.max(1, quantity);

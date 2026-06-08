@@ -38,9 +38,9 @@ export function ProductCarousel({
 
       {products.length > 0 ? (
         <div className="catalog-scroll -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0">
-          {products.map((product, index) => (
+          {products.map((product) => (
             <div key={product.id} className="w-[78vw] shrink-0 snap-start sm:w-72 lg:w-80">
-              <ProductCard product={product} priority={index < 3} />
+              <ProductCard product={product} priority={false} />
             </div>
           ))}
         </div>
@@ -55,4 +55,3 @@ export function ProductCarousel({
     </section>
   );
 }
-

@@ -197,7 +197,7 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
       {productPage.data.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {productPage.data.map((product, index) => (
-            <ProductCard key={product.id} priority={index < 4} product={product} />
+            <ProductCard key={product.id} priority={index < 2} product={product} />
           ))}
         </div>
       ) : (

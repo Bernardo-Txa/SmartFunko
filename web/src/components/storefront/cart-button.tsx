@@ -4,9 +4,9 @@ import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Check, ShoppingCart } from "lucide-react";
 import { clsx } from "clsx";
-import type { Product } from "@/types/product";
 import {
   addProductToCart,
+  type CartProduct,
   readCart,
   readServerCart,
   subscribeCart,
@@ -20,7 +20,7 @@ export function CartButton({
 }: {
   className?: string;
   label?: string;
-  product: Product;
+  product: CartProduct;
   showLabel?: boolean;
 }) {
   const [added, setAdded] = useState<boolean>(false);

@@ -65,7 +65,7 @@ export function ProductArtwork({ product }: { product: Product }) {
 export function ProductMedia({
   product,
   priority = false,
-  sizes = "(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw",
+  sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px",
 }: {
   priority?: boolean;
   product: Product;
@@ -95,6 +95,15 @@ export function ProductCard({
 }) {
   const specialPills = getSpecialPills(product);
   const isSpecial = product.isSpecial || specialPills.length > 0;
+  const cartProduct = {
+    id: product.id,
+    imageUrl: product.imageUrl,
+    name: product.name,
+    price: product.price,
+    sku: product.sku,
+    slug: product.slug,
+    variantId: product.variantId,
+  };
 
   return (
     <article
@@ -118,7 +127,7 @@ export function ProductCard({
         />
         <CartButton
           className="h-9 w-9 bg-slate-950/72 px-0 backdrop-blur"
-          product={product}
+          product={cartProduct}
           showLabel={false}
         />
       </div>

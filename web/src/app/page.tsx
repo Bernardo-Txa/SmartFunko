@@ -83,11 +83,10 @@ const trustItems = [
 ];
 
 export default async function Home() {
-  const [heroProducts, readyProducts, specialProducts, newProducts, suppliers, franchises] =
+  const [readyProducts, specialProducts, newProducts, suppliers, franchises] =
     await Promise.all([
-      getCatalogProducts({ filter: "specials", pageSize: 4, sort: "specials_first" }),
       getCatalogProducts({ filter: "ready", pageSize: 8, sort: "ready_first" }),
-      getCatalogProducts({ filter: "specials", pageSize: 8, sort: "specials_first" }),
+      getCatalogProducts({ filter: "specials", pageSize: 10, sort: "specials_first" }),
       getCatalogProducts({ filter: "new", pageSize: 8, sort: "newest" }),
       getCatalogSuppliers(),
       getCatalogFranchises(),
@@ -104,7 +103,7 @@ export default async function Home() {
 
   return (
     <div>
-      <HeroBanner products={featuredProducts.length > 0 ? featuredProducts : heroProducts} />
+      <HeroBanner products={featuredProducts.length > 0 ? featuredProducts : specialProducts.slice(0, 4)} />
 
       <CommercialSection
         eyebrow="Catálogo único"

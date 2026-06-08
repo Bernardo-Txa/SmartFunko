@@ -206,7 +206,7 @@ export default async function BrandCatalogPage({ params, searchParams }: Props) 
       {products.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product, index) => (
-            <ProductCard key={product.id} priority={index < 4} product={product} />
+            <ProductCard key={product.id} priority={index < 2} product={product} />
           ))}
         </div>
       ) : (

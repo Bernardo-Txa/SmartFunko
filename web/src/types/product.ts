@@ -18,6 +18,7 @@ export type Product = {
   createdAt?: string;
   description: string;
   franchise: string;
+  franchiseSlug?: string;
   funkoNumber: string;
   id: string;
   imageAlt?: string;

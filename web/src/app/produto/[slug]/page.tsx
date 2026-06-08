@@ -9,10 +9,9 @@ import { PriceDisplay } from "@/components/storefront/price-display";
 import { ProductGallery } from "@/components/storefront/product-gallery";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { WishlistButton } from "@/components/storefront/wishlist-button";
-import { getCatalogProductBySlug, getCatalogProducts } from "@/lib/catalog";
+import { getCatalogProductBySlug, getRelatedProducts } from "@/lib/catalog";
 import { getProductVariantStatusMeta } from "@/lib/status-labels";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
-import type { Product } from "@/types/product";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -60,19 +59,6 @@ function getHowItWorks(productSource: string) {
   };
 }
 
-function uniqueRelatedProducts(products: Product[], currentProductId: string) {
-  const seen = new Set<string>();
-
-  return products.filter((product) => {
-    if (product.id === currentProductId || seen.has(product.id)) {
-      return false;
-    }
-
-    seen.add(product.id);
-    return true;
-  });
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getCatalogProductBySlug(slug);
@@ -107,34 +93,16 @@ export default async function ProductPage({ params }: Props) {
   const isSpecial = product.isSpecial || specialPills.length > 0;
   const howItWorks = getHowItWorks(product.source);
   const HowItWorksIcon = howItWorks.icon;
-  const relatedGroups = await Promise.all([
-    getCatalogProducts({
-      pageSize: 8,
-      query: product.franchise,
-      sort: "specials_first",
-    }),
-    product.supplierSlug
-      ? getCatalogProducts({
-          pageSize: 8,
-          supplier: product.supplierSlug,
-          sort: "specials_first",
-        })
-      : Promise.resolve([]),
-    product.category
-      ? getCatalogProducts({
-          category: product.category,
-          pageSize: 8,
-          sort: "specials_first",
-          subcategory: product.subcategory,
-        })
-      : Promise.resolve([]),
-    getCatalogProducts({
-      filter: "specials",
-      pageSize: 8,
-      sort: "specials_first",
-    }),
-  ]);
-  const relatedProducts = uniqueRelatedProducts(relatedGroups.flat(), product.id);
+  const relatedProducts = await getRelatedProducts(product, 4);
+  const cartProduct = {
+    id: product.id,
+    imageUrl: product.imageUrl,
+    name: product.name,
+    price: product.price,
+    sku: product.sku,
+    slug: product.slug,
+    variantId: product.variantId,
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -254,7 +222,7 @@ export default async function ProductPage({ params }: Props) {
               showLabel
             />
           </div>
-          <CartButton className="mt-3 w-full" product={product} />
+          <CartButton className="mt-3 w-full" product={cartProduct} />
         </section>
       </div>
 
@@ -286,7 +254,8 @@ export default async function ProductPage({ params }: Props) {
         <ProductGrid
           emptyDescription="Ainda não há produtos relacionados ativos para este item."
           emptyTitle="Nenhum relacionado por enquanto"
-          products={relatedProducts.slice(0, 4)}
+          priorityCount={0}
+          products={relatedProducts}
         />
       </section>
     </div>
