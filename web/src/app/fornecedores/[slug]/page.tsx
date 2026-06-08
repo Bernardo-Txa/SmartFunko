@@ -109,9 +109,16 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mb-6 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <section
+        className="mb-6 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_64px_rgba(2,6,23,0.22)]"
+        style={
+          supplier.accent_color
+            ? { borderColor: `${supplier.accent_color}66` }
+            : undefined
+        }
+      >
         {supplier.banner_url ? (
-          <div className="relative h-48 border-b border-[var(--border)] sm:h-64">
+          <div className="relative h-52 border-b border-[var(--border)] sm:h-72">
             <Image
               src={supplier.banner_url}
               alt={supplier.name}
@@ -120,27 +127,30 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
               className="object-cover"
               priority
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/84 via-[#020617]/10 to-transparent" />
           </div>
         ) : null}
         <div className="p-5 sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             {supplier.logo_url ? (
-              <div className="relative h-20 w-20 overflow-hidden rounded-md border border-[var(--border)] bg-white">
+              <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_16px_34px_rgba(2,6,23,0.20)]">
                 <Image
                   src={supplier.logo_url}
                   alt={supplier.name}
                   fill
-                  sizes="80px"
+                  sizes="96px"
                   className="object-contain p-2"
                 />
               </div>
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface-strong)] text-2xl font-black text-[var(--foreground)]">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] text-2xl font-black text-[var(--foreground)]">
                 {supplier.name.slice(0, 2).toUpperCase()}
               </div>
             )}
             <div>
-              <p className="text-xs font-bold uppercase text-[var(--muted)]">Fornecedor</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--yellow)]">
+                Collab / fornecedor
+              </p>
               <h1 className="mt-1 text-3xl font-black text-[var(--foreground)]">{supplier.name}</h1>
               {supplier.description ? (
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
@@ -152,7 +162,7 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
                   href={supplier.website_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-flex text-sm font-bold text-[var(--accent)] hover:brightness-110"
+                  className="mt-3 inline-flex rounded-full border border-cyan-200/24 bg-cyan-400/10 px-3 py-1.5 text-sm font-bold text-[var(--accent)] hover:bg-cyan-400/16"
                 >
                   Site oficial
                 </a>
@@ -172,7 +182,7 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
         <Link
           href="/fornecedores"
           prefetch={false}
-          className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          className="inline-flex h-10 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10"
         >
           Ver outras collabs
         </Link>
@@ -195,13 +205,13 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
       </section>
 
       {productPage.data.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {productPage.data.map((product, index) => (
             <ProductCard key={product.id} priority={index < 2} product={product} />
           ))}
         </div>
       ) : (
-        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--muted)]">
+        <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--muted)]">
           Nenhum produto encontrado para esta collab. Tente ajustar busca, categoria ou ordenação.
         </p>
       )}
@@ -215,11 +225,11 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
             })}
             prefetch={false}
             aria-disabled={productPage.meta.page <= 1}
-            className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"
+            className="inline-flex h-10 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
           >
             Anterior
           </Link>
-          <span className="px-3 text-sm font-semibold text-[var(--muted)]">
+          <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-2 text-sm font-semibold text-[var(--muted)]">
             {productPage.meta.page} / {productPage.meta.totalPages}
           </span>
           <Link
@@ -229,7 +239,7 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
             })}
             prefetch={false}
             aria-disabled={productPage.meta.page >= productPage.meta.totalPages}
-            className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"
+            className="inline-flex h-10 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
           >
             Proxima
           </Link>

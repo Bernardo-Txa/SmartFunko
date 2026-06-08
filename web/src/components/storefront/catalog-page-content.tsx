@@ -71,15 +71,20 @@ export async function CatalogPageContent({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mb-6">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--yellow)]">
-          Smart Funkos
-        </p>
-        <h1 className="mt-2 text-3xl font-black text-[var(--foreground)] sm:text-4xl">
-          Catálogo Smart Funkos
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-          Explore produtos, categorias e linhas em um só lugar.
+      <section className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--yellow)]">
+            Smart Funkos
+          </p>
+          <h1 className="mt-2 text-3xl font-black text-[var(--foreground)] sm:text-4xl">
+            Catálogo Smart Funkos
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+            Explore produtos, categorias e linhas em um só lugar.
+          </p>
+        </div>
+        <p className="w-fit rounded-full border border-white/10 bg-slate-950/48 px-3 py-1.5 text-xs font-bold text-slate-300">
+          {productPage.meta.total} produto(s)
         </p>
       </section>
 
@@ -97,8 +102,8 @@ export async function CatalogPageContent({
         />
       </section>
 
-      <p className="mb-4 text-sm text-[var(--muted)]">
-        {productPage.meta.total} produto(s) encontrado(s). Página {productPage.meta.page} de{" "}
+      <p className="mb-4 text-xs font-semibold text-[var(--muted)]">
+        Página {productPage.meta.page} de{" "}
         {productPage.meta.totalPages}.
       </p>
 
@@ -122,11 +127,11 @@ export async function CatalogPageContent({
           })}
           prefetch={false}
           aria-disabled={productPage.meta.page <= 1}
-          className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
         >
           Anterior
         </Link>
-        <span className="px-3 text-sm font-semibold text-[var(--muted)]">
+        <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-2 text-sm font-semibold text-[var(--muted)]">
           {productPage.meta.page} / {productPage.meta.totalPages}
         </span>
         <Link
@@ -140,7 +145,7 @@ export async function CatalogPageContent({
           })}
           prefetch={false}
           aria-disabled={productPage.meta.page >= productPage.meta.totalPages}
-          className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] aria-disabled:pointer-events-none aria-disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
         >
           Próxima
         </Link>

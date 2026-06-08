@@ -106,10 +106,10 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="max-w-xl">
+      <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+        <div className="max-w-xl lg:sticky lg:top-28 lg:self-start">
           {isSpecial ? (
-            <div className="mb-3 inline-flex rounded-full bg-yellow-300 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_14px_30px_rgba(250,204,21,0.2)]">
+            <div className="mb-3 inline-flex rounded-full border border-yellow-200/60 bg-yellow-300/92 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_14px_30px_rgba(250,204,21,0.18)]">
               Produto Special
             </div>
           ) : null}
@@ -118,9 +118,9 @@ export default async function ProductPage({ params }: Props) {
 
         <section
           className={clsx(
-            "rounded-lg border bg-[var(--surface)] p-5",
+            "rounded-2xl border bg-[var(--surface)] p-5 shadow-[0_22px_58px_rgba(2,6,23,0.20)] sm:p-6",
             isSpecial
-              ? "border-yellow-300/50 shadow-[0_20px_60px_rgba(250,204,21,0.12)]"
+              ? "border-yellow-300/42 shadow-[0_24px_64px_rgba(250,204,21,0.12)]"
               : "border-[var(--border)]",
           )}
         >
@@ -128,13 +128,13 @@ export default async function ProductPage({ params }: Props) {
             {specialPills.map((label) => (
               <span
                 key={label}
-                className="rounded-full bg-yellow-300 px-3 py-1 text-[11px] font-black uppercase text-slate-950"
+                className="rounded-full border border-yellow-200/60 bg-yellow-300/92 px-3 py-1 text-[11px] font-black uppercase tracking-[0.06em] text-slate-950"
               >
                 {label}
               </span>
             ))}
             <ProductStatusBadge status={product.status} />
-            <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-xs font-semibold text-[var(--muted)]">
+            <span className="rounded-full border border-white/10 bg-slate-950/40 px-3 py-1 text-xs font-semibold text-[var(--muted)]">
               {product.source}
             </span>
           </div>
@@ -148,13 +148,13 @@ export default async function ProductPage({ params }: Props) {
           {product.supplierName && product.supplierSlug ? (
             <Link
               href={`/fornecedores/${product.supplierSlug}`}
-              className="mt-3 inline-flex rounded-md bg-[var(--surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--foreground)] hover:text-[var(--accent)]"
+              className="mt-3 inline-flex rounded-full border border-cyan-300/18 bg-slate-950/42 px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] hover:border-cyan-200/45 hover:text-[var(--accent)]"
             >
               {product.supplierName}
             </Link>
           ) : null}
 
-          <div className="mt-6 border-y border-[var(--border)] py-5">
+          <div className="mt-6 rounded-2xl border border-cyan-300/16 bg-slate-950/35 p-4">
             <PriceDisplay
               marketPrice={product.marketPrice}
               price={product.price}
@@ -163,37 +163,37 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Franquia</dt>
               <dd className="text-[var(--muted)]">{product.franchise}</dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Número Funko</dt>
               <dd className="text-[var(--muted)]">#{product.funkoNumber}</dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Categoria</dt>
               <dd className="text-[var(--muted)]">
                 {[product.category, product.subcategory].filter(Boolean).join(" · ") || "Colecionável"}
               </dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Fornecedor/collab</dt>
               <dd className="text-[var(--muted)]">{product.supplierName ?? "Smart Funkos"}</dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Condição</dt>
               <dd className="text-[var(--muted)]">{product.condition}</dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Tipo</dt>
               <dd className="text-[var(--muted)]">{product.type}</dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Origem</dt>
               <dd className="text-[var(--muted)]">{product.source}</dd>
             </div>
-            <div>
+            <div className="rounded-xl border border-white/8 bg-slate-950/28 p-3">
               <dt className="font-semibold text-[var(--foreground)]">Status</dt>
               <dd className="text-[var(--muted)]">
                 {getProductVariantStatusMeta(product.status).label}
@@ -210,7 +210,7 @@ export default async function ProductPage({ params }: Props) {
               href={createProductWhatsAppUrl(product)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--green)] px-5 text-sm font-black text-[#052e16] hover:brightness-110"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-emerald-200/30 bg-emerald-500/90 px-5 text-sm font-black text-[#042f1a] shadow-[0_16px_34px_rgba(16,185,129,0.18)] hover:bg-emerald-400"
             >
               <MessageCircle size={18} aria-hidden="true" />
               Tenho interesse
@@ -227,14 +227,16 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       <section className="mt-8 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-          <HowItWorksIcon className="text-[var(--yellow)]" size={24} aria-hidden="true" />
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_44px_rgba(2,6,23,0.14)]">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-yellow-200/30 bg-yellow-300/12">
+            <HowItWorksIcon className="text-[var(--yellow)]" size={22} aria-hidden="true" />
+          </span>
           <h2 className="mt-4 text-lg font-black text-[var(--foreground)]">
             {howItWorks.title}
           </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{howItWorks.text}</p>
         </div>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_18px_44px_rgba(2,6,23,0.14)]">
           <h2 className="text-lg font-black text-[var(--foreground)]">Próximos passos</h2>
           <div className="mt-4 grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-3">
             <p>1. Envie interesse pelo WhatsApp com SKU e link preenchidos.</p>

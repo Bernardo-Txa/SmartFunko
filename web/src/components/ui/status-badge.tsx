@@ -11,7 +11,13 @@ import {
   type StatusMeta,
 } from "@/lib/status-labels";
 
-export function ProductStatusBadge({ status }: { status: ProductStatus }) {
+export function ProductStatusBadge({
+  className,
+  status,
+}: {
+  className?: string;
+  status: ProductStatus;
+}) {
   const meta = getProductVariantStatusMeta(status);
 
   return (
@@ -19,6 +25,7 @@ export function ProductStatusBadge({ status }: { status: ProductStatus }) {
       className={clsx(
         getStatusBadgeClassName(meta),
         "rounded-full px-3 text-[11px] font-black uppercase",
+        className,
       )}
     >
       {meta.label}

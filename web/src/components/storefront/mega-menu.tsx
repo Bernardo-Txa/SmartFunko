@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { clsx } from "clsx";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { CatalogCategory } from "@/lib/catalog";
 
@@ -92,8 +94,10 @@ export function MegaMenu({
 }) {
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const highlightedFranchises = franchises.slice(0, 8);
+  const isCatalogActive = pathname.startsWith("/catalogo");
   useCloseMenu(isOpen, setIsOpen, menuRef);
 
   function closeMenu() {
@@ -106,7 +110,10 @@ export function MegaMenu({
         type="button"
         aria-controls={menuId}
         aria-expanded={isOpen}
-        className="inline-flex h-10 cursor-pointer list-none items-center gap-1 rounded-full px-4 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15 hover:text-white"
+        className={clsx(
+          "inline-flex h-10 cursor-pointer list-none items-center gap-1 rounded-full px-4 text-sm font-bold transition hover:bg-cyan-400/12 hover:text-white",
+          isCatalogActive ? "bg-cyan-300/14 text-white ring-1 ring-cyan-200/26" : "text-slate-200",
+        )}
         onClick={() => setIsOpen((current) => !current)}
       >
         Catálogo
@@ -119,14 +126,14 @@ export function MegaMenu({
       {isOpen ? (
         <div
           id={menuId}
-          className="absolute left-0 top-12 w-[760px] max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--border)] bg-[#020617] p-4 shadow-[0_28px_70px_rgba(2,6,23,0.56)]"
+          className="absolute left-0 top-12 w-[760px] max-w-[calc(100vw-2rem)] rounded-2xl border border-cyan-300/18 bg-[#020617]/98 p-4 shadow-[0_28px_70px_rgba(2,6,23,0.56)]"
         >
           <div className="grid gap-4 md:grid-cols-3">
             <Link
               href="/catalogo"
               prefetch={false}
               onClick={closeMenu}
-              className="rounded-lg border border-cyan-300/20 bg-cyan-400/10 p-3 text-sm font-black text-slate-100 hover:bg-cyan-400/16 md:col-span-3"
+              className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 p-3 text-sm font-black text-slate-100 hover:bg-cyan-400/15 md:col-span-3"
             >
               Todos os produtos
             </Link>
@@ -135,7 +142,7 @@ export function MegaMenu({
               const firstCategory = groupCategories[0];
 
               return (
-                <section key={group.label} className="rounded-lg bg-slate-900/64 p-3">
+                <section key={group.label} className="rounded-xl border border-white/8 bg-slate-900/64 p-3">
                   <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--yellow)]">
                     {group.label}
                   </h3>
@@ -166,7 +173,7 @@ export function MegaMenu({
                 </section>
               );
             })}
-            <section className="rounded-lg bg-slate-900/64 p-3 md:col-span-3">
+            <section className="rounded-xl border border-white/8 bg-slate-900/64 p-3 md:col-span-3">
               <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--yellow)]">
                 Franquias em destaque
               </h3>

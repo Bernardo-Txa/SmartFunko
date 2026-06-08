@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown, Heart, LayoutDashboard, LogOut, Menu, Package, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { clsx } from "clsx";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { CartNavButton } from "@/components/storefront/cart-button";
 import { MobileMegaMenu, type FranchiseOption } from "@/components/storefront/mega-menu";
@@ -61,6 +63,7 @@ function useCloseMenu(
 export function HeaderActions({ account, categories, franchises, links }: HeaderActionsProps) {
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -73,6 +76,16 @@ export function HeaderActions({ account, categories, franchises, links }: Header
 
   function closeMobileMenu() {
     setIsMobileOpen(false);
+  }
+
+  function isMobileLinkActive(href: string) {
+    const normalizedHref = href.split("?")[0];
+
+    if (normalizedHref === "/fornecedores") {
+      return pathname.startsWith("/fornecedores") || pathname.startsWith("/collabs");
+    }
+
+    return pathname.startsWith(normalizedHref);
   }
 
   return (
@@ -182,7 +195,12 @@ export function HeaderActions({ account, categories, franchises, links }: Header
                   href={link.href}
                   prefetch={false}
                   onClick={closeMobileMenu}
-                  className="rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+                  className={clsx(
+                    "rounded-lg px-3 py-2 text-sm font-bold hover:bg-cyan-400/12",
+                    isMobileLinkActive(link.href)
+                      ? "bg-cyan-300/14 text-white"
+                      : "text-[var(--foreground)]",
+                  )}
                 >
                   {link.label}
                 </Link>

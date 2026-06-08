@@ -29,7 +29,7 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {products.map((product, index) => (
         <ProductCard key={product.id} priority={index < priorityCount} product={product} />
       ))}
@@ -39,11 +39,11 @@ export function ProductGrid({
 
 export function ProductCardSkeleton() {
   return (
-    <div className="h-full rounded-2xl border border-cyan-400/20 bg-[#030816] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.26)]">
-      <div className="aspect-[4/5] rounded-[14px] bg-slate-800/80" />
+    <div className="h-full rounded-2xl border border-cyan-400/20 bg-[#030816]/96 p-4 shadow-[0_16px_38px_rgba(2,6,23,0.24)]">
+      <div className="aspect-[4/5] rounded-[16px] bg-slate-800/80" />
       <div className="mt-4 flex gap-2">
-        <div className="h-7 w-20 rounded-full bg-slate-800" />
-        <div className="h-7 w-24 rounded-full bg-slate-800" />
+        <div className="h-6 w-24 rounded-full bg-slate-800" />
+        <div className="h-6 w-10 rounded-full bg-slate-800" />
       </div>
       <div className="mt-4 h-4 w-28 rounded bg-slate-800" />
       <div className="mt-3 h-5 w-full rounded bg-slate-800" />
@@ -56,7 +56,7 @@ export function ProductCardSkeleton() {
 
 export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
       {Array.from({ length: count }, (_, index) => (
         <ProductCardSkeleton key={index} />
       ))}

@@ -84,7 +84,7 @@ export function CatalogFilter({
           );
         });
       }}
-      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.08)]"
+      className="rounded-2xl border border-cyan-300/18 bg-slate-950/44 p-3 shadow-[0_18px_44px_rgba(2,6,23,0.14)] backdrop-blur sm:p-4"
     >
       <div className="grid gap-3 lg:grid-cols-[minmax(260px,1.6fr)_minmax(170px,0.8fr)_minmax(170px,0.8fr)_minmax(170px,0.8fr)_minmax(150px,0.7fr)_auto]">
         <label className="relative block">
@@ -100,7 +100,7 @@ export function CatalogFilter({
             name="q"
             type="search"
             placeholder="Buscar no catálogo"
-            className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-10 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+            className="h-11 w-full rounded-xl border border-cyan-300/18 bg-[#071124]/88 px-10 text-sm text-[var(--foreground)] outline-none transition focus:border-cyan-200/70"
           />
         </label>
 
@@ -113,7 +113,7 @@ export function CatalogFilter({
               setSelectedSubcategory("");
             }}
             name="category"
-            className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm font-semibold text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+            className="h-11 w-full rounded-xl border border-cyan-300/18 bg-[#071124]/88 px-3 text-sm font-semibold text-[var(--foreground)] outline-none transition focus:border-cyan-200/70"
           >
             <option value="">Categorias</option>
             {categories.map((category) => (
@@ -131,7 +131,7 @@ export function CatalogFilter({
             onChange={(event) => setSelectedSubcategory(event.target.value)}
             disabled={!selectedCategory}
             name="subcategory"
-            className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm font-semibold text-[var(--foreground)] outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--muted)]"
+            className="h-11 w-full rounded-xl border border-cyan-300/18 bg-[#071124]/88 px-3 text-sm font-semibold text-[var(--foreground)] outline-none transition focus:border-cyan-200/70 disabled:cursor-not-allowed disabled:text-[var(--muted)]"
           >
             <option value="">{selectedCategory ? "Linhas" : "Escolha categoria"}</option>
             {subcategoryOptions.map((subcategory) => (
@@ -148,7 +148,7 @@ export function CatalogFilter({
             value={selectedFranchise}
             onChange={(event) => setSelectedFranchise(event.target.value)}
             name="franchise"
-            className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm font-semibold text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+            className="h-11 w-full rounded-xl border border-cyan-300/18 bg-[#071124]/88 px-3 text-sm font-semibold text-[var(--foreground)] outline-none transition focus:border-cyan-200/70"
           >
             <option value="">Franquias</option>
             {franchises.map((franchise) => (
@@ -165,7 +165,7 @@ export function CatalogFilter({
             value={selectedSort}
             onChange={(event) => setSelectedSort(event.target.value as CatalogProductSort)}
             name="sort"
-            className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm font-semibold text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+            className="h-11 w-full rounded-xl border border-cyan-300/18 bg-[#071124]/88 px-3 text-sm font-semibold text-[var(--foreground)] outline-none transition focus:border-cyan-200/70"
           >
             <option value="relevance">Relevância</option>
             <option value="newest">Novidades</option>
@@ -179,7 +179,7 @@ export function CatalogFilter({
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-yellow-300 px-4 text-sm font-black text-[#020617] shadow-[0_10px_24px_rgba(250,204,21,0.14)] hover:bg-yellow-200 disabled:cursor-wait disabled:opacity-70"
           >
             {isPending ? (
               <SmartButtonLoading message="Filtrando..." />
@@ -198,7 +198,7 @@ export function CatalogFilter({
                 router.push(pathname);
               });
             }}
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-sm font-bold text-[var(--muted)] hover:bg-[var(--surface-strong)] disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-cyan-300/18 px-3 text-sm font-bold text-[var(--muted)] hover:bg-cyan-400/10 disabled:cursor-wait disabled:opacity-60"
           >
             Limpar
           </button>

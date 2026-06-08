@@ -23,17 +23,25 @@ function getSpecialPills(product: Product) {
   ].filter(Boolean) as string[];
 
   if (pills.length > 0) {
-    return Array.from(new Set(pills)).slice(0, 3);
+    return Array.from(new Set(pills));
   }
 
   return [];
+}
+
+function getCardSpecialLabel(product: Product, specialPills: string[]) {
+  if (specialPills[0]) {
+    return specialPills[0];
+  }
+
+  return product.isSpecial ? "Special" : undefined;
 }
 
 export function ProductArtwork({ product }: { product: Product }) {
   return (
     <div
       className={clsx(
-        "relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-[14px] bg-gradient-to-br p-4 text-slate-950",
+        "relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-[16px] bg-gradient-to-br p-4 text-slate-950",
         toneClass[product.tone],
       )}
       aria-label={product.name}
@@ -94,6 +102,7 @@ export function ProductCard({
 }) {
   const specialPills = getSpecialPills(product);
   const isSpecial = product.isSpecial || specialPills.length > 0;
+  const cardSpecialLabel = getCardSpecialLabel(product, specialPills);
   const cartProduct = {
     id: product.id,
     imageUrl: product.imageUrl,
@@ -107,9 +116,9 @@ export function ProductCard({
   return (
     <article
       className={clsx(
-        "relative flex h-full flex-col rounded-2xl border bg-[#030816] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.26)]",
+        "group relative flex h-full flex-col rounded-2xl border bg-[#030816]/96 p-3.5 shadow-[0_16px_38px_rgba(2,6,23,0.24)] transition duration-200 hover:-translate-y-0.5 hover:border-cyan-200/32 hover:shadow-[0_22px_48px_rgba(2,6,23,0.34)] sm:p-4",
         isSpecial
-          ? "border-yellow-300/55 shadow-[0_20px_54px_rgba(250,204,21,0.16)]"
+          ? "border-yellow-300/36 shadow-[0_18px_44px_rgba(250,204,21,0.11)]"
           : "border-cyan-400/20",
       )}
     >
@@ -118,9 +127,9 @@ export function ProductCard({
           <ProductMedia product={product} priority={priority} />
         </Link>
 
-        {isSpecial ? (
-          <div className="absolute left-3 top-3 z-20 rounded-full border border-yellow-200/70 bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_10px_22px_rgba(250,204,21,0.24)]">
-            Special
+        {cardSpecialLabel ? (
+          <div className="absolute left-3 top-3 z-20 max-w-[calc(100%-6.5rem)] truncate rounded-full border border-yellow-200/60 bg-yellow-300/92 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-slate-950 shadow-[0_10px_22px_rgba(250,204,21,0.18)] backdrop-blur">
+            {cardSpecialLabel}
           </div>
         ) : null}
 
@@ -132,27 +141,27 @@ export function ProductCard({
       </div>
 
       <div className="mt-4 flex flex-1 flex-col">
-        <div className="flex min-h-7 flex-wrap gap-2">
-          {specialPills.map((label) => (
-            <span
-              key={label}
-              className="inline-flex h-7 items-center rounded-full bg-yellow-300 px-3 text-[11px] font-black uppercase text-slate-950"
-            >
-              {label}
+        <div className="flex min-h-6 flex-wrap items-center gap-2">
+          <ProductStatusBadge
+            className="h-6 rounded-full px-2.5 text-[10px] tracking-[0.04em]"
+            status={product.status}
+          />
+          {specialPills.length > 1 ? (
+            <span className="inline-flex h-6 items-center rounded-full border border-white/10 bg-slate-900/72 px-2 text-[10px] font-black text-slate-300">
+              +{specialPills.length - 1}
             </span>
-          ))}
-          <ProductStatusBadge status={product.status} />
+          ) : null}
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <p className="text-xs font-black uppercase text-sky-300">
+        <div className="mt-3 flex min-h-7 flex-wrap items-center gap-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-300">
             {product.franchise}
           </p>
           {product.supplierName && product.supplierSlug ? (
             <Link
               href={`/fornecedores/${product.supplierSlug}`}
               prefetch={false}
-              className="rounded-md bg-slate-800 px-2 py-1 text-[11px] font-bold text-slate-300 hover:text-[var(--accent)]"
+              className="rounded-full border border-cyan-300/12 bg-slate-900/80 px-2.5 py-1 text-[10px] font-bold text-slate-300 hover:border-cyan-200/32 hover:text-[var(--accent)]"
             >
               {product.supplierName}
             </Link>
@@ -162,21 +171,21 @@ export function ProductCard({
         <Link
           href={`/produto/${product.slug}`}
           prefetch={false}
-          className="mt-1 line-clamp-2 min-h-12 text-base font-black leading-6 text-slate-100 hover:text-[var(--accent)]"
+          className="mt-1 line-clamp-2 min-h-12 text-base font-black leading-6 text-slate-100 transition group-hover:text-white hover:text-[var(--accent)]"
         >
           {product.name}
         </Link>
 
-        <p className="mt-2 min-h-5 text-xs text-slate-400">
+        <p className="mt-2 min-h-5 text-xs font-medium text-slate-500">
           #{product.funkoNumber} · SKU {product.sku}
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="inline-flex h-7 items-center rounded-md bg-slate-800 px-2 text-xs font-semibold text-slate-300 ring-1 ring-slate-700">
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+          <span className="inline-flex h-6 items-center rounded-full border border-white/10 bg-slate-900/72 px-2.5 font-semibold text-slate-300">
             {product.source}
           </span>
           {product.condition !== "Novo" ? (
-            <span className="inline-flex h-7 items-center rounded-md bg-slate-800 px-2 text-xs font-semibold text-slate-300 ring-1 ring-slate-700">
+            <span className="inline-flex h-6 items-center rounded-full border border-white/10 bg-slate-900/72 px-2.5 font-semibold text-slate-300">
               {product.condition}
             </span>
           ) : null}
@@ -194,9 +203,9 @@ export function ProductCard({
               href={createProductWhatsAppUrl(product)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-lg bg-[var(--green)] px-3 text-xs font-black text-[#052e16] hover:brightness-110"
+              className="inline-flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-emerald-200/30 bg-emerald-500/90 px-3 text-xs font-black text-[#042f1a] shadow-[0_12px_26px_rgba(16,185,129,0.16)] transition hover:bg-emerald-400 hover:shadow-[0_14px_30px_rgba(16,185,129,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#030816]"
             >
-              <MessageCircle size={16} aria-hidden="true" />
+              <MessageCircle size={15} aria-hidden="true" />
               Tenho interesse
             </a>
           </div>
