@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
@@ -432,9 +433,9 @@ export function OrderCreateForm({
         ) : null}
         <button
           disabled={isSubmitting}
-          className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-md bg-[var(--accent)] px-5 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
+          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-5 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
-          {isSubmitting ? "Criando..." : "Criar pedido"}
+          {isSubmitting ? <SmartButtonLoading message="Criando..." /> : "Criar pedido"}
         </button>
       </div>
     </form>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
@@ -132,8 +133,14 @@ export function InventoryCreateForm() {
           disabled={isSubmitting}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
-          <Plus size={16} />
-          {isSubmitting ? "Criando..." : "Adicionar unidade"}
+          {isSubmitting ? (
+            <SmartButtonLoading message="Criando..." />
+          ) : (
+            <>
+              <Plus size={16} />
+              Adicionar unidade
+            </>
+          )}
         </button>
       </form>
     </section>

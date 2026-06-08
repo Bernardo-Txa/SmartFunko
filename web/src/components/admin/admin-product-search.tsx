@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { formatCurrency } from "@/lib/format";
 import { ProductPublishStatusBadge, ProductVariantStatusBadge } from "@/components/ui/status-badge";
 
@@ -129,10 +130,10 @@ export function AdminProductSearch() {
             className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-9 text-sm outline-none focus:border-[var(--accent)]"
           />
           {isLoading ? (
-            <Loader2
-              aria-hidden="true"
-              className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[var(--muted)]"
-              size={16}
+            <SmartButtonLoading
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--yellow)]"
+              message="Buscando produtos..."
+              showMessage={false}
             />
           ) : null}
         </div>

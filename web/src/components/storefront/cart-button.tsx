@@ -45,7 +45,13 @@ export function CartButton({
   );
 }
 
-export function CartNavButton({ className }: { className?: string }) {
+export function CartNavButton({
+  className,
+  onClick,
+}: {
+  className?: string;
+  onClick?: () => void;
+}) {
   const items = useSyncExternalStore(subscribeCart, readCart, readServerCart);
 
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -59,6 +65,7 @@ export function CartNavButton({ className }: { className?: string }) {
         className,
       )}
       aria-label={`Carrinho com ${count} item(ns)`}
+      onClick={onClick}
     >
       <ShoppingCart size={16} aria-hidden="true" />
       <span className="hidden sm:inline">Carrinho</span>

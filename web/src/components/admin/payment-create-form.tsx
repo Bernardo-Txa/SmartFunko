@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CreditCard } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { formatCurrency } from "@/lib/format";
 
 const paymentMethods = [
@@ -182,8 +183,14 @@ export function PaymentCreateForm({
           disabled={isSubmitting || pendingAmount <= 0}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-fit"
         >
-          <CreditCard size={16} aria-hidden="true" />
-          {isSubmitting ? "Registrando..." : "Registrar pagamento"}
+          {isSubmitting ? (
+            <SmartButtonLoading message="Registrando..." />
+          ) : (
+            <>
+              <CreditCard size={16} aria-hidden="true" />
+              Registrar pagamento
+            </>
+          )}
         </button>
       </form>
       {message ? <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">{message}</p> : null}

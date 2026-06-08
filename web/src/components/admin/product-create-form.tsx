@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 type SupplierOption = {
   id: string;
@@ -308,8 +309,14 @@ export function ProductCreateForm({ suppliers = [] }: { suppliers?: SupplierOpti
           disabled={isSubmitting}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
-          <Plus size={16} />
-          {isSubmitting ? "Criando..." : "Criar produto"}
+          {isSubmitting ? (
+            <SmartButtonLoading message="Criando..." />
+          ) : (
+            <>
+              <Plus size={16} />
+              Criar produto
+            </>
+          )}
         </button>
       </form>
     </section>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, RotateCcw } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 type PaymentActionsProps = {
   amount: number;
@@ -138,7 +139,11 @@ export function PaymentActions({
                 disabled={isSubmitting || notes.trim().length < 3}
                 className="inline-flex h-10 items-center justify-center rounded-md bg-red-300 px-4 text-sm font-black text-red-950 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Estornando..." : "Confirmar estorno"}
+                {isSubmitting ? (
+                  <SmartButtonLoading message="Estornando..." />
+                ) : (
+                  "Confirmar estorno"
+                )}
               </button>
               <button
                 type="button"

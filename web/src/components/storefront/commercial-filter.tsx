@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import type {
   CatalogCategory,
   CatalogProductFilter,
@@ -69,11 +70,15 @@ export function CommercialFilter({
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>(currentCategory);
   const [selectedSubcategoryName, setSelectedSubcategoryName] =
     useState<string>(currentSubcategory);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const activeCategory = categories.find((category) => category.name === selectedCategoryName);
   const subcategoryOptions = activeCategory?.subcategories ?? [];
 
   return (
-    <form className="rounded-xl border border-cyan-400/20 bg-[#030816]/88 p-3 shadow-[0_18px_44px_rgba(2,6,23,0.2)]">
+    <form
+      onSubmit={() => setIsSubmitting(true)}
+      className="rounded-xl border border-cyan-400/20 bg-[#030816]/88 p-3 shadow-[0_18px_44px_rgba(2,6,23,0.2)]"
+    >
       <div className="grid gap-3 lg:grid-cols-[minmax(260px,1.4fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_auto]">
         <label className="relative block">
           <span className="sr-only">Buscar produto</span>
@@ -200,9 +205,18 @@ export function CommercialFilter({
         </label>
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
-          <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
-            <SlidersHorizontal size={16} aria-hidden="true" />
-            Filtrar
+          <button
+            disabled={isSubmitting}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
+          >
+            {isSubmitting ? (
+              <SmartButtonLoading message="Filtrando..." />
+            ) : (
+              <>
+                <SlidersHorizontal size={16} aria-hidden="true" />
+                Filtrar
+              </>
+            )}
           </button>
           <Link
             href={pathname}

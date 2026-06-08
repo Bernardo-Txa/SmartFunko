@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { cashEntryCategoryOptions, cashEntryTypeOptions } from "@/lib/status-labels";
 
 export function CashflowManualEntryForm() {
@@ -112,8 +113,14 @@ export function CashflowManualEntryForm() {
           disabled={isSubmitting}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Plus size={16} aria-hidden="true" />
-          {isSubmitting ? "Criando..." : "Criar"}
+          {isSubmitting ? (
+            <SmartButtonLoading message="Criando..." />
+          ) : (
+            <>
+              <Plus size={16} aria-hidden="true" />
+              Criar
+            </>
+          )}
         </button>
       </form>
       {message ? <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">{message}</p> : null}

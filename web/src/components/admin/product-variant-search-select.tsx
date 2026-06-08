@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { Loader2, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { SmartButtonLoading, SmartInlineLoading } from "@/components/ui/smart-loading";
 import { formatCurrency } from "@/lib/format";
 import { getProductVariantStatusMeta } from "@/lib/status-labels";
 
@@ -138,10 +139,10 @@ export function ProductVariantSearchSelect({
           className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-9 text-sm outline-none focus:border-[var(--accent)]"
         />
         {isLoading ? (
-          <Loader2
-            aria-hidden="true"
-            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[var(--muted)]"
-            size={16}
+          <SmartButtonLoading
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--yellow)]"
+            message="Buscando produto..."
+            showMessage={false}
           />
         ) : selected ? (
           <button
@@ -183,7 +184,9 @@ export function ProductVariantSearchSelect({
               ))}
             </div>
           ) : isLoading ? (
-            <div className="px-3 py-3 text-sm text-[var(--muted)]">Buscando...</div>
+            <div className="px-3 py-3">
+              <SmartInlineLoading message="Buscando..." />
+            </div>
           ) : (
             <div className="px-3 py-3 text-sm text-[var(--muted)]">Nenhum produto encontrado.</div>
           )}

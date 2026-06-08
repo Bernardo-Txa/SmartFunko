@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { getDefaultAuthenticatedPath, sanitizeNextPath } from "@/lib/auth/redirect";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -205,8 +206,14 @@ export function AuthForm({
           disabled={isSubmitting}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Icon size={17} aria-hidden="true" />
-          {isSubmitting ? "Aguarde..." : copy.button}
+          {isSubmitting ? (
+            <SmartButtonLoading message="Aguarde..." />
+          ) : (
+            <>
+              <Icon size={17} aria-hidden="true" />
+              {copy.button}
+            </>
+          )}
         </button>
       </form>
     </section>

@@ -15,6 +15,7 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { productVariantStatusOptions } from "@/lib/status-labels";
 
 type Option = {
@@ -329,8 +330,14 @@ function VariantForm({
         disabled={isSubmitting}
         className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
       >
-        {method === "POST" ? <Plus size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
-        {isSubmitting ? "Salvando..." : method === "POST" ? "Criar variante" : "Salvar variante"}
+        {isSubmitting ? (
+          <SmartButtonLoading message="Salvando..." />
+        ) : (
+          <>
+            {method === "POST" ? <Plus size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
+            {method === "POST" ? "Criar variante" : "Salvar variante"}
+          </>
+        )}
       </button>
     </form>
   );
@@ -756,8 +763,14 @@ export function ProductEditForm({
           disabled={isSubmitting}
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
-          <Save size={16} aria-hidden="true" />
-          {isSubmitting ? "Salvando..." : "Salvar produto"}
+          {isSubmitting ? (
+            <SmartButtonLoading message="Salvando..." />
+          ) : (
+            <>
+              <Save size={16} aria-hidden="true" />
+              Salvar produto
+            </>
+          )}
         </button>
       </form>
 
@@ -808,8 +821,14 @@ export function ProductEditForm({
                   disabled={isUploadingImage || Boolean(imageAction)}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <UploadCloud size={16} aria-hidden="true" />
-                  {isUploadingImage ? "Enviando..." : "Enviar imagem"}
+                  {isUploadingImage ? (
+                    <SmartButtonLoading message="Enviando..." />
+                  ) : (
+                    <>
+                      <UploadCloud size={16} aria-hidden="true" />
+                      Enviar imagem
+                    </>
+                  )}
                 </button>
               </div>
               <label className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">

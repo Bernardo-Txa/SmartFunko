@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import {
   normalizeCatalogTokenValue,
   type CatalogCategory,
@@ -50,6 +51,7 @@ export function CatalogFilter({
   franchises,
 }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [selectedCategory, setSelectedCategory] = useState(normalizeCatalogTokenValue(currentCategory));
   const [selectedSubcategory, setSelectedSubcategory] = useState(
     normalizeCatalogTokenValue(currentSubcategory),
@@ -90,15 +92,17 @@ export function CatalogFilter({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        router.push(
-          buildHref(pathname, {
-            category: selectedCategory,
-            franchise: selectedFranchise,
-            q: searchValue,
-            sort: selectedSort,
-            subcategory: selectedCategory ? selectedSubcategory : "",
-          }),
-        );
+        startTransition(() => {
+          router.push(
+            buildHref(pathname, {
+              category: selectedCategory,
+              franchise: selectedFranchise,
+              q: searchValue,
+              sort: selectedSort,
+              subcategory: selectedCategory ? selectedSubcategory : "",
+            }),
+          );
+        });
       }}
       className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_18px_44px_rgba(2,6,23,0.08)]"
     >
@@ -194,15 +198,27 @@ export function CatalogFilter({
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <button
             type="submit"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+            disabled={isPending}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
           >
-            <SlidersHorizontal size={16} aria-hidden="true" />
-            Filtrar
+            {isPending ? (
+              <SmartButtonLoading message="Filtrando..." />
+            ) : (
+              <>
+                <SlidersHorizontal size={16} aria-hidden="true" />
+                Filtrar
+              </>
+            )}
           </button>
           <button
             type="button"
-            onClick={() => router.push(pathname)}
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-sm font-bold text-[var(--muted)] hover:bg-[var(--surface-strong)]"
+            disabled={isPending}
+            onClick={() => {
+              startTransition(() => {
+                router.push(pathname);
+              });
+            }}
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-sm font-bold text-[var(--muted)] hover:bg-[var(--surface-strong)] disabled:cursor-wait disabled:opacity-60"
           >
             Limpar
           </button>

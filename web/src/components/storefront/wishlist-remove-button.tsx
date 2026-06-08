@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 export function WishlistRemoveButton({ itemId }: { itemId: string }) {
   const router = useRouter();
@@ -29,9 +30,14 @@ export function WishlistRemoveButton({ itemId }: { itemId: string }) {
       }}
       className="inline-flex h-10 items-center gap-2 rounded-md border border-red-300/30 px-3 text-sm font-bold text-red-100 hover:bg-red-500/12 disabled:cursor-wait disabled:opacity-70"
     >
-      <Trash2 size={16} aria-hidden="true" />
-      Remover
+      {isPending ? (
+        <SmartButtonLoading message="Removendo..." />
+      ) : (
+        <>
+          <Trash2 size={16} aria-hidden="true" />
+          Remover
+        </>
+      )}
     </button>
   );
 }
-

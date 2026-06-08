@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { inventoryStatusOptions } from "@/lib/status-labels";
 
 type InventoryAdjustItem = {
@@ -159,8 +160,14 @@ export function InventoryAdjustForm({ item }: { item: InventoryAdjustItem }) {
             disabled={isSubmitting}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Save size={16} aria-hidden="true" />
-            Registrar ajuste
+            {isSubmitting ? (
+              <SmartButtonLoading message="Registrando..." />
+            ) : (
+              <>
+                <Save size={16} aria-hidden="true" />
+                Registrar ajuste
+              </>
+            )}
           </button>
           {item.status === "reserved" ? (
             <button

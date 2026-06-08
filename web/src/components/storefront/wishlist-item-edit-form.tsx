@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 type WishlistPriority = "low" | "medium" | "high";
 
@@ -104,8 +105,14 @@ export function WishlistItemEditForm({
           disabled={isSubmitting}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-3 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
         >
-          <Save size={15} aria-hidden="true" />
-          Salvar
+          {isSubmitting ? (
+            <SmartButtonLoading message="Salvando..." />
+          ) : (
+            <>
+              <Save size={15} aria-hidden="true" />
+              Salvar
+            </>
+          )}
         </button>
       </div>
       {message ? <p className="text-xs font-semibold text-[var(--foreground)]">{message}</p> : null}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Plus } from "lucide-react";
 import { PaymentCreateForm } from "@/components/admin/payment-create-form";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
@@ -284,8 +285,14 @@ export function OrderDetailActions({
             disabled={isSubmitting}
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
           >
-            <Plus size={16} />
-            Adicionar item
+            {isSubmitting ? (
+              <SmartButtonLoading message="Adicionando..." />
+            ) : (
+              <>
+                <Plus size={16} />
+                Adicionar item
+              </>
+            )}
           </button>
         </form>
       </section>
@@ -314,9 +321,10 @@ export function OrderDetailActions({
               <button
                 type="button"
                 onClick={() => updateItemStatus(item.id)}
-                className="h-10 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                disabled={isSubmitting}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Atualizar
+                {isSubmitting ? <SmartButtonLoading message="Atualizando..." /> : "Atualizar"}
               </button>
             </div>
           ))}
@@ -332,9 +340,9 @@ export function OrderDetailActions({
           type="button"
           onClick={cancelOrder}
           disabled={isSubmitting}
-          className="mt-4 h-10 rounded-md border border-red-300 px-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-md border border-red-300 px-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Cancelar pedido
+          {isSubmitting ? <SmartButtonLoading message="Cancelando..." /> : "Cancelar pedido"}
         </button>
       </section>
 

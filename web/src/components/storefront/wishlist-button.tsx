@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Heart } from "lucide-react";
 import { clsx } from "clsx";
+import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import {
   addWishlistProduct,
   getCachedWishlistItem,
@@ -143,12 +144,18 @@ export function WishlistButton({
         className,
       )}
     >
-      <Heart
-        size={16}
-        aria-hidden="true"
-        className={isActive ? "fill-current" : undefined}
-      />
-      {showLabel ? <span>{isActive ? "Favorito" : label}</span> : null}
+      {isPending ? (
+        <SmartButtonLoading message="Atualizando..." showMessage={showLabel} />
+      ) : (
+        <>
+          <Heart
+            size={16}
+            aria-hidden="true"
+            className={isActive ? "fill-current" : undefined}
+          />
+          {showLabel ? <span>{isActive ? "Favorito" : label}</span> : null}
+        </>
+      )}
     </button>
   );
 }
