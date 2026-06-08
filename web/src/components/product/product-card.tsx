@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { clsx } from "clsx";
 import { MessageCircle } from "lucide-react";
-import { ProductCardActions } from "@/components/product/product-card-actions";
+import { ProductQuickActions } from "@/components/product/product-quick-actions";
 import { SafeProductImage } from "@/components/product/safe-product-image";
 import { PriceDisplay } from "@/components/storefront/price-display";
 import type { Product } from "@/types/product";
@@ -113,20 +113,23 @@ export function ProductCard({
           : "border-cyan-400/20",
       )}
     >
-      {isSpecial ? (
-        <div className="absolute right-3 top-3 z-20 rounded-full bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_10px_22px_rgba(250,204,21,0.22)]">
-          Special
-        </div>
-      ) : null}
-      <ProductCardActions
-        cartProduct={cartProduct}
-        productId={product.id}
-        productName={product.name}
-      />
+      <div className="relative">
+        <Link href={`/produto/${product.slug}`} prefetch={false} aria-label={product.name}>
+          <ProductMedia product={product} priority={priority} />
+        </Link>
 
-      <Link href={`/produto/${product.slug}`} prefetch={false} aria-label={product.name}>
-        <ProductMedia product={product} priority={priority} />
-      </Link>
+        {isSpecial ? (
+          <div className="absolute left-3 top-3 z-20 rounded-full border border-yellow-200/70 bg-yellow-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_10px_22px_rgba(250,204,21,0.24)]">
+            Special
+          </div>
+        ) : null}
+
+        <ProductQuickActions
+          cartProduct={cartProduct}
+          productId={product.id}
+          productName={product.name}
+        />
+      </div>
 
       <div className="mt-4 flex flex-1 flex-col">
         <div className="flex min-h-7 flex-wrap gap-2">

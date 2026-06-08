@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Heart } from "lucide-react";
 import { clsx } from "clsx";
+import {
+  quickActionButtonBase,
+  quickActionButtonIdle,
+  quickActionWishlistActive,
+  quickActionWishlistAuthHint,
+  quickActionWishlistHover,
+} from "@/components/storefront/quick-action-button-styles";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import {
   addWishlistProduct,
@@ -23,12 +30,14 @@ export function WishlistButton({
   productId,
   productName,
   showLabel = false,
+  variant = "default",
 }: {
   className?: string;
   label?: string;
   productId: string;
   productName: string;
   showLabel?: boolean;
+  variant?: "default" | "quick";
 }) {
   const [itemId, setItemId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -37,9 +46,25 @@ export function WishlistButton({
   const isActive = Boolean(itemId);
 
   const ariaLabel = useMemo(
-    () => (isActive ? `Remover ${productName} dos favoritos` : `Adicionar ${productName} aos favoritos`),
-    [isActive, productName],
+    () => {
+      if (isAuthenticated === false) {
+        return `Entrar para adicionar ${productName} à lista de desejos`;
+      }
+
+      return isActive
+        ? `Remover ${productName} da lista de desejos`
+        : `Adicionar ${productName} à lista de desejos`;
+    },
+    [isActive, isAuthenticated, productName],
   );
+  const titleLabel =
+    variant === "quick"
+      ? isAuthenticated === false
+        ? "Entrar para salvar nos desejos"
+        : isActive
+          ? "Remover dos desejos"
+          : "Salvar na lista de desejos"
+      : ariaLabel;
 
   useEffect(() => {
     let isMounted = true;
@@ -73,7 +98,7 @@ export function WishlistButton({
       disabled={isPending}
       aria-label={ariaLabel}
       aria-pressed={isActive}
-      title={ariaLabel}
+      title={titleLabel}
       onClick={async () => {
         if (isPending) {
           return;
@@ -138,10 +163,25 @@ export function WishlistButton({
         }
       }}
       className={clsx(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-full border px-3 text-sm font-black transition disabled:cursor-wait disabled:opacity-70",
-        isActive
-          ? "border-pink-300/60 bg-pink-500/18 text-pink-100"
-          : "border-cyan-300/24 bg-slate-950/60 text-slate-200 hover:bg-cyan-400/12",
+        "inline-flex items-center justify-center gap-2 rounded-full border text-sm font-black transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#030816] disabled:cursor-wait disabled:opacity-75",
+        variant === "quick"
+          ? quickActionButtonBase
+          : "h-10 px-3",
+        isActive && variant === "quick"
+          ? quickActionWishlistActive
+          : undefined,
+        !isActive && isAuthenticated === false && variant === "quick"
+          ? quickActionWishlistAuthHint
+          : undefined,
+        !isActive && isAuthenticated !== false && variant === "quick"
+          ? clsx(quickActionButtonIdle, quickActionWishlistHover)
+          : undefined,
+        isActive && variant !== "quick"
+          ? "border-pink-300/60 bg-pink-500/20 text-pink-100"
+          : undefined,
+        !isActive && variant !== "quick"
+          ? "border-cyan-300/25 bg-slate-950/60 text-slate-200 hover:bg-cyan-400/10"
+          : undefined,
         className,
       )}
     >
@@ -150,10 +190,13 @@ export function WishlistButton({
       ) : (
         <>
           <Heart
-            size={showLabel ? 16 : 18}
+            size={showLabel ? 16 : 19}
             strokeWidth={showLabel ? 2 : 2.6}
             aria-hidden="true"
-            className={isActive ? "fill-current" : undefined}
+            className={clsx(
+              "transition-transform duration-200 motion-reduce:transition-none",
+              isActive ? "fill-current motion-safe:scale-110" : undefined,
+            )}
           />
           {showLabel ? <span>{isActive ? "Favorito" : label}</span> : null}
         </>
