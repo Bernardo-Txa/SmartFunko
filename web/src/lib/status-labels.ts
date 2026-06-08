@@ -62,6 +62,7 @@ export const cashEntryTypeOptions = [
 
 export const cashEntryCategoryOptions = [
   { label: "Venda", value: "sale" },
+  { label: "Rifa", value: "raffle" },
   { label: "Compra de fornecedor", value: "supplier_purchase" },
   { label: "Frete", value: "shipping" },
   { label: "Taxa de pagamento", value: "payment_fee" },
@@ -118,6 +119,41 @@ export const productStatusOptions = [
   { label: "Arquivado", value: "archived" },
 ] as const;
 
+export const raffleCampaignStatusOptions = [
+  { label: "Rascunho", value: "draft" },
+  { label: "Pendente de autorização", value: "pending_authorization" },
+  { label: "Publicada", value: "published" },
+  { label: "Aberta", value: "open" },
+  { label: "Pausada", value: "paused" },
+  { label: "Esgotada", value: "sold_out" },
+  { label: "Encerrada", value: "closed" },
+  { label: "Sorteada", value: "drawn" },
+  { label: "Cancelada", value: "cancelled" },
+] as const;
+
+export const raffleNumberStatusOptions = [
+  { label: "Disponível", value: "available" },
+  { label: "Reservado", value: "reserved" },
+  { label: "Aguardando pagamento", value: "pending_payment" },
+  { label: "Comprado", value: "sold" },
+  { label: "Cancelado", value: "cancelled" },
+  { label: "Premiado", value: "winner" },
+] as const;
+
+export const raffleOrderStatusOptions = [
+  { label: "Reservado", value: "reserved" },
+  { label: "Aguardando pagamento", value: "pending_payment" },
+  { label: "Pago", value: "paid" },
+  { label: "Expirado", value: "expired" },
+  { label: "Cancelado", value: "cancelled" },
+  { label: "Reembolsado", value: "refunded" },
+] as const;
+
+export const raffleDrawMethodOptions = [
+  { label: "Resultado externo/manual", value: "manual_external" },
+  { label: "Sorteio interno auditável", value: "internal_random" },
+] as const;
+
 const orderStatusMeta = {
   cancelled: createMeta("Cancelado", "red"),
   delivered: createMeta("Entregue", "green"),
@@ -163,6 +199,7 @@ const cashEntryTypeMeta = {
 const cashEntryCategoryMeta = {
   manual_adjustment: createMeta("Ajuste manual", "yellow"),
   payment_fee: createMeta("Taxa de pagamento", "yellow"),
+  raffle: createMeta("Rifa", "cyan"),
   refund: createMeta("Reembolso", "red"),
   sale: createMeta("Venda", "green"),
   shipping: createMeta("Frete", "cyan"),
@@ -233,6 +270,41 @@ const productStatusMeta = {
   inactive: createMeta("Inativo", "gray"),
 } satisfies Record<string, StatusMeta>;
 
+const raffleCampaignStatusMeta = {
+  cancelled: createMeta("Cancelada", "red"),
+  closed: createMeta("Encerrada", "yellow"),
+  draft: createMeta("Rascunho", "gray"),
+  drawn: createMeta("Sorteada", "green"),
+  open: createMeta("Aberta", "green"),
+  paused: createMeta("Pausada", "yellow"),
+  pending_authorization: createMeta("Pendente de autorização", "yellow"),
+  published: createMeta("Publicada", "blue"),
+  sold_out: createMeta("Esgotada", "violet"),
+} satisfies Record<string, StatusMeta>;
+
+const raffleNumberStatusMeta = {
+  available: createMeta("Disponível", "green"),
+  cancelled: createMeta("Cancelado", "red"),
+  pending_payment: createMeta("Aguardando pagamento", "yellow"),
+  reserved: createMeta("Reservado", "blue"),
+  sold: createMeta("Comprado", "gray"),
+  winner: createMeta("Premiado", "green"),
+} satisfies Record<string, StatusMeta>;
+
+const raffleOrderStatusMeta = {
+  cancelled: createMeta("Cancelado", "red"),
+  expired: createMeta("Expirado", "gray"),
+  paid: createMeta("Pago", "green"),
+  pending_payment: createMeta("Aguardando pagamento", "yellow"),
+  refunded: createMeta("Reembolsado", "gray"),
+  reserved: createMeta("Reservado", "blue"),
+} satisfies Record<string, StatusMeta>;
+
+const raffleDrawMethodMeta = {
+  internal_random: createMeta("Sorteio interno auditável", "violet"),
+  manual_external: createMeta("Resultado externo/manual", "blue"),
+} satisfies Record<string, StatusMeta>;
+
 function createMeta(label: string, tone: StatusTone): StatusMeta {
   return {
     className: toneClass[tone],
@@ -268,6 +340,10 @@ const operationalStatusMaps: ReadonlyArray<Readonly<Record<string, StatusMeta>>>
   purchaseBatchItemStatusMeta,
   productVariantStatusMeta,
   productStatusMeta,
+  raffleCampaignStatusMeta,
+  raffleNumberStatusMeta,
+  raffleOrderStatusMeta,
+  raffleDrawMethodMeta,
 ];
 
 export function getOrderStatusMeta(status: string | null | undefined) {
@@ -316,6 +392,22 @@ export function getProductVariantStatusMeta(status: string | null | undefined) {
 
 export function getProductStatusMeta(status: string | null | undefined) {
   return getMeta(productStatusMeta, status);
+}
+
+export function getRaffleCampaignStatusMeta(status: string | null | undefined) {
+  return getMeta(raffleCampaignStatusMeta, status);
+}
+
+export function getRaffleNumberStatusMeta(status: string | null | undefined) {
+  return getMeta(raffleNumberStatusMeta, status);
+}
+
+export function getRaffleOrderStatusMeta(status: string | null | undefined) {
+  return getMeta(raffleOrderStatusMeta, status);
+}
+
+export function getRaffleDrawMethodMeta(method: string | null | undefined) {
+  return getMeta(raffleDrawMethodMeta, method);
 }
 
 export function getOperationalStatusMeta(status: string | null | undefined) {

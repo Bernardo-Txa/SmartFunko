@@ -7,6 +7,7 @@ import { throwQueryError } from "@/server/supabase/query-error";
 export const cashEntryTypeSchema = z.enum(["income", "expense", "adjustment"]);
 export const cashEntryCategorySchema = z.enum([
   "sale",
+  "raffle",
   "supplier_purchase",
   "shipping",
   "payment_fee",

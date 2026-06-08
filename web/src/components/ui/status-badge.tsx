@@ -10,6 +10,9 @@ import {
   getPurchaseBatchTypeMeta,
   getProductStatusMeta,
   getProductVariantStatusMeta,
+  getRaffleCampaignStatusMeta,
+  getRaffleNumberStatusMeta,
+  getRaffleOrderStatusMeta,
   getStatusBadgeClassName,
   type StatusMeta,
 } from "@/lib/status-labels";
@@ -84,4 +87,16 @@ export function ProductVariantStatusBadge({ status }: { status: string | null | 
 
 export function ProductPublishStatusBadge({ status }: { status: string | null | undefined }) {
   return <StatusBadge meta={getProductStatusMeta(status)} />;
+}
+
+export function RaffleCampaignStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getRaffleCampaignStatusMeta(status)} />;
+}
+
+export function RaffleNumberStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getRaffleNumberStatusMeta(status)} />;
+}
+
+export function RaffleOrderStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getRaffleOrderStatusMeta(status)} />;
 }
