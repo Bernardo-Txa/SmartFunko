@@ -6,7 +6,7 @@ export function RaffleExperimentalNotice() {
       <div className="flex gap-3">
         <FlaskConical className="mt-0.5 shrink-0" size={18} aria-hidden="true" />
         <p>
-          Módulo experimental de desenvolvimento. Não utilizar para campanhas reais sem validação jurídica e operacional.
+          Módulo experimental de desenvolvimento.
         </p>
       </div>
     </div>
