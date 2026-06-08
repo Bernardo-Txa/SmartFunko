@@ -13,6 +13,48 @@
 9. RPC `record_manual_payment` cria `payments`, cria `cash_entries`, atualiza status do pedido, registra historico e log no mesmo fluxo transacional.
 10. Admin envia o link publico `/pedido/[orderNumber]?token=...` para o cliente.
 
+## Lotes / Importacao 1.0
+
+Lotes agrupam itens de pedidos para compra nacional, importacao, collab ou outro agrupamento operacional. O modulo fica em `/admin/lotes` e e restrito a owner.
+
+Fluxo:
+
+1. Criar lote em `/admin/lotes/novo` informando nome, tipo, fornecedor opcional, descricao, custos estimados e notas.
+2. Abrir o lote no detalhe.
+3. Listar itens elegiveis por busca de pedido, cliente, produto ou SKU.
+4. Adicionar o item de pedido ao lote.
+5. Atualizar custo/status do item quando necessario.
+6. Mudar status do lote conforme o fluxo operacional.
+7. Receber o lote quando a compra chegar.
+
+Status do lote:
+
+- `draft`: rascunho;
+- `open`: aberto para adicionar/organizar itens;
+- `closed`: fechado para compra;
+- `purchased`: comprado;
+- `in_transit`: em transito;
+- `received`: recebido;
+- `cancelled`: cancelado.
+
+Transicoes permitidas na UI: `draft -> open`, `open -> closed`, `closed -> purchased`, `purchased -> in_transit`, `in_transit -> received` e cancelamento em `draft/open/closed`.
+
+Recebimento:
+
+- `POST /api/v1/admin/purchase-batches/[id]/receive` marca o lote como `received`;
+- itens do lote viram `received`;
+- `order_items` vinculados tambem viram `received`;
+- o fluxo grava `admin_action_logs`;
+- nao cria `inventory_items` automaticamente nesta versao, porque o estoque por unidade exige SKU/localizacao por item fisico.
+
+Custos:
+
+- custos gerais do lote sao informativos;
+- custos por item sao preenchidos manualmente;
+- margem estimada simples = preco vendido - custo estimado;
+- margem real simples = preco vendido - custo real;
+- nao ha rateio complexo, multi-moeda ou imposto automatico nesta sprint.
+
 ## APIs principais
 
 - `GET /api/v1/admin/dashboard`
@@ -46,6 +88,13 @@
 - `GET /api/v1/admin/cashflow/summary`
 - `GET /api/v1/admin/cashflow/pending`
 - `POST /api/v1/admin/cashflow/manual-entry`
+- `GET|POST /api/v1/admin/purchase-batches`
+- `GET|PATCH /api/v1/admin/purchase-batches/[id]`
+- `POST /api/v1/admin/purchase-batches/[id]/status`
+- `GET|POST /api/v1/admin/purchase-batches/[id]/items`
+- `PATCH|DELETE /api/v1/admin/purchase-batches/[id]/items/[itemId]`
+- `GET /api/v1/admin/purchase-batches/eligible-items`
+- `POST /api/v1/admin/purchase-batches/[id]/receive`
 - `GET /api/v1/me`
 - `GET /api/v1/me/orders`
 - `GET /api/v1/me/orders/[orderNumber]`
@@ -113,6 +162,8 @@
 - Carrinho assistido persiste apenas no navegador e nao grava pedido, pagamento, frete ou reserva de estoque.
 - Wishlist exige login e customer vinculado; customer so ve/remove a propria lista.
 - Admin de demanda usa dados reais de `wishlist_items` para ranking por produto, franquia, fornecedor e categoria.
+- Lotes usam `purchase_batches` e `purchase_batch_items`; clientes e publico nao acessam esses dados.
+- Item de pedido pode ser rastreado para lote na tela `/admin/pedidos/[id]`.
 
 ## Variaveis necessarias
 
@@ -156,9 +207,18 @@ SUPABASE_SERVICE_ROLE_KEY=...
 26. Marcar unidade como avariada e conferir movimento `damaged`.
 27. Abrir `/admin/estoque` e `/admin/estoque/[id]`.
 28. Confirmar que cliente nao acessa endpoints admin financeiros e de estoque.
-29. Abrir `/pedido/[orderNumber]?token=...`.
-30. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
-31. Testar token errado no link publico.
+29. Criar lote em `/admin/lotes/novo`.
+30. Abrir `/admin/lotes`, filtrar e acessar o detalhe.
+31. Listar itens elegiveis, adicionar item de pedido e tentar adicionar o mesmo item de novo para confirmar erro amigavel.
+32. Atualizar custos/status do item do lote.
+33. Mudar status `draft -> open -> closed -> purchased -> in_transit`.
+34. Receber o lote e conferir itens como `received`.
+35. Conferir `admin_action_logs`.
+36. Abrir o pedido admin e conferir o link pedido -> lote.
+37. Confirmar que cliente nao acessa endpoints/telas admin de lotes.
+38. Abrir `/pedido/[orderNumber]?token=...`.
+39. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
+40. Testar token errado no link publico.
 
 ## Contratos para app futuro
 
@@ -181,7 +241,7 @@ Pedidos retornados em `/me` sao sanitizados: podem conter numero, status, client
 
 - Pix automatico.
 - Checkout proprio.
-- Lotes internacionais completos.
+- Lotes internacionais completos com multi-moeda, imposto automatico, frete/rateio complexo e tracking externo.
 - Wishlist avancada.
 - Notificacoes automaticas.
 - Flutter mobile.

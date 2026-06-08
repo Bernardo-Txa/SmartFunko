@@ -78,6 +78,32 @@ export const inventoryStatusOptions = [
   { label: "Indisponível", value: "unavailable" },
 ] as const;
 
+export const purchaseBatchStatusOptions = [
+  { label: "Rascunho", value: "draft" },
+  { label: "Aberto", value: "open" },
+  { label: "Fechado", value: "closed" },
+  { label: "Comprado", value: "purchased" },
+  { label: "Em trânsito", value: "in_transit" },
+  { label: "Recebido", value: "received" },
+  { label: "Cancelado", value: "cancelled" },
+] as const;
+
+export const purchaseBatchTypeOptions = [
+  { label: "Nacional", value: "national" },
+  { label: "Internacional", value: "international" },
+  { label: "Collab", value: "collab" },
+  { label: "Outro", value: "other" },
+] as const;
+
+export const purchaseBatchItemStatusOptions = [
+  { label: "Planejado", value: "planned" },
+  { label: "Aprovado", value: "approved" },
+  { label: "Comprado", value: "purchased" },
+  { label: "Em trânsito", value: "in_transit" },
+  { label: "Recebido", value: "received" },
+  { label: "Cancelado", value: "cancelled" },
+] as const;
+
 export const productVariantStatusOptions = [
   { label: "Disponível", value: "available" },
   { label: "Sob encomenda", value: "order_only" },
@@ -167,6 +193,32 @@ const inventoryMovementTypeMeta = {
   unavailable: createMeta("Indisponível", "gray"),
 } satisfies Record<string, StatusMeta>;
 
+const purchaseBatchStatusMeta = {
+  cancelled: createMeta("Cancelado", "red"),
+  closed: createMeta("Fechado", "yellow"),
+  draft: createMeta("Rascunho", "gray"),
+  in_transit: createMeta("Em trânsito", "cyan"),
+  open: createMeta("Aberto", "blue"),
+  purchased: createMeta("Comprado", "violet"),
+  received: createMeta("Recebido", "green"),
+} satisfies Record<string, StatusMeta>;
+
+const purchaseBatchTypeMeta = {
+  collab: createMeta("Collab", "violet"),
+  international: createMeta("Internacional", "cyan"),
+  national: createMeta("Nacional", "blue"),
+  other: createMeta("Outro", "gray"),
+} satisfies Record<string, StatusMeta>;
+
+const purchaseBatchItemStatusMeta = {
+  approved: createMeta("Aprovado", "blue"),
+  cancelled: createMeta("Cancelado", "red"),
+  in_transit: createMeta("Em trânsito", "cyan"),
+  planned: createMeta("Planejado", "gray"),
+  purchased: createMeta("Comprado", "violet"),
+  received: createMeta("Recebido", "green"),
+} satisfies Record<string, StatusMeta>;
+
 const productVariantStatusMeta = {
   available: createMeta("Disponível", "green"),
   hidden: createMeta("Oculto", "gray"),
@@ -211,6 +263,9 @@ const operationalStatusMaps: ReadonlyArray<Readonly<Record<string, StatusMeta>>>
   cashEntryCategoryMeta,
   inventoryStatusMeta,
   inventoryMovementTypeMeta,
+  purchaseBatchStatusMeta,
+  purchaseBatchTypeMeta,
+  purchaseBatchItemStatusMeta,
   productVariantStatusMeta,
   productStatusMeta,
 ];
@@ -241,6 +296,18 @@ export function getInventoryStatusMeta(status: string | null | undefined) {
 
 export function getInventoryMovementTypeMeta(type: string | null | undefined) {
   return getMeta(inventoryMovementTypeMeta, type);
+}
+
+export function getPurchaseBatchStatusMeta(status: string | null | undefined) {
+  return getMeta(purchaseBatchStatusMeta, status);
+}
+
+export function getPurchaseBatchTypeMeta(type: string | null | undefined) {
+  return getMeta(purchaseBatchTypeMeta, type);
+}
+
+export function getPurchaseBatchItemStatusMeta(status: string | null | undefined) {
+  return getMeta(purchaseBatchItemStatusMeta, status);
 }
 
 export function getProductVariantStatusMeta(status: string | null | undefined) {

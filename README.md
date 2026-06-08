@@ -80,6 +80,20 @@ As telas principais sao `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios
 
 Financeiro 2.0 nao implementa Pix automatico, gateway, webhook, checkout proprio, cartao, frete automatico ou nota fiscal.
 
+## Lotes / Importacao 1.0
+
+O modulo de lotes organiza compras nacionais, importacoes, collabs e outros agrupamentos operacionais em `/admin/lotes`.
+
+- `purchase_batches` guarda codigo, nome, tipo, fornecedor, status, timestamps e custos estimados/reais simples;
+- `purchase_batch_items` vincula itens de pedido ao lote sem alterar `order_items`;
+- itens elegiveis excluem cancelados e itens ja vinculados a lotes ativos;
+- status do lote seguem `draft -> open -> closed -> purchased -> in_transit -> received`, com cancelamento permitido em `draft/open/closed`;
+- ao marcar recebido, o lote e os itens do lote viram `received`, e `order_items` vinculados tambem recebem status `received`;
+- custos por item sao manuais e a margem simples e calculada como preco vendido menos custo estimado/real;
+- a tela de pedido admin mostra o lote vinculado em cada item, com link para `/admin/lotes/[id]`.
+
+Nesta versao nao ha multi-moeda, imposto automatico, rateio complexo de frete/taxa, integracao com fornecedor, tracking externo, nota fiscal, Pix, checkout ou baixa financeira automatica.
+
 ## Como rodar localmente
 
 ```bash
@@ -173,6 +187,7 @@ Principais fluxos:
 - analisar demanda de wishlist em `/admin/demanda`.
 - auditar estoque por unidade em `/admin/estoque` e `/admin/estoque/[id]`.
 - consultar pagamentos, caixa e relatorio financeiro em `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
+- organizar compras e encomendas em `/admin/lotes`.
 
 Fornecedores/collabs ficam em `suppliers`. Piticas, Copag e Panini sao seedados por migration e aparecem em `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`. `/collabs` redireciona para fornecedores, e `/marcas` permanece como vitrine especial compativel. O catalogo principal nao expoe filtro de fornecedor; a separacao por collab acontece no slug do fornecedor. Para vincular um produto, edite `Fornecedor/marca` em `/admin/produtos/[id]` ou use uma coluna CSV opcional.
 

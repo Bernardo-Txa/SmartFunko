@@ -5,6 +5,9 @@ import {
   getOrderItemStatusMeta,
   getOrderStatusMeta,
   getPaymentStatusMeta,
+  getPurchaseBatchItemStatusMeta,
+  getPurchaseBatchStatusMeta,
+  getPurchaseBatchTypeMeta,
   getProductStatusMeta,
   getProductVariantStatusMeta,
   getStatusBadgeClassName,
@@ -61,6 +64,18 @@ export function PaymentStatusBadge({ status }: { status: string | null | undefin
 
 export function InventoryStatusBadge({ status }: { status: string | null | undefined }) {
   return <StatusBadge meta={getInventoryStatusMeta(status)} />;
+}
+
+export function PurchaseBatchStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getPurchaseBatchStatusMeta(status)} />;
+}
+
+export function PurchaseBatchTypeBadge({ type }: { type: string | null | undefined }) {
+  return <StatusBadge meta={getPurchaseBatchTypeMeta(type)} />;
+}
+
+export function PurchaseBatchItemStatusBadge({ status }: { status: string | null | undefined }) {
+  return <StatusBadge meta={getPurchaseBatchItemStatusMeta(status)} />;
 }
 
 export function ProductVariantStatusBadge({ status }: { status: string | null | undefined }) {

@@ -27,7 +27,23 @@ Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e re
 - nota fiscal;
 - checkout completo.
 - BI avancado;
-- lotes/importacao.
+- multi-moeda, rateio complexo e tracking automatico para lotes/importacao.
+
+## Lotes / Importacao futuro
+
+Lotes 1.0 organiza compras e encomendas, mas ainda evita automacoes de alto risco.
+
+Pendencias:
+
+- criar `inventory_items` automaticamente no recebimento quando houver SKU/localizacao por unidade;
+- registrar `inventory_movements` de recebimento junto com a criacao automatica de estoque;
+- ratear frete, imposto e custos gerais por item;
+- multi-moeda e cotacao por lote;
+- imposto automatico;
+- tracking externo;
+- integracao com fornecedor;
+- baixa financeira automatica para despesas do lote;
+- RPC transacional para recebimento de lote, itens, pedido, estoque e logs.
 
 ## Proxima sprint
 
