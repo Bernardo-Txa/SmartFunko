@@ -38,12 +38,12 @@ export const createRaffleCampaignSchema = z.object({
   prizeTitle: z.string().trim().min(2, "Informe o premio"),
   productId: z.string().uuid().optional().nullable(),
   productVariantId: z.string().uuid().optional().nullable(),
-  requiresAuthorization: z.boolean().default(true),
+  requiresAuthorization: z.boolean().default(false),
   reservationMinutes: z.number().int().positive().default(15),
   rules: optionalText,
   slug: z.string().trim().min(2).optional().nullable(),
   startsAt: optionalDateTime,
-  termsAcceptedByAdmin: z.boolean().default(false),
+  termsAcceptedByAdmin: z.boolean().default(true),
   title: z.string().trim().min(2, "Informe o titulo"),
 });
 
@@ -236,7 +236,7 @@ function assertNumberRange(input: {
   }
 }
 
-function assertPublishCompliance(campaign: RaffleCampaignRow) {
+function assertPublishReadiness(campaign: RaffleCampaignRow) {
   const missing: string[] = [];
 
   if (!campaign.rules?.trim()) {
@@ -259,16 +259,8 @@ function assertPublishCompliance(campaign: RaffleCampaignRow) {
     missing.push("metodo de sorteio");
   }
 
-  if (!campaign.terms_accepted_by_admin) {
-    missing.push("aceite de conformidade");
-  }
-
-  if (campaign.requires_authorization && !campaign.legal_authorization_code?.trim()) {
-    missing.push("codigo de autorizacao");
-  }
-
   if (missing.length > 0) {
-    throw conflict(`Complete os dados de compliance antes de publicar: ${missing.join(", ")}`);
+    throw conflict(`Complete os dados operacionais antes de abrir: ${missing.join(", ")}`);
   }
 }
 
@@ -476,7 +468,7 @@ export class RaffleService {
     }
 
     if (process.env.NODE_ENV === "production") {
-      assertPublishCompliance(campaign);
+      assertPublishReadiness(campaign);
     }
 
     return this.changeCampaignStatus(id, "open", "raffle.open", actorProfileId);

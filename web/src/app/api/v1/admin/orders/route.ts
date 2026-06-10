@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const orders = await new OrderService(undefined, admin.profile.id).listOrders({
       channel: searchParams.get("channel") ?? undefined,
       search: searchParams.get("q") ?? undefined,
+      seller: searchParams.get("seller") ?? undefined,
       status: searchParams.get("status") ?? undefined,
     });
     return jsonOk(orders);

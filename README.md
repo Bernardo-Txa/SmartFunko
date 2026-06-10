@@ -50,6 +50,12 @@ A camada publica agora organiza descoberta e intencao de compra por cima do core
 
 O carrinho assistido nao e checkout: nao reserva estoque automaticamente, nao calcula frete, nao cobra pagamento, nao cria pedido sozinho e nao inclui Pix nesta fase.
 
+## Tema claro/escuro
+
+O Dark Mode continua sendo o padrao da aplicacao. O header possui um toggle de tema que alterna entre Dark e Light, persiste a escolha no navegador com `localStorage` e aplica a classe no `html` antes da hidratacao para evitar flash visual.
+
+O Light Mode usa as mesmas variaveis de design do tema escuro e cobre a base de layout, header, menus, cards e formularios principais. Refinos visuais pontuais podem continuar em sprints futuras sem alterar o fluxo operacional.
+
 ## Estoque 2.0
 
 O estoque e rastreado por unidade fisica em `inventory_items` e cada mudanca relevante gera `inventory_movements`.
@@ -102,7 +108,7 @@ Rifas DEV 1.1 e um modulo experimental protegido por feature flag. Ative com:
 NEXT_PUBLIC_ENABLE_RAFFLES=true
 ```
 
-Quando a flag esta desligada, links somem da navegacao, paginas publicas/customer mostram modulo desativado e APIs de rifa retornam bloqueio. Quando ligada, as telas mostram aviso experimental de nao producao.
+Quando a flag esta desligada, links somem da navegacao, paginas publicas/customer mostram modulo desativado e APIs de rifa retornam bloqueio. Quando ligada, as telas mostram aviso experimental academico/dev.
 
 Fluxos disponiveis:
 
@@ -111,6 +117,7 @@ Fluxos disponiveis:
 - cliente em `/conta/rifas` e `/conta/rifas/[id]`;
 - criacao de campanha gera numeros no intervalo configurado;
 - abertura, pausa, fechamento e cancelamento sao manuais pelo admin;
+- abertura nao exige codigo/link de autorizacao, aceite legal ou integracao governamental no fluxo DEV;
 - cliente reserva numeros temporariamente pela tela publica;
 - cliente ve instrucoes de pagamento manual e acompanha status em `/conta/rifas`;
 - pagamento e confirmado manualmente pelo admin, gerando entrada de caixa `category = raffle`;
@@ -118,6 +125,14 @@ Fluxos disponiveis:
 - sorteio e registro de ganhador sao manuais, aceitando apenas numero comprado em campanha encerrada ou esgotada.
 
 Este modulo nao esta pronto para producao: nao implementa validacao legal automatizada, gateway/Pix, cartao, cron real, antifraude, sorteio certificado, notificacoes automaticas, reembolso de pedidos pagos de rifa ou checkout completo.
+
+Campos de autorizacao permanecem opcionais/legados no banco para uso futuro, mas nao bloqueiam criacao ou abertura no contexto academico/dev.
+
+## Pedido com produto rapido
+
+No admin de pedidos, o combobox de produto/variante permite buscar por nome ou SKU e mostra SKU, preco e status. Em `/admin/pedidos/novo` e no detalhe `/admin/pedidos/[id]`, a opcao `Criar novo produto` abre um modal simples para cadastrar nome, preco, SKU opcional, categoria, subcategoria, franquia, URL de imagem e observacao.
+
+O endpoint `POST /api/v1/admin/products/quick-create` e restrito a admin/owner. Ele cria um produto ativo, gera slug seguro, cria ou reaproveita franquia por nome, cria uma variante `national` com status `order_only`, nao cria estoque, nao reserva estoque e retorna a opcao pronta para o dropdown selecionar automaticamente. O produto passa a aparecer tambem em `/admin/produtos`.
 
 ## Como rodar localmente
 
@@ -203,7 +218,10 @@ Principais fluxos:
 
 - criar cliente;
 - criar pedido manual;
+- selecionar vendedor do pedido entre Daniel e Allana;
 - adicionar item;
+- usar origem de item `Leilão` alem de pronta-entrega, encomendas e pre-venda;
+- criar produto rapido dentro do pedido com `POST /api/v1/admin/products/quick-create`;
 - reservar estoque;
 - registrar pagamento manual;
 - gerar entrada de caixa;
@@ -212,7 +230,7 @@ Principais fluxos:
 - manter produtos e variantes em `/admin/produtos/[id]`.
 - analisar demanda de wishlist em `/admin/demanda`.
 - auditar estoque por unidade em `/admin/estoque` e `/admin/estoque/[id]`.
-- consultar pagamentos, caixa e relatorio financeiro em `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
+- consultar pagamentos, caixa e relatorio financeiro em `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`, incluindo visao por vendedor e origem do item.
 - organizar compras e encomendas em `/admin/lotes`.
 - operar rifas experimentais em `/admin/rifas` quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`.
 

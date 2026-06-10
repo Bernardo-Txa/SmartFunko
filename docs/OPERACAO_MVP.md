@@ -6,12 +6,18 @@
 2. Cliente pode favoritar produtos, montar carrinho assistido ou chamar a Smart Funkos pelo WhatsApp.
 3. Admin entra no painel e cadastra ou seleciona o cliente.
 4. Admin cria um pedido manual.
-5. Admin adiciona itens ao pedido.
-6. Se o item for pronta-entrega, admin vincula uma unidade de estoque disponivel.
-7. Sistema reserva a unidade de estoque.
-8. Admin registra pagamento manual.
-9. RPC `record_manual_payment` cria `payments`, cria `cash_entries`, atualiza status do pedido, registra historico e log no mesmo fluxo transacional.
-10. Admin envia o link publico `/pedido/[orderNumber]?token=...` para o cliente.
+5. Admin seleciona o vendedor responsavel pela venda: Daniel ou Allana.
+6. Admin adiciona itens ao pedido, escolhendo origem: pronta-entrega, encomenda nacional, importado, pre-venda ou leilao.
+7. Se o produto ainda nao existe, admin usa `Criar novo produto` no combobox do pedido; o sistema cria produto + variante sob encomenda e ja seleciona o item.
+8. Se o item for pronta-entrega, admin vincula uma unidade de estoque disponivel.
+9. Sistema reserva a unidade de estoque.
+10. Admin registra pagamento manual.
+11. RPC `record_manual_payment` cria `payments`, cria `cash_entries`, atualiza status do pedido, registra historico e log no mesmo fluxo transacional.
+12. Admin envia o link publico `/pedido/[orderNumber]?token=...` para o cliente.
+
+## Tema
+
+O tema escuro e o padrao. O toggle no header alterna para Light Mode, persiste a preferencia no navegador e aplica a classe `light`/`dark` no `html` antes da hidratacao. A troca usa as variaveis globais de design e nao altera regras operacionais.
 
 ## Lotes / Importacao 1.0
 
@@ -79,6 +85,7 @@ Fluxo cliente/publico:
 
 Limites da DEV 1.1:
 
+- o fluxo academico/dev nao exige codigo de autorizacao, link de autorizacao, aceite legal ou integracao governamental para criar/abrir campanha;
 - reserva expira por RPC acionada em listagens/reserva ou pelo endpoint/botao manual;
 - confirmacao de pagamento e sempre manual;
 - sorteio e resultado sao manuais;
@@ -92,6 +99,7 @@ Limites da DEV 1.1:
 - `GET|POST /api/v1/admin/customers`
 - `GET|PATCH /api/v1/admin/customers/[id]`
 - `GET|POST /api/v1/admin/products`
+- `POST /api/v1/admin/products/quick-create`
 - `GET|PATCH /api/v1/admin/products/[id]`
 - `POST /api/v1/admin/products/[id]/images`
 - `PATCH /api/v1/admin/products/[id]/images/reorder`
@@ -181,7 +189,7 @@ Limites da DEV 1.1:
 - Estorno parcial ainda nao esta disponivel; o fluxo atual cobre estorno total.
 - `/admin/pagamentos` lista pagamentos reais, filtros, resumo do periodo, acao de copiar resumo e estorno quando permitido.
 - `/admin/caixa` lista `cash_entries` reais, filtros, resumo, despesas e ajustes manuais restritos a owner.
-- `/admin/relatorios/financeiro` mostra recebido por periodo, a receber, reembolsos, taxas, liquido, pedidos por situacao financeira, vendas por metodo e caixa por categoria.
+- `/admin/relatorios/financeiro` mostra recebido por periodo, a receber, reembolsos, taxas, liquido, pedidos por situacao financeira, vendas por vendedor, vendas por origem, vendas por metodo e caixa por categoria.
 - Reserva de estoque impede reservar unidade que nao esteja `available`.
 - Cancelamento de pedido libera unidade reservada.
 - Estoque 2.0 registra `inventory_movements` por unidade fisica para criacao, reserva, liberacao, venda, cancelamento, recebimento, avaria, indisponibilidade, ajuste de custo, mudanca de localizacao e ajuste manual.
@@ -200,6 +208,8 @@ Limites da DEV 1.1:
 - Pronta-entrega, pre-venda, encomenda e special sao atributos/badges do produto.
 - Catálogos separados sao reservados para collabs/fornecedores, por exemplo `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
 - Produtos sao criados em `/admin/produtos/novo` e editados em `/admin/produtos/[id]`, incluindo fornecedor, imagem, descricao, status e variantes.
+- Pedidos em `/admin/pedidos/novo` e `/admin/pedidos/[id]` permitem criar produto rapido no combobox de produto; a variante nasce `national/order_only`, sem criar ou reservar estoque automaticamente.
+- Pedidos possuem vendedor (`daniel`/`allana`) e itens podem usar origem `auction` exibida como Leilao.
 - `/admin/produtos/[id]` mostra resumo simples de estoque do produto por status e link para `/admin/estoque`.
 - `/admin/estoque` mostra cards reais de total, disponiveis, reservadas, vendidas, em transito, avariadas, indisponiveis, valor estimado e valor disponivel, alem de filtros por produto/SKU/status/localizacao e links para detalhe por unidade.
 - `/admin/estoque/[id]` mostra dados da unidade, custos, pedido reservado, historico de movimentos e acoes manuais permitidas para owner.
@@ -216,6 +226,7 @@ Limites da DEV 1.1:
 - Item de pedido pode ser rastreado para lote na tela `/admin/pedidos/[id]`.
 - Rifas DEV 1.1 ficam atras de `NEXT_PUBLIC_ENABLE_RAFFLES`.
 - `/admin/rifas` permite listar, criar, abrir, pausar, fechar, cancelar, ver pedidos, confirmar pagamento, cancelar reserva e registrar ganhador manual.
+- Rifas DEV 1.1 nao dependem de autorizacao governamental no fluxo principal academico/dev; campos legais existentes sao opcionais/legados.
 - `/rifas/[slug]` mostra premio, preco, progresso, regras e seletor de numeros para campanhas abertas.
 - Reserva de numeros e temporaria; pagamento confirmado manualmente muda os numeros para comprados.
 - Sorteio manual exige campanha encerrada e numero comprado.
@@ -241,44 +252,46 @@ SUPABASE_SERVICE_ROLE_KEY=...
 4. Entrar em `/login`; owners sao redirecionados para `/admin/dashboard`.
 5. Criar cliente via `POST /api/v1/admin/customers`.
 6. Criar pedido via `POST /api/v1/admin/orders`.
-7. Adicionar item via `POST /api/v1/admin/orders/[id]/items`.
-8. Registrar pagamento parcial via `POST /api/v1/admin/payments/manual`.
-9. Conferir `payments`, `cash_entries`, `order_status_history` e `admin_action_logs`.
-10. Registrar segundo pagamento ate quitar o pedido.
-11. Tentar pagamento maior que saldo pendente e confirmar bloqueio.
-12. Estornar pagamento via `POST /api/v1/admin/payments/[id]/refund` com justificativa.
-13. Conferir saida de caixa `refund`, status do pedido e log administrativo.
-14. Abrir `/admin/dashboard`, `/admin/pedidos`, `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
-15. Abrir `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
-16. Editar produto em `/admin/produtos/[id]`, trocar fornecedor/imagem/preco e conferir em `/fornecedores/piticas`.
-17. Em `/admin/produtos/[id]`, enviar imagem valida na secao "Imagens do produto".
-18. Testar rejeicao de arquivo acima de 5MB e de arquivo que nao seja imagem aceita.
-19. Definir a imagem enviada como principal e conferir card no catalogo/home e galeria em `/produto/[slug]`.
-20. Reordenar imagens e conferir a ordem da galeria publica.
-21. Remover uma imagem e confirmar que o fallback por `main_image_url`, primeira imagem restante ou `ProductArtwork` continua funcionando.
-22. Criar unidade de estoque e conferir movimento `created`.
-23. Ajustar status, localizacao e custo com justificativa e conferir movimentos `manual_adjustment`, `location_change` e `cost_adjustment`.
-24. Criar pedido com item pronta-entrega vinculado a uma unidade e conferir movimento `reserved`.
-25. Cancelar pedido e conferir estoque liberado com movimento `cancelled`.
-26. Marcar unidade como avariada e conferir movimento `damaged`.
-27. Abrir `/admin/estoque` e `/admin/estoque/[id]`.
-28. Confirmar que cliente nao acessa endpoints admin financeiros e de estoque.
-29. Criar lote em `/admin/lotes/novo`.
-30. Abrir `/admin/lotes`, filtrar e acessar o detalhe.
-31. Listar itens elegiveis, adicionar item de pedido e tentar adicionar o mesmo item de novo para confirmar erro amigavel.
-32. Atualizar custos/status do item do lote.
-33. Mudar status `draft -> open -> closed -> purchased -> in_transit`.
-34. Receber o lote e conferir itens como `received`.
-35. Conferir `admin_action_logs`.
-36. Abrir o pedido admin e conferir o link pedido -> lote.
-37. Confirmar que cliente nao acessa endpoints/telas admin de lotes.
-38. Com `NEXT_PUBLIC_ENABLE_RAFFLES=true`, criar rifa em `/admin/rifas/nova`.
-39. Abrir a rifa, reservar numeros em `/rifas/[slug]` e conferir `/conta/rifas`.
-40. Confirmar pagamento no detalhe admin e conferir caixa com categoria `raffle`.
-41. Fechar a rifa, registrar ganhador manual e conferir resultado na conta do cliente.
-42. Abrir `/pedido/[orderNumber]?token=...`.
-43. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
-44. Testar token errado no link publico.
+7. Selecionar vendedor Daniel ou Allana.
+8. Criar produto rapido pelo combobox do pedido, confirmar selecao automatica e adicionar ao pedido.
+9. Adicionar item com origem Leilao via `POST /api/v1/admin/orders/[id]/items`.
+10. Registrar pagamento parcial via `POST /api/v1/admin/payments/manual`.
+11. Conferir `payments`, `cash_entries`, `order_status_history` e `admin_action_logs`.
+12. Registrar segundo pagamento ate quitar o pedido.
+13. Tentar pagamento maior que saldo pendente e confirmar bloqueio.
+14. Estornar pagamento via `POST /api/v1/admin/payments/[id]/refund` com justificativa.
+15. Conferir saida de caixa `refund`, status do pedido e log administrativo.
+16. Abrir `/admin/dashboard`, `/admin/pedidos`, `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`.
+17. Abrir `/fornecedores`, `/fornecedores/piticas`, `/fornecedores/copag` e `/fornecedores/panini`.
+18. Editar produto em `/admin/produtos/[id]`, trocar fornecedor/imagem/preco e conferir em `/fornecedores/piticas`.
+19. Em `/admin/produtos/[id]`, enviar imagem valida na secao "Imagens do produto".
+20. Testar rejeicao de arquivo acima de 5MB e de arquivo que nao seja imagem aceita.
+21. Definir a imagem enviada como principal e conferir card no catalogo/home e galeria em `/produto/[slug]`.
+22. Reordenar imagens e conferir a ordem da galeria publica.
+23. Remover uma imagem e confirmar que o fallback por `main_image_url`, primeira imagem restante ou `ProductArtwork` continua funcionando.
+24. Criar unidade de estoque e conferir movimento `created`.
+25. Ajustar status, localizacao e custo com justificativa e conferir movimentos `manual_adjustment`, `location_change` e `cost_adjustment`.
+26. Criar pedido com item pronta-entrega vinculado a uma unidade e conferir movimento `reserved`.
+27. Cancelar pedido e conferir estoque liberado com movimento `cancelled`.
+28. Marcar unidade como avariada e conferir movimento `damaged`.
+29. Abrir `/admin/estoque` e `/admin/estoque/[id]`.
+30. Confirmar que cliente nao acessa endpoints admin financeiros e de estoque.
+31. Criar lote em `/admin/lotes/novo`.
+32. Abrir `/admin/lotes`, filtrar e acessar o detalhe.
+33. Listar itens elegiveis, adicionar item de pedido e tentar adicionar o mesmo item de novo para confirmar erro amigavel.
+34. Atualizar custos/status do item do lote.
+35. Mudar status `draft -> open -> closed -> purchased -> in_transit`.
+36. Receber o lote e conferir itens como `received`.
+37. Conferir `admin_action_logs`.
+38. Abrir o pedido admin e conferir o link pedido -> lote.
+39. Confirmar que cliente nao acessa endpoints/telas admin de lotes.
+40. Com `NEXT_PUBLIC_ENABLE_RAFFLES=true`, criar rifa em `/admin/rifas/nova`.
+41. Abrir a rifa, reservar numeros em `/rifas/[slug]` e conferir `/conta/rifas`.
+42. Confirmar pagamento no detalhe admin e conferir caixa com categoria `raffle`.
+43. Fechar a rifa, registrar ganhador manual e conferir resultado na conta do cliente.
+44. Abrir `/pedido/[orderNumber]?token=...`.
+45. Entrar como cliente e conferir `/conta/pedidos` e `/conta/pedidos/[orderNumber]`.
+46. Testar token errado no link publico.
 
 ## Contratos para app futuro
 

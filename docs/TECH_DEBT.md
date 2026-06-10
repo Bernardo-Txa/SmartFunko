@@ -47,10 +47,10 @@ Pendencias:
 
 ## Rifas DEV 1.1 nao produtivas
 
-Rifas DEV 1.1 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao interna de telas e fluxo operacional. Permanecem pendentes antes de qualquer uso produtivo:
+Rifas DEV 1.1 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao academica/interna de telas e fluxo operacional. O fluxo principal nao exige autorizacao governamental, codigo/link de autorizacao ou aceite legal para criar/abrir campanha em ambiente dev. Permanecem pendentes antes de qualquer uso produtivo:
 
 - revisao juridica/compliance por jurisdicao e tipo de promocao;
-- autorizacao regulatoria validada por processo, nao apenas campo manual;
+- processo regulatorio real quando aplicavel, fora do contexto academico/dev;
 - gateway/Pix e conciliacao automatica;
 - idempotencia forte para reserva, confirmacao de pagamento e cancelamento;
 - reembolso de pedido de rifa pago;
@@ -60,12 +60,31 @@ Rifas DEV 1.1 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao intern
 - rotina operacional agendada para expiracao de reservas;
 - testes automatizados de concorrencia para reserva de numeros.
 
+## Tema claro/escuro futuro
+
+O Light Mode usa as variaveis globais e cobre a navegacao, base visual e formularios principais. Pendencias:
+
+- refinamento visual completo de componentes muito customizados com classes escuras fixas; a sprint atual usa overrides globais de Light Mode para manter legibilidade;
+- revisao fina de contraste de todos os badges/status em Light Mode;
+- cobertura visual automatizada de paginas publicas e admin nos dois temas.
+
+## Produto rapido no pedido futuro
+
+O produto rapido cria produto ativo e variante `national/order_only`, sem estoque automatico. Pendencias:
+
+- upload direto de imagem no modal, alem de URL;
+- campo realmente interno para observacao quando houver coluna propria;
+- testes automatizados do endpoint e do combobox;
+- UX de reaproveitamento de produto parecido antes de criar duplicado.
+
 ## Proxima sprint
 
 - Remover tambem o arquivo fisico do Supabase Storage quando uma imagem for removida da galeria. Hoje a remocao apaga o registro de `product_images` e preserva o objeto no bucket para evitar inconsistencias fora de transacao.
 - Evoluir BI de estoque com aging detalhado, margem por linha, giro por fornecedor e alertas configuraveis.
 - Melhorar editor de produto com upload, historico visual de alteracoes e validacoes de SEO.
 - Evoluir imagens com alt text, compressao/resize server-side e validacao de dimensoes quando o volume justificar.
+- Refinar Light Mode em componentes comerciais muito customizados.
+- Evoluir produto rapido no pedido com upload de imagem direto.
 - Transformar carrinho assistido em checkout real somente quando frete, pagamento, reserva temporaria e regras de estoque estiverem definidos.
 - Criar pedido `draft` a partir do carrinho apenas depois de validar que nao reserva estoque automaticamente.
 - Evoluir `/admin/demanda` com notificacoes manuais/automaticas para interessados e criacao controlada de encomendas.

@@ -123,7 +123,7 @@ export default async function BrandCatalogPage({ params, searchParams }: Props) 
             </div>
           </div>
 
-          <div className="relative min-h-72 overflow-hidden rounded-lg border border-white/12 bg-black/18">
+          <div className="smart-image-caption relative min-h-72 overflow-hidden rounded-lg border border-white/12 bg-black/18">
             {supplier.banner_url ? (
               <Image
                 src={supplier.banner_url}
@@ -134,7 +134,7 @@ export default async function BrandCatalogPage({ params, searchParams }: Props) 
                 priority
               />
             ) : null}
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.12)_0%,rgba(2,6,23,0.82)_100%)]" />
+            <div className="smart-brand-image-overlay absolute inset-0" />
             <div className="absolute inset-x-5 bottom-5">
               {supplier.logo_url ? (
                 <div className="relative mb-4 h-20 w-20 overflow-hidden rounded-md border border-white/20 bg-white">

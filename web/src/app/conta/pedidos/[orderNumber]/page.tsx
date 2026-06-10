@@ -16,6 +16,7 @@ type AccountOrderItem = {
     } | null;
   } | null;
   quantity: number;
+  source: string;
   status: string;
   unit_price: number;
 };
@@ -26,6 +27,7 @@ type AccountOrderDetail = {
   } | null;
   order_items?: AccountOrderItem[];
   order_number: string;
+  seller: string | null;
   notes: string | null;
   payments?: Array<{
     amount: number;
@@ -75,6 +77,7 @@ export default async function AccountOrderPage({ params }: Props) {
       name: item.product_variants?.products?.name ?? "Produto",
       quantity: item.quantity,
       sku: item.product_variants?.sku ?? "-",
+      source: item.source,
       status: item.status,
       unitPrice: item.unit_price,
     })),
@@ -89,6 +92,7 @@ export default async function AccountOrderPage({ params }: Props) {
       paidAt: payment.paid_at,
       status: payment.status,
     })),
+    seller: order.seller,
     status: order.status,
     total: order.total,
     updatedAt: order.updated_at,

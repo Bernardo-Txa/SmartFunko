@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/format";
+import { getOrderSellerLabel } from "@/lib/order-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { DashboardService } from "@/server/dashboard/dashboard-service";
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 type LatestOrder = {
   id: string;
   order_number: string;
+  seller: string | null;
   status: string;
   total: number;
   customers?: {
@@ -52,7 +54,9 @@ export default async function AdminDashboardPage() {
                   <strong className="text-sm text-[var(--foreground)]">{order.order_number}</strong>
                   <OrderStatusBadge status={order.status} />
                 </div>
-                <p className="text-sm text-[var(--muted)]">{order.customers?.name ?? "Cliente"}</p>
+                <p className="text-sm text-[var(--muted)]">
+                  {order.customers?.name ?? "Cliente"} · {getOrderSellerLabel(order.seller)}
+                </p>
               </div>
               <span className="text-sm font-semibold text-[var(--foreground)]">
                 {formatCurrency(order.total)}

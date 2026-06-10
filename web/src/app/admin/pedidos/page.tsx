@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOrderSellerLabel, orderSellerOptions } from "@/lib/order-labels";
 import { orderStatusOptions } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { OrderService } from "@/server/orders/order-service";
@@ -24,6 +25,7 @@ type AdminOrder = {
   created_at: string;
   id: string;
   order_number: string;
+  seller: string | null;
   status: string;
   total: number;
   customers?: {
@@ -39,6 +41,7 @@ type Props = {
   searchParams?: Promise<{
     channel?: string;
     q?: string;
+    seller?: string;
     status?: string;
   }>;
 };
@@ -52,6 +55,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const params = await searchParams;
   const channel = getParam(params?.channel);
   const search = getParam(params?.q);
+  const seller = getParam(params?.seller);
   const status = getParam(params?.status);
   const orders = (await new OrderService(
     undefined,
@@ -59,13 +63,14 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   ).listOrders({
     channel: channel || undefined,
     search: search || undefined,
+    seller: seller || undefined,
     status: status || undefined,
   })) as unknown as AdminOrder[];
 
   return (
     <AdminShell title="Pedidos" description="Pedidos manuais criados a partir do WhatsApp.">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_170px_170px_auto] md:items-end">
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_150px_150px_150px_auto] md:items-end">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Busca</span>
             <input
@@ -105,6 +110,21 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               ))}
             </select>
           </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Vendedor</span>
+            <select
+              name="seller"
+              defaultValue={seller}
+              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              <option value="">Todos</option>
+              {orderSellerOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button className="h-10 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
             Filtrar
           </button>
@@ -118,12 +138,13 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         </Link>
       </div>
       <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>
               <th className="px-4 py-3">Pedido</th>
               <th className="px-4 py-3">Cliente</th>
               <th className="px-4 py-3">Canal</th>
+              <th className="px-4 py-3">Vendedor</th>
               <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3">Pago</th>
               <th className="px-4 py-3">Pendente</th>
@@ -147,6 +168,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)]">{order.customers?.name ?? "Cliente"}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{channels[order.channel] ?? order.channel}</td>
+                  <td className="px-4 py-3 text-[var(--muted)]">{getOrderSellerLabel(order.seller)}</td>
                   <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(order.total)}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatCurrency(paidAmount)}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatCurrency(pendingAmount)}</td>

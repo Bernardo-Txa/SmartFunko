@@ -9,6 +9,12 @@ import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
 } from "@/components/admin/product-variant-search-select";
+import {
+  orderItemSourceOptions,
+  orderSellerOptions,
+  type OrderItemSource,
+  type OrderSeller,
+} from "@/lib/order-labels";
 import { orderItemStatusOptions } from "@/lib/status-labels";
 
 type InventoryOption = {
@@ -29,15 +35,8 @@ type DraftItem = {
   productVariantId: string;
   quantity: number;
   selectedVariant: ProductVariantSearchOption | null;
-  source: "stock" | "national_order" | "international_order" | "preorder";
+  source: OrderItemSource;
   unitPrice: number;
-};
-
-const sourceLabels = {
-  international_order: "Importado",
-  national_order: "Encomenda nacional",
-  preorder: "Pré-venda",
-  stock: "Pronta-entrega",
 };
 
 function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftItem["source"] {
@@ -65,6 +64,7 @@ export function OrderDetailActions({
   paidAmount,
   pendingAmount,
   publicLink,
+  seller,
 }: {
   customerId: string;
   inventory: InventoryOption[];
@@ -74,6 +74,7 @@ export function OrderDetailActions({
   paidAmount: number;
   pendingAmount: number;
   publicLink: string;
+  seller: string | null;
 }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
@@ -86,6 +87,7 @@ export function OrderDetailActions({
     source: "national_order",
     unitPrice: 0,
   });
+  const [selectedSeller, setSelectedSeller] = useState<OrderSeller>((seller || "daniel") as OrderSeller);
   const [itemStatus, setItemStatus] = useState<Record<string, string>>(
     Object.fromEntries(items.map((item) => [item.id, item.status])),
   );
@@ -172,6 +174,14 @@ export function OrderDetailActions({
     showSuccess("Status do item atualizado.");
   }
 
+  async function updateSeller(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitJson(`/api/v1/admin/orders/${orderId}`, "PATCH", {
+      seller: selectedSeller,
+    });
+    showSuccess("Vendedor atualizado.");
+  }
+
   async function cancelOrder() {
     await submitJson(`/api/v1/admin/orders/${orderId}/cancel`, "POST", {
       notes: "Cancelado pelo painel administrativo",
@@ -213,10 +223,37 @@ export function OrderDetailActions({
       />
 
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Dados da venda</h2>
+        <form onSubmit={updateSeller} className="mt-4 grid gap-4 sm:grid-cols-[minmax(180px,280px)_auto] sm:items-end">
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Vendedor</span>
+            <select
+              value={selectedSeller}
+              onChange={(event) => setSelectedSeller(event.target.value as OrderSeller)}
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              {orderSellerOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            disabled={isSubmitting}
+            className="inline-flex h-11 items-center justify-center rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? <SmartButtonLoading message="Salvando..." /> : "Salvar vendedor"}
+          </button>
+        </form>
+      </section>
+
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Adicionar item</h2>
         <form onSubmit={addItem} className="mt-4 grid gap-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
             <ProductVariantSearchSelect
+              allowQuickCreate
               selected={draftItem.selectedVariant}
               onSelect={handleVariantChange}
             />
@@ -233,9 +270,9 @@ export function OrderDetailActions({
                 }
                 className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
               >
-                {Object.entries(sourceLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
+                {orderItemSourceOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>

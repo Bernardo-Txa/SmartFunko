@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/status-badge";
 import { env } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels";
 import {
   getOperationalStatusMeta,
   getOrderItemStatusMeta,
@@ -30,6 +31,7 @@ type OrderDetail = {
   order_number: string;
   customer_id: string;
   channel: string;
+  seller: string | null;
   status: string;
   subtotal: number;
   discount: number;
@@ -119,13 +121,6 @@ type OrderBatchLink = {
   } | null;
 };
 
-const sourceLabels: Record<string, string> = {
-  international_order: "Importado",
-  national_order: "Encomenda nacional",
-  preorder: "Pré-venda",
-  stock: "Pronta-entrega",
-};
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   return {
@@ -186,6 +181,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               <p className="mt-1 text-sm text-[var(--muted)]">
                 {order.customers?.email ?? "Sem e-mail"} · {order.customers?.phone ?? "Sem telefone"}
               </p>
+              <p className="mt-2 text-sm font-semibold text-[var(--foreground)]">
+                Vendedor: {getOrderSellerLabel(order.seller)}
+              </p>
             </div>
             <div className="grid gap-1 text-sm md:text-right">
               <span>Criado em {formatDate(order.created_at)}</span>
@@ -231,7 +229,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                         {item.product_variants?.products?.name ?? "Produto"}
                       </td>
                       <td className="px-4 py-3 text-[var(--muted)]">{item.product_variants?.sku ?? "-"}</td>
-                      <td className="px-4 py-3 text-[var(--muted)]">{sourceLabels[item.source] ?? item.source}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{getOrderItemSourceLabel(item.source)}</td>
                       <td className="px-4 py-3" title={statusMeta.label}>
                         <OrderItemStatusBadge status={item.status} />
                       </td>
@@ -310,6 +308,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           paidAmount={paidAmount}
           pendingAmount={pendingAmount}
           publicLink={publicLink}
+          seller={order.seller}
         />
 
         <section className="grid gap-4 lg:grid-cols-2">

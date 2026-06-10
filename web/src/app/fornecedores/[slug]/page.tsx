@@ -127,7 +127,7 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/84 via-[#020617]/10 to-transparent" />
+            <div className="smart-supplier-banner-overlay absolute inset-0" />
           </div>
         ) : null}
         <div className="p-5 sm:p-7">

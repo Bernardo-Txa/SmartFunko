@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { badRequest, notFound } from "@/server/http/errors";
+import { badRequest, conflict, notFound } from "@/server/http/errors";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -124,10 +124,22 @@ export const updateProductVariantSchema = z.object({
   type: z.enum(["common", "exclusive", "chase", "glow", "special"]).optional(),
 });
 
+export const quickCreateProductSchema = z.object({
+  category: nullableTrimmedText(),
+  franchise: nullableTrimmedText(),
+  imageUrl: nullableUrlSchema,
+  name: z.string().trim().min(2),
+  notes: nullableTrimmedText(),
+  salePrice: z.number().positive(),
+  sku: nullableTrimmedText(),
+  subcategory: nullableTrimmedText(),
+});
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type CreateProductVariantInput = z.infer<typeof createProductVariantSchema>;
 export type UpdateProductVariantInput = z.infer<typeof updateProductVariantSchema>;
+export type QuickCreateProductInput = z.infer<typeof quickCreateProductSchema>;
 
 type EntityWithId = {
   id: string;
@@ -177,6 +189,7 @@ type ProductMainImageRow = {
 
 export type ProductVariantSearchResult = {
   id: string;
+  isNew?: boolean;
   productId: string;
   productName: string;
   productSlug: string;
@@ -193,6 +206,18 @@ function slugify(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function createQuickSku(name: string) {
+  const prefix = slugify(name)
+    .split("-")
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part.slice(0, 4))
+    .join("-")
+    .toUpperCase();
+
+  return `SFQ-${prefix || "PROD"}-${Date.now().toString(36).toUpperCase()}`;
 }
 
 function productSelect() {
@@ -307,6 +332,178 @@ export class ProductService {
     }
 
     return data ?? [];
+  }
+
+  private async createUniqueSlug(table: "franchises" | "products", base: string) {
+    const fallback = table === "franchises" ? "franquia" : "produto";
+    const baseSlug = slugify(base) || fallback;
+
+    for (let index = 0; index < 20; index += 1) {
+      const candidate = index === 0 ? baseSlug : `${baseSlug}-${index + 1}`;
+      const { data, error } = await this.supabase
+        .from(table)
+        .select("id")
+        .eq("slug", candidate)
+        .maybeSingle();
+
+      if (error) {
+        throwQueryError(error, "Falha ao validar slug");
+      }
+
+      if (!data) {
+        return candidate;
+      }
+    }
+
+    return `${baseSlug}-${Date.now().toString(36)}`;
+  }
+
+  private async resolveFranchiseId(franchiseName?: string | null) {
+    const name = franchiseName?.trim();
+
+    if (!name) {
+      return null;
+    }
+
+    const { data: existing, error: existingError } = await this.supabase
+      .from("franchises")
+      .select("id")
+      .ilike("name", name)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) {
+      throwQueryError(existingError, "Falha ao buscar franquia");
+    }
+
+    if (existing) {
+      return existing.id as string;
+    }
+
+    const slug = await this.createUniqueSlug("franchises", name);
+    const { data, error } = await this.supabase
+      .from("franchises")
+      .insert({
+        name,
+        slug,
+        status: "active",
+      })
+      .select("id,name,slug")
+      .single();
+
+    if (error) {
+      throwQueryError(error, "Falha ao criar franquia");
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "franchise.quick_create",
+      adminId: this.actorId,
+      entityId: data.id,
+      entityType: "franchise",
+      newValue: data,
+    });
+
+    return data.id as string;
+  }
+
+  private async assertSkuAvailable(sku: string) {
+    const { data, error } = await this.supabase
+      .from("product_variants")
+      .select("id")
+      .eq("sku", sku)
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao validar SKU");
+    }
+
+    if (data) {
+      throw conflict("SKU ja cadastrado");
+    }
+  }
+
+  async quickCreateProduct(input: QuickCreateProductInput) {
+    const sku = input.sku?.trim() || createQuickSku(input.name);
+    await this.assertSkuAvailable(sku);
+
+    const [franchiseId, slug] = await Promise.all([
+      this.resolveFranchiseId(input.franchise),
+      this.createUniqueSlug("products", input.name),
+    ]);
+
+    const product = await this.createProduct({
+      categoryName: input.category ?? null,
+      description: input.notes ?? null,
+      externalCatalogCode: sku,
+      franchiseId,
+      funkoNumber: null,
+      mainImageUrl: input.imageUrl ?? null,
+      name: input.name,
+      slug,
+      status: "active",
+      subcategoryName: input.subcategory ?? null,
+      supplierId: null,
+    });
+    const productId = (product as unknown as EntityWithId).id;
+    const variant = await this.createVariant({
+      condition: "new",
+      estimatedCost: null,
+      marketPrice: null,
+      productId,
+      salePrice: input.salePrice,
+      sku,
+      source: "national",
+      specialLabel: "Criado no pedido",
+      specialTags: ["quick-create"],
+      status: "order_only",
+      type: "common",
+    });
+    const productRow = product as unknown as {
+      id: string;
+      main_image_url: string | null;
+      name: string;
+      slug: string;
+    };
+    const variantRow = variant as unknown as {
+      id: string;
+      sale_price: number | string;
+      sku: string;
+      source: CreateProductVariantInput["source"];
+      status: CreateProductVariantInput["status"];
+    };
+
+    await this.audit.createAdminActionLog({
+      action: "product.quick_create",
+      adminId: this.actorId,
+      entityId: productId,
+      entityType: "product",
+      newValue: { product, variant },
+    });
+
+    return {
+      product: {
+        id: productRow.id,
+        imageUrl: productRow.main_image_url,
+        name: productRow.name,
+        slug: productRow.slug,
+      },
+      searchOption: {
+        id: variantRow.id,
+        isNew: true,
+        productId: productRow.id,
+        productName: productRow.name,
+        productSlug: productRow.slug,
+        salePrice: Number(variantRow.sale_price),
+        sku: variantRow.sku,
+        source: variantRow.source,
+        status: variantRow.status,
+      } satisfies ProductVariantSearchResult,
+      variant: {
+        id: variantRow.id,
+        salePrice: Number(variantRow.sale_price),
+        sku: variantRow.sku,
+      },
+    };
   }
 
   async searchAdminProductVariants(options: { limit?: number; search: string }) {

@@ -17,6 +17,23 @@
   --shadow-blue: rgba(14, 165, 233, 0.28);
 }
 
+html.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --muted: #475569;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-strong: rgba(226, 232, 240, 0.92);
+  --border: rgba(14, 116, 144, 0.24);
+  --accent: #0891b2;
+  --accent-strong: #0e7490;
+  --yellow: #ca8a04;
+  --pink: #be185d;
+  --amber: #ea580c;
+  --purple: #4f46e5;
+  --green: #16a34a;
+  --shadow-blue: rgba(14, 116, 144, 0.18);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -25,13 +42,13 @@
 }
 
 html {
-  background: #020617;
+  background: var(--background);
   scrollbar-color: rgba(250, 204, 21, 0.72) rgba(3, 8, 22, 0.92);
   scrollbar-width: thin;
 }
 
 body {
-  background: #020617;
+  background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   min-height: 100vh;
@@ -53,6 +70,17 @@ body::before {
   pointer-events: none;
   position: fixed;
   z-index: 0;
+}
+
+html.light body::before {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(14, 165, 233, 0.14), transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(45, 212, 191, 0.12), transparent 28%),
+    radial-gradient(circle at 50% 100%, rgba(251, 191, 36, 0.09), transparent 36%),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.034) 1px, transparent 1px),
+    linear-gradient(180deg, #fbfdff 0%, #eaf8fb 46%, #fff8ed 100%);
+  opacity: 0.95;
 }
 
 body > div {
@@ -90,7 +118,182 @@ textarea::placeholder {
 
 ::selection {
   background: rgba(250, 204, 21, 0.32);
-  color: white;
+  color: var(--foreground);
+}
+
+html.light * {
+  scrollbar-color: rgba(14, 116, 144, 0.55) rgba(226, 232, 240, 0.9);
+}
+
+html.light [class*="bg-[#020617"],
+html.light [class*="bg-[#030816"],
+html.light [class*="bg-[#071124"],
+html.light [class*="bg-slate-950"],
+html.light [class*="bg-slate-900"] {
+  background-color: rgba(255, 255, 255, 0.86) !important;
+}
+
+html.light [class*="bg-slate-800"] {
+  background-color: rgba(203, 213, 225, 0.72) !important;
+}
+
+html.light [class*="border-white"],
+html.light [class*="border-cyan-300"],
+html.light [class*="border-cyan-400"] {
+  border-color: var(--border) !important;
+}
+
+html.light [class*="text-white"],
+html.light [class*="text-slate-100"],
+html.light [class*="text-slate-200"],
+html.light [class*="text-slate-300"],
+html.light [class*="text-cyan-50"],
+html.light [class*="text-cyan-100"],
+html.light [class*="text-yellow-100"] {
+  color: var(--foreground) !important;
+}
+
+html.light [class*="text-slate-400"],
+html.light [class*="text-slate-500"] {
+  color: var(--muted) !important;
+}
+
+html.light [class*="text-red-300"] {
+  color: #b91c1c !important;
+}
+
+html.light [class*="text-emerald-100"] {
+  color: #047857 !important;
+}
+
+html.light [class*="hover:text-white"]:hover {
+  color: var(--foreground) !important;
+}
+
+html.light [class*="ring-offset-[#030816"] {
+  --tw-ring-offset-color: var(--background) !important;
+}
+
+html.light .catalog-scroll,
+html.light select,
+html.light input,
+html.light textarea {
+  scrollbar-color: rgba(14, 116, 144, 0.55) rgba(226, 232, 240, 0.9);
+}
+
+.smart-storefront-hero-bg {
+  background: linear-gradient(122deg, rgba(2, 6, 23, 0.98), rgba(8, 22, 45, 0.92) 46%, rgba(219, 39, 119, 0.22) 76%, rgba(250, 204, 21, 0.14));
+}
+
+html.light .smart-storefront-hero-bg {
+  background: linear-gradient(122deg, #fbfdff 0%, #e3f8fb 44%, #fff4e6 74%, #fef9c3 100%);
+}
+
+.smart-storefront-hero-grid {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+html.light .smart-storefront-hero-grid {
+  background:
+    linear-gradient(90deg, rgba(14, 116, 144, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(14, 116, 144, 0.06) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.smart-brands-intro-bg {
+  background: linear-gradient(135deg, #051923 0%, #030816 55%, #201805 100%);
+}
+
+html.light .smart-brands-intro-bg {
+  background: linear-gradient(135deg, #ffffff 0%, #e0f7fb 52%, #fff7ed 100%);
+}
+
+.smart-brand-hero-copag {
+  background: linear-gradient(135deg, #1f0710 0%, #030816 52%, #1f1b05 100%);
+}
+
+.smart-brand-hero-panini {
+  background: linear-gradient(135deg, #241a05 0%, #030816 50%, #10203d 100%);
+}
+
+.smart-brand-hero-piticas {
+  background: linear-gradient(135deg, #2b1202 0%, #030816 52%, #062432 100%);
+}
+
+.smart-brand-hero-generic {
+  background: linear-gradient(135deg, #111827 0%, #030816 55%, #172033 100%);
+}
+
+html.light .smart-brand-hero-copag {
+  background: linear-gradient(135deg, #fff7f7 0%, #f8fbff 52%, #fff9e8 100%);
+}
+
+html.light .smart-brand-hero-panini {
+  background: linear-gradient(135deg, #fffbeb 0%, #f8fbff 50%, #e8f4ff 100%);
+}
+
+html.light .smart-brand-hero-piticas {
+  background: linear-gradient(135deg, #fff3e8 0%, #f8fbff 52%, #e8fbff 100%);
+}
+
+html.light .smart-brand-hero-generic {
+  background: linear-gradient(135deg, #ffffff 0%, #eef6fb 55%, #f8fafc 100%);
+}
+
+.smart-brand-band-copag {
+  background: rgba(127, 29, 29, 0.24);
+}
+
+.smart-brand-band-panini {
+  background: rgba(113, 63, 18, 0.18);
+}
+
+.smart-brand-band-piticas {
+  background: rgba(124, 45, 18, 0.22);
+}
+
+.smart-brand-band-generic {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+html.light .smart-brand-band-copag {
+  background: rgba(255, 247, 247, 0.88);
+}
+
+html.light .smart-brand-band-panini {
+  background: rgba(255, 251, 235, 0.88);
+}
+
+html.light .smart-brand-band-piticas {
+  background: rgba(255, 243, 232, 0.88);
+}
+
+html.light .smart-brand-band-generic {
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.smart-brand-image-overlay {
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.12) 0%, rgba(2, 6, 23, 0.82) 100%);
+}
+
+html.light .smart-brand-image-overlay {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.06) 0%, rgba(15, 23, 42, 0.58) 100%);
+}
+
+.smart-supplier-banner-overlay {
+  background: linear-gradient(to top, rgba(2, 6, 23, 0.84), rgba(2, 6, 23, 0.1), transparent);
+}
+
+html.light .smart-supplier-banner-overlay {
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.42), rgba(255, 255, 255, 0.08), transparent);
+}
+
+html.light .smart-image-caption [class*="text-white"],
+html.light .smart-image-caption [class*="text-slate-100"] {
+  color: #f8fafc !important;
 }
 
 *::-webkit-scrollbar {

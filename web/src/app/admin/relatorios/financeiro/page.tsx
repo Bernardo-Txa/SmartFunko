@@ -3,6 +3,10 @@ import Link from "next/link";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { formatCurrency, formatDate } from "@/lib/format";
 import {
+  getOrderItemSourceLabel,
+  getOrderSellerLabel,
+} from "@/lib/order-labels";
+import {
   getCashEntryCategoryMeta,
   getPaymentStatusMeta,
   getStatusBadgeClassName,
@@ -34,10 +38,16 @@ type PaymentListItem = {
 type OrderFinancialRow = {
   id: string;
   created_at: string;
+  order_items?: Array<{
+    source: string;
+    status: string;
+    total_price: number | string;
+  }>;
   payments?: Array<{
     amount: number | string;
     status: string;
   }>;
+  seller: string | null;
   status: string;
   total: number | string;
 };
@@ -121,7 +131,7 @@ function getPeriodRange(period: string, startDate: string, endDate: string) {
 async function getOrderFinancialSummary(startDate: string, endDate: string) {
   const { data, error } = await createSupabaseAdminClient()
     .from("orders")
-    .select("id,total,status,created_at,payments(amount,status)")
+    .select("id,total,status,seller,created_at,payments(amount,status),order_items(source,status,total_price)")
     .gte("created_at", startDate)
     .lte("created_at", endDate)
     .not("status", "in", "(cancelled,refunded)");
@@ -145,9 +155,40 @@ async function getOrderFinancialSummary(startDate: string, endDate: string) {
         summary.pending += 1;
       }
 
+      const sellerKey = order.seller ?? "unassigned";
+      const sellerSummary = summary.bySeller.get(sellerKey) ?? {
+        amount: 0,
+        count: 0,
+        seller: sellerKey,
+      };
+      sellerSummary.amount += total;
+      sellerSummary.count += 1;
+      summary.bySeller.set(sellerKey, sellerSummary);
+
+      for (const item of order.order_items ?? []) {
+        if (item.status === "cancelled") {
+          continue;
+        }
+
+        const sourceSummary = summary.bySource.get(item.source) ?? {
+          amount: 0,
+          count: 0,
+          source: item.source,
+        };
+        sourceSummary.amount += Number(item.total_price);
+        sourceSummary.count += 1;
+        summary.bySource.set(item.source, sourceSummary);
+      }
+
       return summary;
     },
-    { paid: 0, partiallyPaid: 0, pending: 0 },
+    {
+      bySeller: new Map<string, { amount: number; count: number; seller: string }>(),
+      bySource: new Map<string, { amount: number; count: number; source: string }>(),
+      paid: 0,
+      partiallyPaid: 0,
+      pending: 0,
+    },
   );
 }
 
@@ -191,6 +232,8 @@ export default async function AdminFinancialReportPage({ searchParams }: Props) 
     getOrderFinancialSummary(filters.startDate, filters.endDate),
   ]);
   const paymentsByMethod = summarizePaymentsByMethod(payments as unknown as PaymentListItem[]);
+  const salesBySeller = Array.from(orderSummary.bySeller.values()).sort((first, second) => second.amount - first.amount);
+  const salesBySource = Array.from(orderSummary.bySource.values()).sort((first, second) => second.amount - first.amount);
 
   return (
     <AdminShell
@@ -254,6 +297,64 @@ export default async function AdminFinancialReportPage({ searchParams }: Props) 
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            <h2 className="text-lg font-bold text-[var(--foreground)]">Vendas por vendedor</h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[420px] text-left text-sm">
+                <thead className="text-[var(--muted)]">
+                  <tr>
+                    <th className="py-2 pr-3">Vendedor</th>
+                    <th className="py-2 pr-3">Pedidos</th>
+                    <th className="py-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {salesBySeller.map((item) => (
+                    <tr key={item.seller}>
+                      <td className="py-3 pr-3 text-[var(--foreground)]">{getOrderSellerLabel(item.seller)}</td>
+                      <td className="py-3 pr-3 text-[var(--muted)]">{item.count}</td>
+                      <td className="py-3 text-right font-semibold text-[var(--foreground)]">
+                        {formatCurrency(item.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {salesBySeller.length === 0 ? (
+                <p className="mt-4 text-sm text-[var(--muted)]">Nenhuma venda no periodo.</p>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            <h2 className="text-lg font-bold text-[var(--foreground)]">Vendas por origem</h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[420px] text-left text-sm">
+                <thead className="text-[var(--muted)]">
+                  <tr>
+                    <th className="py-2 pr-3">Origem</th>
+                    <th className="py-2 pr-3">Itens</th>
+                    <th className="py-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {salesBySource.map((item) => (
+                    <tr key={item.source}>
+                      <td className="py-3 pr-3 text-[var(--foreground)]">{getOrderItemSourceLabel(item.source)}</td>
+                      <td className="py-3 pr-3 text-[var(--muted)]">{item.count}</td>
+                      <td className="py-3 text-right font-semibold text-[var(--foreground)]">
+                        {formatCurrency(item.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {salesBySource.length === 0 ? (
+                <p className="mt-4 text-sm text-[var(--muted)]">Nenhum item vendido no periodo.</p>
+              ) : null}
+            </div>
+          </section>
+
           <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-[var(--foreground)]">Vendas por metodo</h2>

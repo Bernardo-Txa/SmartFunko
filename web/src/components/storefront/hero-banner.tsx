@@ -11,8 +11,8 @@ export function HeroBanner({ products }: { products: Product[] }) {
 
   return (
     <section className="relative overflow-hidden border-b border-[var(--border)]">
-      <div className="absolute inset-0 bg-[linear-gradient(122deg,rgba(2,6,23,0.98),rgba(8,22,45,0.92)_46%,rgba(219,39,119,0.22)_76%,rgba(250,204,21,0.14))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[length:34px_34px]" />
+      <div className="smart-storefront-hero-bg absolute inset-0" />
+      <div className="smart-storefront-hero-grid absolute inset-0" />
 
       <div className="relative mx-auto grid min-h-[calc(100svh-5rem)] max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
         <div className="flex flex-col justify-center pb-10">

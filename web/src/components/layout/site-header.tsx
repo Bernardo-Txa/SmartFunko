@@ -37,7 +37,7 @@ export async function SiteHeader() {
     : null;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-cyan-200/14 bg-[#020617]/82 backdrop-blur-xl shadow-[0_14px_34px_rgba(2,6,23,0.22)]">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)] backdrop-blur-xl shadow-[0_14px_34px_var(--shadow-blue)]">
       <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3 rounded-full text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
           <Image
@@ -51,7 +51,7 @@ export async function SiteHeader() {
         </Link>
 
         <nav
-          className="hidden items-center gap-1 rounded-full border border-cyan-300/18 bg-[#020617]/50 p-1 shadow-[0_0_22px_rgba(14,165,233,0.10)] lg:flex"
+          className="hidden items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--background)]/50 p-1 shadow-[0_0_22px_var(--shadow-blue)] lg:flex"
           aria-label="Principal"
         >
           <MegaMenu categories={categories} franchises={franchises} />

@@ -6,6 +6,7 @@ import { ChevronDown, Heart, LayoutDashboard, LogOut, Menu, Package, User } from
 import { useEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
 import type { Dispatch, RefObject, SetStateAction } from "react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { CartNavButton } from "@/components/storefront/cart-button";
 import { MobileMegaMenu, type FranchiseOption } from "@/components/storefront/mega-menu";
 import type { CatalogCategory } from "@/lib/catalog";
@@ -90,13 +91,14 @@ export function HeaderActions({ account, categories, franchises, links }: Header
 
   return (
     <div className="flex items-center gap-2">
+      <ThemeToggle />
       <CartNavButton className="hidden sm:inline-flex" />
       {account ? (
         <div ref={accountMenuRef} className="relative">
           <button
             type="button"
             aria-expanded={isAccountOpen}
-            className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--border)] bg-[#020617]/42 px-4 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15"
+            className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
             onClick={() => setIsAccountOpen((current) => !current)}
           >
             <User size={16} aria-hidden="true" />
@@ -108,7 +110,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
             />
           </button>
           {isAccountOpen ? (
-            <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-lg border border-[var(--border)] bg-[#020617] p-2 shadow-[0_20px_54px_rgba(2,6,23,0.45)]">
+            <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[0_20px_54px_rgba(2,6,23,0.24)]">
               <div className="border-b border-[var(--border)] px-3 py-2">
                 <p className="truncate text-sm font-bold text-[var(--foreground)]">
                   {account.accountLabel}
@@ -118,7 +120,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
               <Link
                 href="/conta/pedidos"
                 onClick={closeAccountMenu}
-                className="mt-2 flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/12"
+                className="mt-2 flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
               >
                 <Package size={16} aria-hidden="true" />
                 Meus pedidos
@@ -126,7 +128,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
               <Link
                 href="/conta/wishlist"
                 onClick={closeAccountMenu}
-                className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/12"
+                className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
               >
                 <Heart size={16} aria-hidden="true" />
                 Favoritos
@@ -135,7 +137,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
                 <Link
                   href="/admin/dashboard"
                   onClick={closeAccountMenu}
-                  className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/12"
+                  className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
                 >
                   <LayoutDashboard size={16} aria-hidden="true" />
                   Painel
@@ -144,14 +146,14 @@ export function HeaderActions({ account, categories, franchises, links }: Header
               <Link
                 href="/conta"
                 onClick={closeAccountMenu}
-                className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/12"
+                className="flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
               >
                 <User size={16} aria-hidden="true" />
                 Minha conta
               </Link>
               <form action="/api/v1/auth/logout" method="post">
                 <button
-                  className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/12"
+                  className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
                   onClick={closeAccountMenu}
                 >
                   <LogOut size={16} aria-hidden="true" />
@@ -164,7 +166,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
       ) : (
         <Link
           href="/login"
-          className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border)] bg-[#020617]/42 px-4 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15"
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
         >
           <User size={16} aria-hidden="true" />
           Entrar
@@ -175,14 +177,14 @@ export function HeaderActions({ account, categories, franchises, links }: Header
         <button
           type="button"
           aria-expanded={isMobileOpen}
-          className="inline-flex h-10 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--border)] bg-[#020617]/42 px-3 text-[var(--foreground)] hover:bg-cyan-400/15"
+          className="inline-flex h-10 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
           onClick={() => setIsMobileOpen((current) => !current)}
         >
           <Menu size={18} aria-hidden="true" />
           <span className="sr-only">Abrir menu</span>
         </button>
         {isMobileOpen ? (
-          <div className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-[var(--border)] bg-[#020617] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.55)]">
+          <div className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.24)]">
             <div className="grid gap-2">
               <MobileMegaMenu
                 categories={categories}
@@ -196,9 +198,9 @@ export function HeaderActions({ account, categories, franchises, links }: Header
                   prefetch={false}
                   onClick={closeMobileMenu}
                   className={clsx(
-                    "rounded-lg px-3 py-2 text-sm font-bold hover:bg-cyan-400/12",
+                    "rounded-lg px-3 py-2 text-sm font-bold hover:bg-[var(--surface-strong)]",
                     isMobileLinkActive(link.href)
-                      ? "bg-cyan-300/14 text-white"
+                      ? "bg-[var(--surface-strong)] text-[var(--foreground)]"
                       : "text-[var(--foreground)]",
                   )}
                 >

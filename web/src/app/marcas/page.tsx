@@ -16,7 +16,7 @@ export default async function BrandsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mb-6 rounded-lg border border-cyan-300/25 bg-[linear-gradient(135deg,#051923_0%,#030816_55%,#201805_100%)] p-5 sm:p-7">
+      <section className="smart-brands-intro-bg mb-6 rounded-lg border border-cyan-300/25 p-5 sm:p-7">
         <span className="inline-flex rounded-full bg-yellow-300 px-3 py-1 text-xs font-black uppercase text-slate-950">
           Catalogos especiais
         </span>

@@ -39,9 +39,9 @@ const brandCatalogProfiles: Record<string, Omit<BrandCatalogProfile, "name">> = 
     theme: {
       accentClassName: "text-red-200",
       activeTabClassName: "border-red-300 bg-red-300 text-slate-950",
-      bandClassName: "border-red-300/30 bg-red-950/24",
+      bandClassName: "smart-brand-band-copag border-red-300/30",
       badgeClassName: "bg-red-300 text-slate-950",
-      heroClassName: "border-red-300/35 bg-[linear-gradient(135deg,#1f0710_0%,#030816_52%,#1f1b05_100%)]",
+      heroClassName: "smart-brand-hero-copag border-red-300/35",
     },
   },
   panini: {
@@ -61,9 +61,9 @@ const brandCatalogProfiles: Record<string, Omit<BrandCatalogProfile, "name">> = 
     theme: {
       accentClassName: "text-yellow-100",
       activeTabClassName: "border-yellow-300 bg-yellow-300 text-slate-950",
-      bandClassName: "border-yellow-300/35 bg-yellow-950/18",
+      bandClassName: "smart-brand-band-panini border-yellow-300/35",
       badgeClassName: "bg-yellow-300 text-slate-950",
-      heroClassName: "border-yellow-300/40 bg-[linear-gradient(135deg,#241a05_0%,#030816_50%,#10203d_100%)]",
+      heroClassName: "smart-brand-hero-panini border-yellow-300/40",
     },
   },
   piticas: {
@@ -83,9 +83,9 @@ const brandCatalogProfiles: Record<string, Omit<BrandCatalogProfile, "name">> = 
     theme: {
       accentClassName: "text-orange-100",
       activeTabClassName: "border-orange-300 bg-orange-300 text-slate-950",
-      bandClassName: "border-orange-300/30 bg-orange-950/22",
+      bandClassName: "smart-brand-band-piticas border-orange-300/30",
       badgeClassName: "bg-orange-300 text-slate-950",
-      heroClassName: "border-orange-300/35 bg-[linear-gradient(135deg,#2b1202_0%,#030816_52%,#062432_100%)]",
+      heroClassName: "smart-brand-hero-piticas border-orange-300/35",
     },
   },
 };
@@ -93,9 +93,9 @@ const brandCatalogProfiles: Record<string, Omit<BrandCatalogProfile, "name">> = 
 const genericTheme: BrandCatalogTheme = {
   accentClassName: "text-slate-100",
   activeTabClassName: "border-slate-200 bg-slate-200 text-slate-950",
-  bandClassName: "border-slate-400/25 bg-slate-900/55",
+  bandClassName: "smart-brand-band-generic border-slate-400/25",
   badgeClassName: "bg-slate-200 text-slate-950",
-  heroClassName: "border-slate-400/25 bg-[linear-gradient(135deg,#111827_0%,#030816_55%,#172033_100%)]",
+  heroClassName: "smart-brand-hero-generic border-slate-400/25",
 };
 
 export function getBrandCatalogProfile(supplier: CatalogSupplier): BrandCatalogProfile {

@@ -9,6 +9,12 @@ import {
   type ProductVariantSearchOption,
 } from "@/components/admin/product-variant-search-select";
 import { formatCurrency } from "@/lib/format";
+import {
+  orderItemSourceOptions,
+  orderSellerOptions,
+  type OrderItemSource,
+  type OrderSeller,
+} from "@/lib/order-labels";
 
 type CustomerOption = {
   id: string;
@@ -30,17 +36,10 @@ type DraftItem = {
   key: string;
   productVariantId: string;
   selectedVariant: ProductVariantSearchOption | null;
-  source: "stock" | "national_order" | "international_order" | "preorder";
+  source: OrderItemSource;
   inventoryItemId: string;
   quantity: number;
   unitPrice: number;
-};
-
-const sourceLabels = {
-  international_order: "Importado",
-  national_order: "Encomenda nacional",
-  preorder: "Pré-venda",
-  stock: "Pronta-entrega",
 };
 
 function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftItem["source"] {
@@ -83,6 +82,7 @@ export function OrderCreateForm({
   const [customerId, setCustomerId] = useState(customers[0]?.id ?? "");
   const [newCustomer, setNewCustomer] = useState({ email: "", name: "", phone: "" });
   const [items, setItems] = useState<DraftItem[]>([emptyItem()]);
+  const [seller, setSeller] = useState<OrderSeller>("daniel");
   const [discount, setDiscount] = useState(0);
   const [shippingAmount, setShippingAmount] = useState(0);
   const [notes, setNotes] = useState("");
@@ -182,6 +182,7 @@ export function OrderCreateForm({
             unitPrice: item.unitPrice,
           })),
           notes: notes || null,
+          seller,
           shippingAmount,
         }),
         headers: { "content-type": "application/json" },
@@ -271,6 +272,20 @@ export function OrderCreateForm({
             </label>
           </div>
         )}
+        <label className="mt-4 block md:max-w-xs">
+          <span className="text-sm font-semibold text-[var(--foreground)]">Vendedor</span>
+          <select
+            value={seller}
+            onChange={(event) => setSeller(event.target.value as OrderSeller)}
+            className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+          >
+            {orderSellerOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
 
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -309,6 +324,7 @@ export function OrderCreateForm({
                 </div>
                 <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
                   <ProductVariantSearchSelect
+                    allowQuickCreate
                     selected={item.selectedVariant}
                     onSelect={(variant) => updateItemVariant(item.key, variant)}
                   />
@@ -319,9 +335,9 @@ export function OrderCreateForm({
                       onChange={(event) => updateItem(item.key, { source: event.target.value as DraftItem["source"] })}
                       className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
                     >
-                      {Object.entries(sourceLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
+                      {orderItemSourceOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
                         </option>
                       ))}
                     </select>

@@ -1,5 +1,6 @@
 import { OrderItemStatusBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels";
 
 export type OrderDetailData = {
   orderNumber: string;
@@ -9,6 +10,7 @@ export type OrderDetailData = {
   paidAmount: number;
   pendingAmount?: number;
   notes?: string | null;
+  seller?: string | null;
   payments?: Array<{
     amount: number;
     createdAt?: string | null;
@@ -20,6 +22,7 @@ export type OrderDetailData = {
   items: Array<{
     name: string;
     sku: string;
+    source?: string | null;
     status: string;
     quantity: number;
     unitPrice: number;
@@ -50,6 +53,11 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
           <p className="mt-2 text-sm text-[var(--muted)]">
             {order.customerName} · atualizado em {formatDate(order.updatedAt)}
           </p>
+          {order.seller ? (
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Atendimento: {getOrderSellerLabel(order.seller)}
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-2 text-sm md:text-right">
           <span>Total: {formatCurrency(order.total)}</span>
@@ -69,7 +77,7 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
             <div>
               <strong className="block text-sm text-[var(--foreground)]">{item.name}</strong>
               <span className="mt-1 block text-xs text-[var(--muted)]">
-                {item.sku} · {item.quantity} unidade(s)
+                {item.sku} · {item.quantity} unidade(s) · {getOrderItemSourceLabel(item.source)}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 md:justify-end">

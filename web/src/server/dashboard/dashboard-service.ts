@@ -36,7 +36,7 @@ export class DashboardService {
         .select("id,status"),
       this.supabase
         .from("orders")
-        .select("id,order_number,total,status,created_at,customers(name)")
+        .select("id,order_number,total,status,seller,created_at,customers(name)")
         .order("created_at", { ascending: false })
         .limit(8),
     ]);

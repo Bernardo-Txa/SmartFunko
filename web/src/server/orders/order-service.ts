@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
+import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { calculateOrderTotals } from "@/server/orders/order-calculator";
@@ -40,15 +41,18 @@ export const createOrderItemSchema = z.object({
   inventoryItemId: z.string().uuid().optional().nullable(),
   quantity: z.number().int().positive().default(1),
   unitPrice: z.number().nonnegative(),
-  source: z.enum(["stock", "national_order", "international_order", "preorder"]).default("stock"),
+  source: z.enum(["stock", "national_order", "international_order", "preorder", "auction"]).default("stock"),
   status: orderItemStatusSchema.optional(),
 });
+
+export const orderSellerSchema = z.enum(["daniel", "allana"]);
 
 export const createManualOrderSchema = z.object({
   customerId: z.string().uuid(),
   channel: z.enum(["whatsapp", "website", "admin", "preorder"]).default("whatsapp"),
   discount: z.number().nonnegative().default(0),
   shippingAmount: z.number().nonnegative().default(0),
+  seller: orderSellerSchema.optional().nullable(),
   notes: z.string().trim().optional().nullable(),
   internalNotes: z.string().trim().optional().nullable(),
   items: z.array(createOrderItemSchema).default([]),
@@ -58,6 +62,7 @@ export const updateOrderSchema = z.object({
   status: orderStatusSchema.optional(),
   discount: z.number().nonnegative().optional(),
   shippingAmount: z.number().nonnegative().optional(),
+  seller: orderSellerSchema.optional().nullable(),
   notes: z.string().trim().optional().nullable(),
   internalNotes: z.string().trim().optional().nullable(),
 });
@@ -75,6 +80,7 @@ export type OrderListFilters = {
   channel?: string;
   limit?: number;
   search?: string;
+  seller?: string;
   status?: string;
 };
 
@@ -82,6 +88,7 @@ type OrderRow = {
   id: string;
   order_number: string;
   customer_id: string;
+  seller: string | null;
   status: string;
   subtotal: number;
   discount: number;
@@ -117,6 +124,7 @@ type PublicOrderItem = {
     } | null;
   } | null;
   quantity: number;
+  source: string;
   status: string;
   total_price: number;
   unit_price: number;
@@ -127,6 +135,7 @@ type PublicOrderRow = {
   customers?: {
     name?: string;
   } | null;
+  seller: string | null;
   notes: string | null;
   order_items?: PublicOrderItem[];
   order_number: string;
@@ -140,7 +149,7 @@ type PublicOrderRow = {
 
 function orderSelect() {
   return `
-    id,order_number,customer_id,channel,status,subtotal,discount,shipping_amount,total,
+    id,order_number,customer_id,channel,seller,status,subtotal,discount,shipping_amount,total,
     public_token,public_token_created_at,public_tracking_enabled,notes,internal_notes,created_by,created_at,updated_at,
     customers(id,name,email,phone,status),
     order_items(
@@ -161,6 +170,12 @@ function createOrderNumber() {
 
 function escapeIlike(value: string) {
   return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_").trim();
+}
+
+function withoutUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  ) as Partial<T>;
 }
 
 export class OrderService {
@@ -207,6 +222,10 @@ export class OrderService {
 
     if (filters.channel) {
       query = query.eq("channel", filters.channel);
+    }
+
+    if (filters.seller) {
+      query = query.eq("seller", filters.seller);
     }
 
     if (search) {
@@ -276,10 +295,11 @@ export class OrderService {
         internal_notes: input.internalNotes ?? null,
         notes: input.notes ?? null,
         order_number: createOrderNumber(),
+        seller: input.seller ?? null,
         shipping_amount: input.shippingAmount,
         status: "draft",
       })
-      .select("id,order_number,customer_id,status,subtotal,discount,shipping_amount,total,public_token,public_tracking_enabled")
+      .select("id,order_number,customer_id,seller,status,subtotal,discount,shipping_amount,total,public_token,public_tracking_enabled")
       .single<OrderRow>();
 
     if (error) {
@@ -294,7 +314,12 @@ export class OrderService {
       newValue: order,
     });
 
-    await this.addOrderHistory(order.id, null, "draft", "Pedido criado");
+    await this.addOrderHistory(
+      order.id,
+      null,
+      "draft",
+      `Pedido criado${order.seller ? ` por ${getOrderSellerLabel(order.seller)}` : ""}`,
+    );
 
     for (const item of input.items) {
       await this.addOrderItem(order.id, item);
@@ -368,7 +393,13 @@ export class OrderService {
       entityType: "order_item",
       newValue: item,
     });
-    await this.addOrderHistory(orderId, null, status, "Item adicionado ao pedido", item.id);
+    await this.addOrderHistory(
+      orderId,
+      null,
+      status,
+      `Item adicionado ao pedido. Origem: ${getOrderItemSourceLabel(input.source)}`,
+      item.id,
+    );
 
     return item;
   }
@@ -403,15 +434,17 @@ export class OrderService {
 
   async updateOrder(id: string, input: UpdateOrderInput) {
     const current = await this.getOrderById(id);
+    const patch = withoutUndefined({
+      discount: input.discount,
+      internal_notes: input.internalNotes,
+      notes: input.notes,
+      seller: input.seller,
+      shipping_amount: input.shippingAmount,
+      status: input.status,
+    });
     const { data, error } = await this.supabase
       .from("orders")
-      .update({
-        discount: input.discount,
-        internal_notes: input.internalNotes,
-        notes: input.notes,
-        shipping_amount: input.shippingAmount,
-        status: input.status,
-      })
+      .update(patch)
       .eq("id", id)
       .select(orderSelect())
       .single();
@@ -422,6 +455,15 @@ export class OrderService {
 
     if (input.status && input.status !== current.status) {
       await this.addOrderHistory(id, current.status, input.status);
+    }
+
+    if (input.seller !== undefined && input.seller !== current.seller) {
+      await this.addOrderHistory(
+        id,
+        current.status,
+        current.status,
+        `Vendedor atualizado para ${getOrderSellerLabel(input.seller)}`,
+      );
     }
 
     await this.recalculateOrder(id);
@@ -680,6 +722,7 @@ export class OrderService {
         name: item.product_variants?.products?.name ?? "Produto",
         quantity: item.quantity,
         sku: item.product_variants?.sku ?? "-",
+        source: item.source,
         status: item.status,
         totalPrice: item.total_price,
         unitPrice: item.unit_price,
@@ -695,6 +738,7 @@ export class OrderService {
         paidAt: payment.paid_at,
         status: payment.status,
       })),
+      seller: order.seller,
       status: order.status,
       total: order.total,
       updatedAt: order.updated_at,
