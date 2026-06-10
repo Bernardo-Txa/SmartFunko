@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Plus } from "lucide-react";
+import { CheckCircle2, Copy, Plus, RefreshCw, XCircle } from "lucide-react";
 import { PaymentCreateForm } from "@/components/admin/payment-create-form";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import {
@@ -63,7 +63,9 @@ export function OrderDetailActions({
   orderTotal,
   paidAmount,
   pendingAmount,
+  paymentLinkUrl,
   publicLink,
+  reviewStatus,
   seller,
 }: {
   customerId: string;
@@ -73,7 +75,9 @@ export function OrderDetailActions({
   orderTotal: number;
   paidAmount: number;
   pendingAmount: number;
+  paymentLinkUrl: string | null;
   publicLink: string;
+  reviewStatus: string | null;
   seller: string | null;
 }) {
   const router = useRouter();
@@ -92,6 +96,7 @@ export function OrderDetailActions({
     Object.fromEntries(items.map((item) => [item.id, item.status])),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const availableInventory = inventory.filter(
     (entry) => entry.product_variant_id === draftItem.productVariantId && entry.status === "available",
@@ -189,10 +194,46 @@ export function OrderDetailActions({
     showSuccess("Pedido cancelado.");
   }
 
+  async function approveForPayment() {
+    const data = await submitJson(`/api/v1/admin/orders/${orderId}/approve-payment`, "POST");
+    showSuccess(data?.checkoutUrl ? "Pedido aprovado e link InfinitePay gerado." : "Pedido aprovado.");
+  }
+
+  async function regeneratePaymentLink() {
+    const data = await submitJson(`/api/v1/admin/orders/${orderId}/regenerate-payment-link`, "POST");
+    showSuccess(data?.checkoutUrl ? "Novo link InfinitePay gerado." : "Link atualizado.");
+  }
+
+  async function rejectOrder(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (rejectReason.trim().length < 3) {
+      setMessage("");
+      setError("Informe o motivo da recusa");
+      return;
+    }
+
+    await submitJson(`/api/v1/admin/orders/${orderId}/reject`, "POST", {
+      reason: rejectReason,
+    });
+    setRejectReason("");
+    showSuccess("Pedido recusado.");
+  }
+
   async function copyPublicLink() {
     await navigator.clipboard.writeText(publicLink);
     setError("");
     setMessage("Link publico copiado.");
+  }
+
+  async function copyPaymentLink() {
+    if (!paymentLinkUrl) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(paymentLinkUrl);
+    setError("");
+    setMessage("Link InfinitePay copiado.");
   }
 
   return (
@@ -221,6 +262,82 @@ export function OrderDetailActions({
         paidAmount={paidAmount}
         pendingAmount={pendingAmount}
       />
+
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Checkout assistido</h2>
+        <div className="mt-4 grid gap-4">
+          {reviewStatus === "under_review" ? (
+            <div className="grid gap-3 md:grid-cols-[auto_1fr]">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={approveForPayment}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <CheckCircle2 size={16} aria-hidden="true" />
+                {isSubmitting ? <SmartButtonLoading message="Gerando..." /> : "Aprovar e gerar link"}
+              </button>
+              <form onSubmit={rejectOrder} className="grid gap-2 md:grid-cols-[1fr_auto]">
+                <input
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                  placeholder="Motivo da recusa"
+                  className="h-11 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                />
+                <button
+                  disabled={isSubmitting}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-red-300/35 px-4 text-sm font-semibold text-red-300 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <XCircle size={16} aria-hidden="true" />
+                  Recusar
+                </button>
+              </form>
+            </div>
+          ) : null}
+
+          {reviewStatus === "awaiting_payment" ? (
+            <div className="grid gap-3">
+              {paymentLinkUrl ? (
+                <div className="rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
+                  <p className="break-all text-sm text-[var(--muted)]">{paymentLinkUrl}</p>
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={!paymentLinkUrl}
+                  onClick={copyPaymentLink}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Copy size={16} aria-hidden="true" />
+                  Copiar link
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={regeneratePaymentLink}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw size={16} aria-hidden="true" />
+                  {isSubmitting ? <SmartButtonLoading message="Gerando..." /> : "Regenerar link"}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {reviewStatus === "paid" ? (
+            <p className="rounded-md border border-emerald-300/25 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+              Pagamento confirmado pela InfinitePay ou por baixa manual.
+            </p>
+          ) : null}
+
+          {reviewStatus === "rejected" ? (
+            <p className="rounded-md border border-red-300/25 bg-red-500/10 p-3 text-sm text-red-100">
+              Pedido recusado. O cliente visualiza o motivo no acompanhamento.
+            </p>
+          ) : null}
+        </div>
+      </section>
 
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Dados da venda</h2>

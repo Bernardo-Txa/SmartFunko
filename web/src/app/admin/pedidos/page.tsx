@@ -5,7 +5,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getOrderSellerLabel, orderSellerOptions } from "@/lib/order-labels";
-import { orderStatusOptions } from "@/lib/status-labels";
+import { getOrderReviewStatusMeta, getStatusBadgeClassName, orderReviewStatusOptions, orderStatusOptions } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { OrderService } from "@/server/orders/order-service";
 
@@ -25,6 +25,7 @@ type AdminOrder = {
   created_at: string;
   id: string;
   order_number: string;
+  review_status: string | null;
   seller: string | null;
   status: string;
   total: number;
@@ -42,6 +43,7 @@ type Props = {
     channel?: string;
     q?: string;
     seller?: string;
+    reviewStatus?: string;
     status?: string;
   }>;
 };
@@ -56,6 +58,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const channel = getParam(params?.channel);
   const search = getParam(params?.q);
   const seller = getParam(params?.seller);
+  const reviewStatus = getParam(params?.reviewStatus);
   const status = getParam(params?.status);
   const orders = (await new OrderService(
     undefined,
@@ -64,13 +67,14 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     channel: channel || undefined,
     search: search || undefined,
     seller: seller || undefined,
+    reviewStatus: reviewStatus || undefined,
     status: status || undefined,
   })) as unknown as AdminOrder[];
 
   return (
     <AdminShell title="Pedidos" description="Pedidos manuais criados a partir do WhatsApp.">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_150px_150px_150px_auto] md:items-end">
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_150px_170px_150px_150px_auto] md:items-end">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Busca</span>
             <input
@@ -79,6 +83,21 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               placeholder="Pedido ou cliente"
               className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Análise</span>
+            <select
+              name="reviewStatus"
+              defaultValue={reviewStatus}
+              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              <option value="">Todas</option>
+              {orderReviewStatusOptions.map(({ label, value }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Status</span>
@@ -149,6 +168,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               <th className="px-4 py-3">Pago</th>
               <th className="px-4 py-3">Pendente</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Análise</th>
               <th className="px-4 py-3">Data</th>
             </tr>
           </thead>
@@ -158,9 +178,10 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                 .filter((payment) => payment.status === "paid")
                 .reduce((sum, payment) => sum + Number(payment.amount), 0);
               const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
+              const reviewMeta = getOrderReviewStatusMeta(order.review_status);
 
               return (
-                <tr key={order.id}>
+                <tr key={order.id} className={order.review_status === "under_review" ? "bg-yellow-300/8" : undefined}>
                   <td className="px-4 py-3 font-semibold text-[var(--foreground)]">
                     <Link href={`/admin/pedidos/${order.id}`} className="hover:text-[var(--accent)]">
                       {order.order_number}
@@ -174,6 +195,13 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   <td className="px-4 py-3 text-[var(--muted)]">{formatCurrency(pendingAmount)}</td>
                   <td className="px-4 py-3">
                     <OrderStatusBadge status={order.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    {order.review_status ? (
+                      <span className={getStatusBadgeClassName(reviewMeta)}>{reviewMeta.label}</span>
+                    ) : (
+                      <span className="text-[var(--muted)]">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatDate(order.created_at)}</td>
                 </tr>

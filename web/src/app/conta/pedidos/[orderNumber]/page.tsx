@@ -27,6 +27,10 @@ type AccountOrderDetail = {
   } | null;
   order_items?: AccountOrderItem[];
   order_number: string;
+  payment_link_url: string | null;
+  rejected_reason: string | null;
+  review_notes: string | null;
+  review_status: string | null;
   seller: string | null;
   notes: string | null;
   payments?: Array<{
@@ -85,6 +89,7 @@ export default async function AccountOrderPage({ params }: Props) {
     notes: order.notes,
     paidAmount,
     pendingAmount: Math.max(0, Number(order.total) - paidAmount),
+    paymentLinkUrl: order.payment_link_url,
     payments: payments.map((payment) => ({
       amount: payment.amount,
       createdAt: payment.created_at,
@@ -92,6 +97,9 @@ export default async function AccountOrderPage({ params }: Props) {
       paidAt: payment.paid_at,
       status: payment.status,
     })),
+    rejectedReason: order.rejected_reason,
+    reviewNotes: order.review_notes,
+    reviewStatus: order.review_status,
     seller: order.seller,
     status: order.status,
     total: order.total,

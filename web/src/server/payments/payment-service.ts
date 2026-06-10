@@ -7,7 +7,7 @@ import { throwQueryError } from "@/server/supabase/query-error";
 export const manualPaymentSchema = z.object({
   orderId: z.string().uuid(),
   customerId: z.string().uuid().optional().nullable(),
-  method: z.enum(["pix", "credit_card", "debit_card", "cash", "manual"]).default("manual"),
+  method: z.enum(["pix", "credit_card", "debit_card", "cash", "manual", "infinitepay"]).default("manual"),
   amount: z.number().positive(),
   feeAmount: z.number().nonnegative().default(0),
   paidAt: z.string().datetime().optional(),

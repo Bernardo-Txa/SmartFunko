@@ -50,8 +50,18 @@ export const paymentStatusOptions = [
   { label: "Pendente", value: "pending" },
   { label: "Pago", value: "paid" },
   { label: "Falhou", value: "failed" },
+  { label: "Expirado", value: "expired" },
   { label: "Cancelado", value: "cancelled" },
   { label: "Reembolsado", value: "refunded" },
+] as const;
+
+export const orderReviewStatusOptions = [
+  { label: "Em análise", value: "under_review" },
+  { label: "Aprovado", value: "approved_for_payment" },
+  { label: "Aguardando pagamento", value: "awaiting_payment" },
+  { label: "Recusado", value: "rejected" },
+  { label: "Pago", value: "paid" },
+  { label: "Cancelado", value: "cancelled" },
 ] as const;
 
 export const cashEntryTypeOptions = [
@@ -180,10 +190,20 @@ const orderItemStatusMeta = {
 
 const paymentStatusMeta = {
   cancelled: createMeta("Cancelado", "red"),
+  expired: createMeta("Expirado", "red"),
   failed: createMeta("Falhou", "red"),
   paid: createMeta("Pago", "green"),
   pending: createMeta("Pendente", "yellow"),
   refunded: createMeta("Reembolsado", "gray"),
+} satisfies Record<string, StatusMeta>;
+
+const orderReviewStatusMeta = {
+  approved_for_payment: createMeta("Aprovado", "blue"),
+  awaiting_payment: createMeta("Aguardando pagamento", "yellow"),
+  cancelled: createMeta("Cancelado", "red"),
+  paid: createMeta("Pago", "green"),
+  rejected: createMeta("Recusado", "red"),
+  under_review: createMeta("Em análise", "violet"),
 } satisfies Record<string, StatusMeta>;
 
 const cashEntryTypeMeta = {
@@ -320,6 +340,7 @@ function getMeta(map: Readonly<Record<string, StatusMeta>>, status: string | nul
 }
 
 const operationalStatusMaps: ReadonlyArray<Readonly<Record<string, StatusMeta>>> = [
+  orderReviewStatusMeta,
   orderStatusMeta,
   orderItemStatusMeta,
   paymentStatusMeta,
@@ -340,6 +361,10 @@ const operationalStatusMaps: ReadonlyArray<Readonly<Record<string, StatusMeta>>>
 
 export function getOrderStatusMeta(status: string | null | undefined) {
   return getMeta(orderStatusMeta, status);
+}
+
+export function getOrderReviewStatusMeta(status: string | null | undefined) {
+  return getMeta(orderReviewStatusMeta, status);
 }
 
 export function getOrderItemStatusMeta(status: string | null | undefined) {

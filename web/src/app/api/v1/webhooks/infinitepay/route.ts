@@ -1,0 +1,25 @@
+import { AssistedCheckoutService } from "@/server/checkout/assisted-checkout-service";
+import { badRequest, forbidden } from "@/server/http/errors";
+import { handleApi, jsonOk } from "@/server/http/responses";
+import { verifyInfinitePayWebhook } from "@/server/payments/infinitepay-client";
+
+export async function POST(request: Request) {
+  return handleApi(async () => {
+    const rawBody = await request.text();
+
+    if (!verifyInfinitePayWebhook(rawBody, request.headers)) {
+      throw forbidden("Assinatura InfinitePay invalida");
+    }
+
+    let payload: unknown;
+
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      throw badRequest("Webhook InfinitePay com JSON invalido");
+    }
+
+    const result = await new AssistedCheckoutService().handleInfinitePayWebhook(payload);
+    return jsonOk(result);
+  });
+}

@@ -15,6 +15,8 @@ import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels
 import {
   getOperationalStatusMeta,
   getOrderItemStatusMeta,
+  getOrderReviewStatusMeta,
+  getStatusBadgeClassName,
   getPaymentStatusMeta,
 } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
@@ -39,6 +41,14 @@ type OrderDetail = {
   total: number;
   public_token: string;
   public_tracking_enabled: boolean;
+  payment_link_created_at: string | null;
+  payment_link_url: string | null;
+  payment_provider: string | null;
+  payment_provider_reference: string | null;
+  rejected_reason: string | null;
+  review_notes: string | null;
+  review_status: string | null;
+  reviewed_at: string | null;
   notes: string | null;
   internal_notes: string | null;
   created_at: string;
@@ -159,6 +169,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
     .reduce((sum, payment) => sum + Number(payment.amount), 0);
   const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
   const publicLink = `${env.siteUrl}/pedido/${order.order_number}?token=${order.public_token}`;
+  const reviewMeta = getOrderReviewStatusMeta(order.review_status);
 
   return (
     <AdminShell
@@ -171,6 +182,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <OrderStatusBadge status={order.status} />
+                {order.review_status ? (
+                  <span className={getStatusBadgeClassName(reviewMeta)}>{reviewMeta.label}</span>
+                ) : null}
                 <span className="rounded-md bg-[var(--surface-strong)] px-2 py-1 text-xs font-semibold text-[var(--muted)]">
                   {order.channel}
                 </span>
@@ -198,6 +212,42 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           <MetricCard label="Pendente" value={formatCurrency(pendingAmount)} detail="Saldo aberto" />
           <MetricCard label="Itens" value={`${order.order_items?.length ?? 0}`} detail="Unidades no pedido" />
         </div>
+
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--foreground)]">Análise do pedido</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                Status: <span className="font-semibold text-[var(--foreground)]">{reviewMeta.label}</span>
+                {order.reviewed_at ? ` · revisado em ${formatDate(order.reviewed_at)}` : ""}
+              </p>
+              {order.rejected_reason ? (
+                <p className="mt-2 rounded-md border border-red-300/25 bg-red-500/10 p-3 text-sm text-red-100">
+                  Motivo da recusa: {order.rejected_reason}
+                </p>
+              ) : null}
+              {order.review_notes ? (
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{order.review_notes}</p>
+              ) : null}
+            </div>
+            {order.payment_link_url ? (
+              <div className="grid gap-1 text-sm md:max-w-md md:text-right">
+                <span className="font-semibold text-[var(--foreground)]">InfinitePay</span>
+                <a
+                  href={order.payment_link_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all text-[var(--accent)] hover:underline"
+                >
+                  {order.payment_link_url}
+                </a>
+                <span className="text-[var(--muted)]">
+                  Ref. {order.payment_provider_reference ?? "-"}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </section>
 
         <section className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
           <div className="border-b border-[var(--border)] p-5">
@@ -307,7 +357,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           orderTotal={Number(order.total)}
           paidAmount={paidAmount}
           pendingAmount={pendingAmount}
+          paymentLinkUrl={order.payment_link_url}
           publicLink={publicLink}
+          reviewStatus={order.review_status}
           seller={order.seller}
         />
 

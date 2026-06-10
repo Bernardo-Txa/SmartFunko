@@ -21,6 +21,15 @@ export const orderStatusSchema = z.enum([
   "refunded",
 ]);
 
+export const orderReviewStatusSchema = z.enum([
+  "under_review",
+  "approved_for_payment",
+  "awaiting_payment",
+  "rejected",
+  "paid",
+  "cancelled",
+]);
+
 export const orderItemStatusSchema = z.enum([
   "requested",
   "reserved",
@@ -79,6 +88,7 @@ export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
 export type OrderListFilters = {
   channel?: string;
   limit?: number;
+  reviewStatus?: string;
   search?: string;
   seller?: string;
   status?: string;
@@ -96,6 +106,7 @@ type OrderRow = {
   total: number;
   public_token: string;
   public_tracking_enabled: boolean;
+  review_status: string;
 };
 
 type OrderDetailRow = OrderRow & {
@@ -140,8 +151,12 @@ type PublicOrderRow = {
   order_items?: PublicOrderItem[];
   order_number: string;
   payments?: PublicOrderPayment[];
+  payment_link_url: string | null;
   public_token: string;
   public_tracking_enabled: boolean;
+  rejected_reason: string | null;
+  review_notes: string | null;
+  review_status: string;
   status: string;
   total: number;
   updated_at: string;
@@ -151,6 +166,8 @@ function orderSelect() {
   return `
     id,order_number,customer_id,channel,seller,status,subtotal,discount,shipping_amount,total,
     public_token,public_token_created_at,public_tracking_enabled,notes,internal_notes,created_by,created_at,updated_at,
+    review_status,review_notes,rejected_reason,reviewed_by,reviewed_at,
+    payment_provider,payment_link_url,payment_provider_reference,payment_link_created_at,payment_link_expires_at,
     customers(id,name,email,phone,status),
     order_items(
       id,order_id,product_variant_id,inventory_item_id,quantity,unit_price,total_price,source,status,created_at,updated_at,
@@ -228,6 +245,10 @@ export class OrderService {
       query = query.eq("seller", filters.seller);
     }
 
+    if (filters.reviewStatus) {
+      query = query.eq("review_status", filters.reviewStatus);
+    }
+
     if (search) {
       const safeSearch = escapeIlike(search);
       const clauses = [`order_number.ilike.%${safeSearch}%`];
@@ -295,11 +316,12 @@ export class OrderService {
         internal_notes: input.internalNotes ?? null,
         notes: input.notes ?? null,
         order_number: createOrderNumber(),
+        review_status: "approved_for_payment",
         seller: input.seller ?? null,
         shipping_amount: input.shippingAmount,
         status: "draft",
       })
-      .select("id,order_number,customer_id,seller,status,subtotal,discount,shipping_amount,total,public_token,public_tracking_enabled")
+      .select("id,order_number,customer_id,seller,status,subtotal,discount,shipping_amount,total,public_token,public_tracking_enabled,review_status")
       .single<OrderRow>();
 
     if (error) {
@@ -731,6 +753,7 @@ export class OrderService {
       orderNumber: order.order_number,
       paidAmount,
       pendingAmount: Math.max(0, Number(order.total) - paidAmount),
+      paymentLinkUrl: order.payment_link_url,
       payments: (order.payments ?? []).map((payment) => ({
         amount: payment.amount,
         createdAt: payment.created_at,
@@ -738,6 +761,9 @@ export class OrderService {
         paidAt: payment.paid_at,
         status: payment.status,
       })),
+      rejectedReason: order.rejected_reason,
+      reviewNotes: order.review_notes,
+      reviewStatus: order.review_status,
       seller: order.seller,
       status: order.status,
       total: order.total,

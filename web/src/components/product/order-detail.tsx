@@ -1,6 +1,7 @@
 import { OrderItemStatusBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels";
+import { getOrderReviewStatusMeta, getStatusBadgeClassName } from "@/lib/status-labels";
 
 export type OrderDetailData = {
   orderNumber: string;
@@ -10,7 +11,11 @@ export type OrderDetailData = {
   paidAmount: number;
   pendingAmount?: number;
   notes?: string | null;
+  paymentLinkUrl?: string | null;
   seller?: string | null;
+  rejectedReason?: string | null;
+  reviewNotes?: string | null;
+  reviewStatus?: string | null;
   payments?: Array<{
     amount: number;
     createdAt?: string | null;
@@ -33,12 +38,22 @@ const paymentMethodLabels: Record<string, string> = {
   cash: "Dinheiro",
   credit_card: "Crédito",
   debit_card: "Débito",
+  infinitepay: "InfinitePay",
   manual: "Manual",
   pix: "Pix",
 };
 
 export function OrderDetail({ order }: { order: OrderDetailData }) {
   const pendingAmount = order.pendingAmount ?? order.total - order.paidAmount;
+  const reviewMeta = getOrderReviewStatusMeta(order.reviewStatus);
+  const canPayNow = order.reviewStatus === "awaiting_payment" && order.paymentLinkUrl && pendingAmount > 0;
+  const shouldShowReviewPanel =
+    order.reviewStatus === "under_review" ||
+    order.reviewStatus === "rejected" ||
+    canPayNow ||
+    order.reviewStatus === "paid" ||
+    order.status === "paid" ||
+    Boolean(order.reviewNotes);
 
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -49,6 +64,9 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
               {order.orderNumber}
             </h1>
             <OrderStatusBadge status={order.status} />
+            {order.reviewStatus ? (
+              <span className={getStatusBadgeClassName(reviewMeta)}>{reviewMeta.label}</span>
+            ) : null}
           </div>
           <p className="mt-2 text-sm text-[var(--muted)]">
             {order.customerName} · atualizado em {formatDate(order.updatedAt)}
@@ -67,6 +85,56 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
           </strong>
         </div>
       </div>
+
+      {shouldShowReviewPanel ? (
+      <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] p-4">
+        {order.reviewStatus === "under_review" ? (
+          <div>
+            <strong className="text-sm text-[var(--foreground)]">Pedido em análise</strong>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              A Smart Funkos vai revisar disponibilidade, valores e entrega antes de liberar o pagamento.
+            </p>
+          </div>
+        ) : null}
+        {order.reviewStatus === "rejected" ? (
+          <div>
+            <strong className="text-sm text-red-300">Pedido recusado</strong>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              {order.rejectedReason || "Entre em contato com a Smart Funkos para mais detalhes."}
+            </p>
+          </div>
+        ) : null}
+        {canPayNow ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <strong className="text-sm text-[var(--foreground)]">Pagamento liberado</strong>
+              <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                Finalize por Pix ou cartão no checkout seguro da InfinitePay.
+              </p>
+            </div>
+            <a
+              href={order.paymentLinkUrl ?? "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 items-center justify-center rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+            >
+              Pagar agora
+            </a>
+          </div>
+        ) : null}
+        {order.reviewStatus === "paid" || order.status === "paid" ? (
+          <div>
+            <strong className="text-sm text-emerald-100">Pagamento confirmado</strong>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              O pedido já consta como pago no financeiro da Smart Funkos.
+            </p>
+          </div>
+        ) : null}
+        {order.reviewNotes && !["under_review", "rejected", "paid"].includes(order.reviewStatus ?? "") ? (
+          <p className="text-sm leading-6 text-[var(--muted)]">{order.reviewNotes}</p>
+        ) : null}
+      </div>
+      ) : null}
 
       <div className="mt-5 space-y-3">
         {order.items.map((item) => (

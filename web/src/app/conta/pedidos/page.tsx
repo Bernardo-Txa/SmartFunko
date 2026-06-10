@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOrderReviewStatusMeta, getStatusBadgeClassName } from "@/lib/status-labels";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderService } from "@/server/orders/order-service";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 type AccountOrder = {
   id: string;
   order_number: string;
+  review_status: string | null;
   status: string;
   total: number;
   updated_at: string;
@@ -62,6 +64,7 @@ export default async function AccountOrdersPage() {
           orders.map((order) => {
             const paidAmount = getPaidAmount(order);
             const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
+            const reviewMeta = getOrderReviewStatusMeta(order.review_status);
 
             return (
               <article
@@ -75,6 +78,9 @@ export default async function AccountOrdersPage() {
                         {order.order_number}
                       </h2>
                       <OrderStatusBadge status={order.status} />
+                      {order.review_status ? (
+                        <span className={getStatusBadgeClassName(reviewMeta)}>{reviewMeta.label}</span>
+                      ) : null}
                     </div>
                     <p className="mt-1 text-sm text-[var(--muted)]">
                       Atualizado em {formatDate(order.updated_at)} · {order.order_items?.length ?? 0} item(ns)

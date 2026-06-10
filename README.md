@@ -20,6 +20,7 @@ Na V1, as vendas continuam pelo WhatsApp, mas o sistema passa a controlar:
 
 - [MVP Operacional V1](./MVP_OPERACIONAL_V1.md)
 - [Operacao do MVP](./docs/OPERACAO_MVP.md)
+- [Variaveis de ambiente](./docs/ENV_VARS.md)
 - [Divida tecnica](./docs/TECH_DEBT.md)
 - [Documento Tecnico Inicial](./Smart%20Funkos%20-%20Documento%20T%C3%A9cnico%20Inicial.pdf)
 
@@ -45,10 +46,29 @@ A camada publica agora organiza descoberta e intencao de compra por cima do core
 - pagina de produto com galeria, badges comerciais, CTA "Tenho interesse", favoritos, carrinho assistido e relacionados;
 - cards de produto com favoritos e carrinho em acoes compactas, sem transformar o card em checkout;
 - favoritos reais em cards, produto e `/conta/wishlist`, usando `/api/v1/me/wishlist`;
-- carrinho assistido em `/carrinho`, persistido no navegador e finalizado por mensagem de WhatsApp;
+- carrinho assistido em `/carrinho`, persistido no navegador, com envio de pedido para análise e alternativa por WhatsApp;
 - admin de demanda em `/admin/demanda`, restrito a owner, com ranking real de wishlist.
 
-O carrinho assistido nao e checkout: nao reserva estoque automaticamente, nao calcula frete, nao cobra pagamento, nao cria pedido sozinho e nao inclui Pix nesta fase.
+O carrinho assistido nao e checkout automatico: nao reserva estoque automaticamente, nao calcula frete e nao cobra pagamento antes da aprovacao humana. Quando o cliente envia o carrinho, o sistema cria um pedido `review_status = under_review`; o admin aprova/recusa e, se aprovar, gera o link InfinitePay.
+
+## Checkout Assistido 1.0 — InfinitePay
+
+O Checkout Assistido 1.0 permite que o cliente envie um carrinho para analise. O pedido nasce em `review_status = under_review` e `status = draft`. O admin revisa em `/admin/pedidos/[id]` e pode:
+
+- aprovar e gerar link InfinitePay;
+- recusar com motivo visivel ao cliente;
+- regenerar link quando o pedido esta aguardando pagamento.
+
+Ao aprovar, o pedido passa para `review_status = awaiting_payment`, `status = pending_payment`, salva `payment_provider = infinitepay`, `payment_link_url` e `payment_provider_reference`. O cliente ve o botao `Pagar agora` em `/conta/pedidos/[orderNumber]`.
+
+O webhook `POST /api/v1/webhooks/infinitepay` registra o payload bruto em `payment_provider_events`, processa de forma idempotente e, quando o pagamento e aprovado, chama a baixa financeira existente para criar `payments`, criar `cash_entries` e marcar o pedido como pago. Redirect do cliente nao confirma pagamento; somente webhook/server confirma.
+
+Limitacoes desta sprint:
+
+- nao ha checkout interno com cartao;
+- nao ha captura de cartao pela SmartFunko;
+- nao ha frete automatico, nota fiscal, split, antifraude avancado ou parcelamento customizado;
+- pagamentos manuais, WhatsApp, caixa e financeiro existentes continuam preservados.
 
 ## Tema claro/escuro
 
@@ -147,6 +167,12 @@ Variaveis esperadas em `web/.env.local`:
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`
 - `NEXT_PUBLIC_ENABLE_RAFFLES`
+- `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT`
+- `INFINITEPAY_API_BASE_URL`
+- `INFINITEPAY_API_KEY`
+- `INFINITEPAY_HANDLE`
+- `INFINITEPAY_WEBHOOK_SECRET`
+- `INFINITEPAY_WEBHOOK_ENABLED`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`

@@ -1,5 +1,11 @@
 export const env = {
+  enableAssistedCheckout: process.env.NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT ?? "true",
   enableRaffles: process.env.NEXT_PUBLIC_ENABLE_RAFFLES ?? "",
+  infinitePayApiBaseUrl: process.env.INFINITEPAY_API_BASE_URL ?? "https://api.checkout.infinitepay.io",
+  infinitePayApiKey: process.env.INFINITEPAY_API_KEY ?? "",
+  infinitePayHandle: process.env.INFINITEPAY_HANDLE ?? "",
+  infinitePayWebhookEnabled: process.env.INFINITEPAY_WEBHOOK_ENABLED ?? "true",
+  infinitePayWebhookSecret: process.env.INFINITEPAY_WEBHOOK_SECRET ?? "",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
@@ -7,8 +13,16 @@ export const env = {
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
 };
 
+export function isAssistedCheckoutEnabled() {
+  return env.enableAssistedCheckout !== "false";
+}
+
 export function isRafflesEnabled() {
   return env.enableRaffles === "true";
+}
+
+export function hasInfinitePayCheckoutEnv() {
+  return Boolean(env.infinitePayApiBaseUrl && env.infinitePayHandle);
 }
 
 export function hasSupabasePublicEnv() {

@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
-import { useMemo, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { ClipboardCheck, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   clearCart,
   readCart,
@@ -22,7 +23,10 @@ export function AssistedCart({
   customerContact?: string | null;
   customerName?: string | null;
 }) {
+  const router = useRouter();
   const items = useSyncExternalStore(subscribeCart, readCart, readServerCart);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -33,6 +37,38 @@ export function AssistedCart({
     customerName,
     items,
   });
+  const canSubmitForReview = items.every((item) => item.variantId);
+
+  async function submitForReview() {
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/v1/me/orders", {
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            quantity: item.quantity,
+            variantId: item.variantId,
+          })),
+          notes: "Pedido enviado pelo carrinho assistido.",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error?.message ?? "Falha ao enviar pedido para analise");
+      }
+
+      clearCart();
+      router.push(`/conta/pedidos/${payload.data.orderNumber}`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Falha ao enviar pedido para analise");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   if (items.length === 0) {
     return (
@@ -147,13 +183,28 @@ export function AssistedCart({
           </div>
         </div>
         <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-          Este carrinho não reserva estoque, não calcula frete e não finaliza pagamento.
+          Este carrinho não reserva estoque, não calcula frete e só gera pagamento após aprovação da Smart Funkos.
         </p>
+        <button
+          type="button"
+          disabled={!canSubmitForReview || isSubmitting}
+          onClick={submitForReview}
+          className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <ClipboardCheck size={17} aria-hidden="true" />
+          {isSubmitting ? "Enviando..." : "Enviar pedido para análise"}
+        </button>
+        {!canSubmitForReview ? (
+          <p className="mt-2 text-xs leading-5 text-red-300">
+            Um item do carrinho precisa ser adicionado novamente pelo catálogo antes do envio.
+          </p>
+        ) : null}
+        {error ? <p className="mt-2 text-xs leading-5 text-red-300">{error}</p> : null}
         <a
           href={whatsappUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-4 text-sm font-black text-[#052e16] hover:brightness-110"
+          className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-4 text-sm font-black text-[#052e16] hover:brightness-110"
         >
           <MessageCircle size={17} aria-hidden="true" />
           Finalizar pelo WhatsApp

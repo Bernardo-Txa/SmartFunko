@@ -19,6 +19,84 @@
 
 O tema escuro e o padrao. O toggle no header alterna para Light Mode, persiste a preferencia no navegador e aplica a classe `light`/`dark` no `html` antes da hidratacao. A troca usa as variaveis globais de design e nao altera regras operacionais.
 
+## Checkout Assistido 1.0 — Aprovacao Admin + InfinitePay
+
+Fluxo cliente:
+
+1. Cliente monta o carrinho em `/carrinho`.
+2. Clica em `Enviar pedido para análise`.
+3. `POST /api/v1/me/orders` cria pedido `status = draft` e `review_status = under_review`.
+4. Cliente e redirecionado para `/conta/pedidos/[orderNumber]`.
+5. Enquanto estiver em analise, nao existe botao de pagamento.
+6. Se recusado, o cliente ve `review_status = rejected` e o motivo informado pelo admin.
+7. Se aprovado, o cliente ve `Pagar agora`, abrindo `payment_link_url` da InfinitePay.
+8. Se o webhook confirmar pagamento, o cliente ve pagamento confirmado.
+
+Fluxo admin:
+
+1. Admin acompanha pedidos em `/admin/pedidos`, com filtro `Análise`.
+2. Pedidos em `under_review` aparecem destacados.
+3. Em `/admin/pedidos/[id]`, o bloco `Análise do pedido` mostra status, motivo de recusa e link InfinitePay quando existir.
+4. `Aprovar e gerar link` chama `POST /api/v1/admin/orders/[id]/approve-payment`.
+5. `Recusar` chama `POST /api/v1/admin/orders/[id]/reject` e exige motivo.
+6. `Regenerar link` chama `POST /api/v1/admin/orders/[id]/regenerate-payment-link`.
+
+Webhook:
+
+- endpoint publico: `POST /api/v1/webhooks/infinitepay`;
+- nao exige login;
+- valida HMAC SHA-256 se `INFINITEPAY_WEBHOOK_SECRET` estiver configurado e o provedor enviar assinatura em header compatível;
+- salva payload bruto em `payment_provider_events`;
+- usa `order_nsu`, `invoice_slug` ou `transaction_nsu` para localizar o pedido;
+- eventos duplicados sao ignorados por `unique(provider, event_id)`;
+- pagamento aprovado chama a RPC `record_manual_payment` com metodo `pix`, `credit_card`, `debit_card` ou `infinitepay`;
+- o financeiro/caixa continuam sendo atualizados pelo fluxo transacional existente.
+
+Status de analise:
+
+- `under_review`: Em análise;
+- `approved_for_payment`: Aprovado;
+- `awaiting_payment`: Aguardando pagamento;
+- `rejected`: Recusado;
+- `paid`: Pago;
+- `cancelled`: Cancelado.
+
+Configuracao InfinitePay:
+
+- `INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io`;
+- `INFINITEPAY_HANDLE` e obrigatoria para gerar link;
+- `INFINITEPAY_API_KEY` fica somente server-side, se a conta exigir header de autenticacao;
+- `INFINITEPAY_WEBHOOK_SECRET` fica somente server-side;
+- `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT=true` controla o envio do carrinho;
+- em Vercel, configurar as envs em Production/Preview e fazer redeploy.
+
+Na InfinitePay, configure a webhook URL como:
+
+```txt
+https://seu-dominio.com/api/v1/webhooks/infinitepay
+```
+
+Para testar webhook em dev, envie um POST JSON para o endpoint com payload semelhante ao webhook aprovado documentado pela InfinitePay:
+
+```json
+{
+  "invoice_slug": "abc123",
+  "amount": 1000,
+  "paid_amount": 1000,
+  "capture_method": "pix",
+  "transaction_nsu": "txn-dev-1",
+  "order_nsu": "SF-20260610-120000-TEST",
+  "receipt_url": "https://comprovante.example/test"
+}
+```
+
+Limitacoes:
+
+- o redirect da InfinitePay nao confirma pagamento;
+- nao ha checkout interno, captura de cartao, nota fiscal, frete automatico, split ou antifraude avancado;
+- admin precisa aprovar antes de gerar cobranca;
+- pagamentos manuais existentes continuam funcionando.
+
 ## Lotes / Importacao 1.0
 
 Lotes agrupam itens de pedidos para compra nacional, importacao, collab ou outro agrupamento operacional. O modulo fica em `/admin/lotes` e e restrito a owner.
@@ -118,6 +196,9 @@ Limites da DEV 1.1:
 - `POST /api/v1/admin/inventory/[id]/mark-sold`
 - `POST /api/v1/admin/inventory/[id]/mark-damaged`
 - `POST /api/v1/admin/orders`
+- `POST /api/v1/admin/orders/[id]/approve-payment`
+- `POST /api/v1/admin/orders/[id]/reject`
+- `POST /api/v1/admin/orders/[id]/regenerate-payment-link`
 - `POST /api/v1/admin/orders/[id]/items`
 - `GET /api/v1/admin/payments`
 - `POST /api/v1/admin/payments/manual`
@@ -134,7 +215,7 @@ Limites da DEV 1.1:
 - `GET /api/v1/admin/purchase-batches/eligible-items`
 - `POST /api/v1/admin/purchase-batches/[id]/receive`
 - `GET /api/v1/me`
-- `GET /api/v1/me/orders`
+- `GET|POST /api/v1/me/orders`
 - `GET /api/v1/me/orders/[orderNumber]`
 - `GET /api/v1/me/wishlist`
 - `POST /api/v1/me/wishlist`
@@ -144,6 +225,7 @@ Limites da DEV 1.1:
 - `GET /api/v1/public/orders/[orderNumber]?token=...`
 - `GET /api/v1/public/suppliers`
 - `GET /api/v1/public/suppliers/[slug]`
+- `POST /api/v1/webhooks/infinitepay`
 - `GET|POST /api/v1/admin/raffles`
 - `GET|PATCH /api/v1/admin/raffles/[id]`
 - `POST /api/v1/admin/raffles/[id]/open`
@@ -170,7 +252,7 @@ Limites da DEV 1.1:
 - `/pronta-entrega`, `/pre-venda`, `/specials`, `/novidades` e `/encomendas`: redirects para `/catalogo` para preservar links antigos sem criar catalogos concorrentes.
 - `/fornecedores`: lista collabs/fornecedores ativos.
 - `/fornecedores/[slug]`: catalogo separado de uma collab/fornecedor, com filtro implicito pelo slug.
-- `/carrinho`: carrinho local para intencao de compra assistida.
+- `/carrinho`: carrinho local para intencao de compra assistida, com envio de pedido para analise e alternativa pelo WhatsApp.
 - `/conta/wishlist`: favoritos do cliente autenticado.
 - `/rifas` e `/rifas/[slug]`: rifas experimentais quando a flag esta ligada.
 - `/conta/rifas` e `/conta/rifas/[id]`: acompanhamento de rifas do cliente quando a flag esta ligada.
@@ -202,6 +284,9 @@ Limites da DEV 1.1:
 - `/conta/pedidos` usa pedidos reais do cliente vinculado ao login e nao mostra pedidos de outros clientes.
 - `/conta/pedidos/[orderNumber]` mostra dados seguros do pedido do proprio cliente, incluindo itens, status, pagamentos e observacoes publicas.
 - `/api/v1/me/orders` e `/api/v1/me/orders/[orderNumber]` retornam pedidos sanitizados, sem `internal_notes`, custos, margem, logs ou token publico.
+- `POST /api/v1/me/orders` cria pedido em analise para o proprio cliente autenticado; precos e variantes sao revalidados no servidor.
+- Cliente nao consegue pagar antes da aprovacao admin, porque o link InfinitePay so e gerado em `awaiting_payment`.
+- `payment_provider_events` guarda eventos de gateway para auditoria e idempotencia; segredos da InfinitePay nunca sao enviados ao client.
 - Status internos continuam em ingles no banco, mas badges e textos de UI usam `web/src/lib/status-labels.ts`.
 - Fornecedores/collabs usam `suppliers`; publicos ativos aparecem em `/fornecedores` e `/fornecedores/[slug]`.
 - O catalogo principal nao expoe filtro de fornecedor nem filtros principais de pronta-entrega/pre-venda/encomenda/specials.
