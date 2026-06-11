@@ -28,6 +28,17 @@ Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e re
 - BI avancado;
 - multi-moeda, rateio complexo e tracking automatico para lotes/importacao.
 
+## Conta do cliente futuro
+
+Conta do Cliente 1.1 permite edicao basica de nome, telefone, CPF e Instagram e corrige o saldo pendente para ignorar pedidos recusados, cancelados, reembolsados ou em analise. Permanecem fora desta sprint:
+
+- fluxo seguro de alteracao de e-mail no Supabase Auth;
+- historico/auditoria especifica para alteracoes feitas pelo proprio cliente;
+- validacao completa de CPF com digito verificador;
+- mascara visual persistente para telefone/CPF;
+- edicao de endereco, data de nascimento ou preferencias, pois esses campos ainda nao existem no schema atual;
+- testes automatizados cobrindo todos os cenarios de saldo pendente.
+
 ## Lotes / Importacao futuro
 
 Lotes 1.0 organiza compras e encomendas, mas ainda evita automacoes de alto risco.

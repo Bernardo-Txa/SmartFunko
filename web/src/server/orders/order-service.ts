@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
 import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels";
+import { getOrderPendingAmount, getOrderPaidAmount, isOrderPayable } from "@/lib/orders/payable";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { calculateOrderTotals } from "@/server/orders/order-calculator";
@@ -746,9 +747,9 @@ export class OrderService {
   }
 
   private sanitizePublicOrder(order: PublicOrderRow) {
-    const paidAmount = (order.payments ?? [])
-      .filter((payment) => payment.status === "paid")
-      .reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const payable = isOrderPayable(order);
+    const paidAmount = getOrderPaidAmount(order);
+    const pendingAmount = getOrderPendingAmount(order);
 
     return {
       createdAt: order.created_at,
@@ -765,8 +766,8 @@ export class OrderService {
       notes: order.notes,
       orderNumber: order.order_number,
       paidAmount,
-      pendingAmount: Math.max(0, Number(order.total) - paidAmount),
-      paymentLinkUrl: order.payment_link_url,
+      pendingAmount,
+      paymentLinkUrl: payable ? order.payment_link_url : null,
       payments: (order.payments ?? []).map((payment) => ({
         amount: payment.amount,
         createdAt: payment.created_at,

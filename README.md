@@ -65,6 +65,8 @@ Ao aprovar, o pedido passa para `review_status = awaiting_payment`, `status = pe
 
 O webhook `POST /api/v1/webhooks/infinitepay` registra o payload bruto em `payment_provider_events`, processa de forma idempotente e, quando o pagamento e aprovado, chama a baixa financeira existente para criar `payments`, criar `cash_entries` e marcar o pedido como pago. O redirect da InfinitePay volta para o link publico `/pedido/[orderNumber]?token=...`, evitando depender da sessao do cliente, e tambem consulta `payment_check` quando recebe `slug`/`transaction_nsu`. O admin ainda pode consultar pelo botao `Verificar pagamento`.
 
+Na area do cliente, pedidos recusados, cancelados, reembolsados ou ainda em analise nao entram no card `Pendente a pagar` e nao destacam link de pagamento. O saldo pendente considera apenas pedidos cobraveis e calcula somente o restante depois dos pagamentos pagos.
+
 Limitacoes desta sprint:
 
 - nao ha checkout interno com cartao;
@@ -77,6 +79,17 @@ Limitacoes desta sprint:
 O Dark Mode continua sendo o padrao da aplicacao. O header possui um toggle de tema que alterna entre Dark e Light, persiste a escolha no navegador com `localStorage` e aplica a classe no `html` antes da hidratacao para evitar flash visual.
 
 O Light Mode usa as mesmas variaveis de design do tema escuro e cobre a base de layout, header, menus, cards e formularios principais. Refinos visuais pontuais podem continuar em sprints futuras sem alterar o fluxo operacional.
+
+## Conta do Cliente 1.1
+
+`/conta` mostra resumo do cadastro e permite que o cliente autenticado edite dados basicos do proprio customer:
+
+- nome;
+- telefone;
+- CPF;
+- Instagram.
+
+O endpoint `PATCH /api/v1/me` usa o usuario logado para localizar o customer vinculado e nao aceita `customerId` vindo do cliente. O nome tambem atualiza `profiles.name` para manter o header/conta consistentes. O e-mail de login aparece como somente leitura; alteracao de e-mail ainda depende de atendimento/fluxo seguro futuro.
 
 ## Estoque 2.0
 
@@ -281,7 +294,7 @@ Status continuam em ingles no banco. A apresentacao em portugues fica centraliza
 
 Area do cliente:
 
-- `/conta` mostra perfil e resumo real do customer vinculado;
+- `/conta` mostra perfil, resumo real do customer vinculado, edicao de dados basicos e saldo pendente apenas de pedidos cobraveis;
 - `/conta/pedidos` lista apenas pedidos reais do proprio customer;
 - `/conta/pedidos/[orderNumber]` mostra itens, status, pagamentos e observacoes publicas;
 - `/conta/wishlist` lista e remove favoritos do proprio customer;

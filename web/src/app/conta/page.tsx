@@ -3,14 +3,18 @@ import Link from "next/link";
 import { ArrowRight, Gem, Heart, Package, Ticket, UserRound } from "lucide-react";
 import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
+import { getOrderPendingAmount } from "@/lib/orders/payable";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderService } from "@/server/orders/order-service";
+import { AccountProfileForm } from "@/components/account/account-profile-form";
 
 export const metadata: Metadata = {
   title: "Minha conta",
 };
 
 type AccountOrder = {
+  review_status?: string | null;
+  status?: string | null;
   total: number;
   payments?: Array<{
     amount: number;
@@ -24,21 +28,12 @@ const customerStatusLabels: Record<string, string> = {
   vip: "VIP",
 };
 
-function getPaidAmount(order: AccountOrder) {
-  return (order.payments ?? [])
-    .filter((payment) => payment.status === "paid")
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
-}
-
 export default async function AccountPage() {
   const { customer, profile } = await requireUserPage("/conta");
   const orders = customer
     ? ((await new OrderService().getCustomerOrders(customer.id)) as unknown as AccountOrder[])
     : [];
-  const totalOpen = orders.reduce(
-    (sum, order) => sum + Math.max(0, Number(order.total) - getPaidAmount(order)),
-    0,
-  );
+  const totalOpen = orders.reduce((sum, order) => sum + getOrderPendingAmount(order), 0);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -82,6 +77,11 @@ export default async function AccountPage() {
             </div>
           </dl>
         </section>
+        <AccountProfileForm
+          customer={customer}
+          email={customer?.email ?? profile.email}
+          fallbackName={profile.name}
+        />
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <Package className="text-[var(--pink)]" size={24} />
           <strong className="mt-4 block text-sm">{orders.length} pedidos</strong>

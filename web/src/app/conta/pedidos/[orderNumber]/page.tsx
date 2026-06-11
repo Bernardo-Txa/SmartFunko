@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OrderDetail, type OrderDetailData } from "@/components/product/order-detail";
+import { getOrderPaidAmount, getOrderPendingAmount, isOrderPayable } from "@/lib/orders/payable";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { AssistedCheckoutService } from "@/server/checkout/assisted-checkout-service";
 import { OrderService } from "@/server/orders/order-service";
@@ -101,9 +102,9 @@ export default async function AccountOrderPage({ params, searchParams }: Props) 
   }
 
   const payments = order.payments ?? [];
-  const paidAmount = payments
-    .filter((payment) => payment.status === "paid")
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const paidAmount = getOrderPaidAmount(order);
+  const pendingAmount = getOrderPendingAmount(order);
+  const payable = isOrderPayable(order);
   const detail: OrderDetailData = {
     customerName: order.customers?.name ?? "Cliente",
     items: ((order.order_items ?? []) as AccountOrderItem[]).map((item) => ({
@@ -117,8 +118,8 @@ export default async function AccountOrderPage({ params, searchParams }: Props) 
     orderNumber: order.order_number,
     notes: order.notes,
     paidAmount,
-    pendingAmount: Math.max(0, Number(order.total) - paidAmount),
-    paymentLinkUrl: order.payment_link_url,
+    pendingAmount,
+    paymentLinkUrl: payable ? order.payment_link_url : null,
     payments: payments.map((payment) => ({
       amount: payment.amount,
       createdAt: payment.created_at,

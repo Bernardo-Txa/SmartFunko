@@ -108,6 +108,35 @@ Limitacoes:
 - admin precisa aprovar antes de gerar cobranca;
 - pagamentos manuais existentes continuam funcionando.
 
+## Conta do Cliente 1.1
+
+`/conta` exibe dados do cadastro, resumo de pedidos e saldo `Pendente a pagar`. Esse saldo considera somente pedidos cobraveis.
+
+Nao entram no saldo pendente:
+
+- `status = cancelled`;
+- `status = refunded`;
+- `review_status = rejected`;
+- `review_status = cancelled`;
+- `review_status = under_review`;
+- pedido `draft` sem aprovacao/cobranca.
+
+Entram no saldo pendente quando houver valor em aberto:
+
+- `review_status = approved_for_payment`;
+- `review_status = awaiting_payment`;
+- `review_status = paid`, se existir saldo residual;
+- status operacional `pending_payment`, `partially_paid`, `processing`, `ready_to_ship`, `shipped`, `delivered` ou `paid`.
+
+`/api/v1/me/orders` e `/api/v1/me/orders/[orderNumber]` retornam `pendingAmount = 0` e `paymentLinkUrl = null` para pedidos nao cobraveis. `/conta/pedidos/[orderNumber]` mostra os estados publicos esperados: em analise, recusado com motivo, cancelado, aguardando pagamento com botao quando houver link, e pagamento confirmado.
+
+Edicao de dados:
+
+- `PATCH /api/v1/me` permite atualizar nome, telefone, CPF e Instagram do proprio customer;
+- o endpoint usa o usuario autenticado e o customer vinculado pelo backend, sem aceitar `customerId` do payload;
+- `profiles.name` tambem e atualizado para manter a exibicao consistente;
+- e-mail de login e somente leitura e deve ser alterado via atendimento/fluxo seguro futuro.
+
 ## Lotes / Importacao 1.0
 
 Lotes agrupam itens de pedidos para compra nacional, importacao, collab ou outro agrupamento operacional. O modulo fica em `/admin/lotes` e e restrito a owner.
@@ -248,7 +277,7 @@ Limites da DEV 1.2:
 - `PATCH|DELETE /api/v1/admin/purchase-batches/[id]/items/[itemId]`
 - `GET /api/v1/admin/purchase-batches/eligible-items`
 - `POST /api/v1/admin/purchase-batches/[id]/receive`
-- `GET /api/v1/me`
+- `GET|PATCH /api/v1/me`
 - `GET|POST /api/v1/me/orders`
 - `GET /api/v1/me/orders/[orderNumber]`
 - `GET /api/v1/me/wishlist`

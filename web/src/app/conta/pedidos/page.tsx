@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOrderPaidAmount, getOrderPendingAmount } from "@/lib/orders/payable";
 import { getOrderReviewStatusMeta, getStatusBadgeClassName } from "@/lib/status-labels";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderService } from "@/server/orders/order-service";
@@ -24,12 +25,6 @@ type AccountOrder = {
     status: string;
   }>;
 };
-
-function getPaidAmount(order: AccountOrder) {
-  return (order.payments ?? [])
-    .filter((payment) => payment.status === "paid")
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
-}
 
 export default async function AccountOrdersPage() {
   const { customer } = await requireUserPage("/conta/pedidos");
@@ -62,8 +57,8 @@ export default async function AccountOrdersPage() {
       <div className="space-y-3">
         {orders.length > 0 ? (
           orders.map((order) => {
-            const paidAmount = getPaidAmount(order);
-            const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
+            const paidAmount = getOrderPaidAmount(order);
+            const pendingAmount = getOrderPendingAmount(order);
             const reviewMeta = getOrderReviewStatusMeta(order.review_status);
 
             return (

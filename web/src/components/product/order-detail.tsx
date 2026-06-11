@@ -1,6 +1,7 @@
 import { OrderItemStatusBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels";
+import { isOrderPayable } from "@/lib/orders/payable";
 import { getOrderReviewStatusMeta, getStatusBadgeClassName } from "@/lib/status-labels";
 
 export type OrderDetailData = {
@@ -48,7 +49,8 @@ const paymentMethodLabels: Record<string, string> = {
 export function OrderDetail({ order }: { order: OrderDetailData }) {
   const pendingAmount = order.pendingAmount ?? order.total - order.paidAmount;
   const reviewMeta = getOrderReviewStatusMeta(order.reviewStatus);
-  const canPayNow = order.reviewStatus === "awaiting_payment" && order.paymentLinkUrl && pendingAmount > 0;
+  const payable = isOrderPayable(order);
+  const canPayNow = payable && order.reviewStatus === "awaiting_payment" && order.paymentLinkUrl && pendingAmount > 0;
   const shouldShowReviewBadge = Boolean(
     order.reviewStatus &&
       !(order.status === "paid" && order.reviewStatus === "paid"),
@@ -56,6 +58,8 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
   const shouldShowReviewPanel =
     order.reviewStatus === "under_review" ||
     order.reviewStatus === "rejected" ||
+    order.reviewStatus === "cancelled" ||
+    order.status === "cancelled" ||
     canPayNow ||
     order.reviewStatus === "paid" ||
     order.status === "paid" ||
@@ -112,6 +116,14 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
             <strong className="text-sm text-red-300">Pedido recusado</strong>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
               {order.rejectedReason || "Entre em contato com a Smart Funkos para mais detalhes."}
+            </p>
+          </div>
+        ) : null}
+        {order.reviewStatus === "cancelled" || order.status === "cancelled" ? (
+          <div>
+            <strong className="text-sm text-[var(--foreground)]">Pedido cancelado</strong>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              Este pedido foi cancelado e nao possui saldo pendente para pagamento.
             </p>
           </div>
         ) : null}
