@@ -122,9 +122,9 @@ O modulo de lotes organiza compras nacionais, importacoes, collabs e outros agru
 
 Nesta versao nao ha multi-moeda, imposto automatico, rateio complexo de frete/taxa, integracao com fornecedor, tracking externo, nota fiscal, Pix, checkout ou baixa financeira automatica.
 
-## Rifas DEV 1.1
+## Rifas DEV 1.2 — Pagamento InfinitePay
 
-Rifas DEV 1.1 e um modulo experimental protegido por feature flag. Ative com:
+Rifas continuam como modulo experimental protegido por feature flag. Ative com:
 
 ```bash
 NEXT_PUBLIC_ENABLE_RAFFLES=true
@@ -141,12 +141,23 @@ Fluxos disponiveis:
 - abertura, pausa, fechamento e cancelamento sao manuais pelo admin;
 - abertura nao exige codigo/link de autorizacao, aceite legal ou integracao governamental no fluxo DEV;
 - cliente reserva numeros temporariamente pela tela publica;
-- cliente ve instrucoes de pagamento manual e acompanha status em `/conta/rifas`;
-- pagamento e confirmado manualmente pelo admin, gerando entrada de caixa `category = raffle`;
+- reserva cria `raffle_order.status = pending_payment` e tenta gerar link InfinitePay automaticamente;
+- o `order_nsu` enviado para a InfinitePay usa `RAFFLE-{raffle_order_id}`;
+- cliente ve botao `Pagar agora` em `/rifas/[slug]`, `/conta/rifas` e `/conta/rifas/[id]` quando `payment_link_url` existir;
+- se `INFINITEPAY_HANDLE`/base URL nao estiverem configurados ou a geracao falhar, a reserva continua pendente e o atendimento manual permanece como fallback;
+- webhook `POST /api/v1/webhooks/infinitepay` identifica rifas pelo prefixo `RAFFLE-`, registra evento em `payment_provider_events` e confirma a rifa de forma idempotente;
+- pagamento aprovado marca `raffle_orders.status = paid`, `payment_status = paid`, numeros como `sold`, cria entrada de caixa `category = raffle` e gera pontos no Clube via `source_type = raffle_order`;
+- pagamento apos expiracao entra em `manual_review` e nao vende numeros liberados automaticamente;
+- pagamento tambem pode ser confirmado manualmente pelo admin, gerando entrada de caixa `category = raffle`;
 - reserva nao paga pode expirar ou ser cancelada manualmente, liberando os numeros;
 - sorteio e registro de ganhador sao manuais, aceitando apenas numero comprado em campanha encerrada ou esgotada.
 
-Este modulo nao esta pronto para producao: nao implementa validacao legal automatizada, gateway/Pix, cartao, cron real, antifraude, sorteio certificado, notificacoes automaticas, reembolso de pedidos pagos de rifa ou checkout completo.
+Endpoints admin adicionais:
+
+- `POST /api/v1/admin/raffles/orders/[orderId]/generate-payment-link`;
+- `POST /api/v1/admin/raffles/orders/[orderId]/sync-payment`.
+
+Este modulo ainda nao esta pronto para producao: nao implementa validacao legal automatizada, cron real, antifraude, sorteio certificado, notificacoes automaticas, reembolso automatico, nota fiscal, frete ou checkout proprio interno.
 
 Campos de autorizacao permanecem opcionais/legados no banco para uso futuro, mas nao bloqueiam criacao ou abertura no contexto academico/dev.
 

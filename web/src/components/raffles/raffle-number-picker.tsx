@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { Search, Ticket, X } from "lucide-react";
+import { ExternalLink, Search, Ticket, X } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { formatCurrency } from "@/lib/format";
 
@@ -18,6 +18,8 @@ type ReservationResult = {
   numbers: string[];
   orderId: string;
   orderNumber: string;
+  paymentLinkUrl: string | null;
+  paymentStatus: "pending";
   reservedUntil: string;
   totalAmount: number;
 };
@@ -158,7 +160,7 @@ export function RaffleNumberPicker({
               {selected.length} numero(s) selecionado(s)
             </p>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Total {formatCurrency(total)}. A reserva fica pendente ate confirmacao manual do pagamento.
+              Total {formatCurrency(total)}. A reserva fica pendente ate a confirmacao do pagamento.
             </p>
           </div>
           <button
@@ -193,10 +195,30 @@ export function RaffleNumberPicker({
           </div>
         ) : null}
         {result ? (
-          <p className="mt-3 rounded-md border border-emerald-300/35 bg-emerald-500/10 p-3 text-sm text-emerald-100">
-            Reserva {result.orderNumber} criada. Numeros {result.numbers.join(", ")} ficam reservados ate{" "}
-            {new Date(result.reservedUntil).toLocaleString("pt-BR")}. Acompanhe em /conta/rifas.
-          </p>
+          <div className="mt-3 rounded-md border border-emerald-300/35 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+            <p>
+              Reserva {result.orderNumber} criada. Numeros {result.numbers.join(", ")} ficam reservados ate{" "}
+              {new Date(result.reservedUntil).toLocaleString("pt-BR")}. Total {formatCurrency(result.totalAmount)}.
+            </p>
+            {result.paymentLinkUrl ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <a
+                  href={result.paymentLinkUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+                >
+                  <ExternalLink size={16} aria-hidden="true" />
+                  Pagar agora
+                </a>
+                <span>Você pode pagar com Pix ou cartão pela InfinitePay.</span>
+              </div>
+            ) : (
+              <p className="mt-2">
+                O link automatico nao esta disponivel agora. Use a instrucao manual em /conta/rifas ou fale com o atendimento.
+              </p>
+            )}
+          </div>
         ) : null}
         {error ? (
           <p className="mt-3 rounded-md border border-red-300/35 bg-red-500/10 p-3 text-sm font-semibold text-red-200">

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ExternalLink } from "lucide-react";
 import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleOrder } from "@/components/raffles/raffle-types";
 import { RaffleOrderStatusBadge } from "@/components/ui/status-badge";
@@ -84,11 +84,29 @@ export default async function AccountRafflesPage() {
                     <p className="mt-2 text-sm text-[var(--muted)]">
                       Reservado ate {formatDateTime(order.reserved_until)} · pago em {formatDateTime(order.paid_at)}
                     </p>
+                    {order.status === "pending_payment" ? (
+                      <p className="mt-1 text-sm font-semibold text-yellow-100">
+                        Aguardando pagamento{order.payment_link_url ? " pela InfinitePay" : " manual"}.
+                      </p>
+                    ) : order.status === "paid" ? (
+                      <p className="mt-1 text-sm font-semibold text-emerald-100">Pagamento confirmado.</p>
+                    ) : null}
                   </div>
                   <div className="flex items-center justify-between gap-4 md:justify-end">
                     <strong className="text-lg text-[var(--foreground)]">
                       {formatCurrency(Number(order.total_amount))}
                     </strong>
+                    {order.status === "pending_payment" && order.payment_link_url ? (
+                      <a
+                        href={order.payment_link_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-10 items-center gap-2 rounded-md bg-[var(--yellow)] px-3 text-sm font-black text-[#020617] hover:brightness-110"
+                      >
+                        Pagar
+                        <ExternalLink size={16} aria-hidden="true" />
+                      </a>
+                    ) : null}
                     <Link
                       href={`/conta/rifas/${order.id}`}
                       className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"

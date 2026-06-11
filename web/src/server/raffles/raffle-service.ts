@@ -1,7 +1,14 @@
 import "server-only";
 import { z } from "zod";
+import { env, hasInfinitePayCheckoutEnv } from "@/lib/env";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
+import {
+  checkInfinitePayPaymentStatus,
+  createInfinitePayCheckout,
+  normalizeInfinitePayWebhook,
+  type NormalizedInfinitePayWebhook,
+} from "@/server/payments/infinitepay-client";
 import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -112,11 +119,32 @@ type RaffleOrderRow = {
   cash_entry_id: string | null;
   customer_id: string;
   order_number: string;
+  paid_amount?: number | string | null;
+  payment_link_url?: string | null;
+  payment_provider?: string | null;
+  payment_provider_reference?: string | null;
+  payment_status?: string | null;
   quantity: number;
   raffle_campaign_id: string;
+  receipt_url?: string | null;
+  reserved_until?: string | null;
   status: string;
+  transaction_nsu?: string | null;
   total_amount: number | string;
   unit_price: number | string;
+  customers?: {
+    email?: string | null;
+    name?: string | null;
+    phone?: string | null;
+  } | null;
+  raffle_campaigns?: {
+    code?: string | null;
+    slug?: string | null;
+    title?: string | null;
+  } | null;
+  raffle_numbers?: Array<{
+    label: string;
+  }>;
 };
 
 function campaignSelect() {
@@ -135,6 +163,8 @@ function orderSelect() {
   return `
     id,raffle_campaign_id,customer_id,order_number,status,quantity,unit_price,total_amount,
     payment_id,cash_entry_id,reserved_until,paid_at,cancelled_at,expired_at,notes,created_at,updated_at,
+    payment_provider,payment_status,payment_link_url,payment_provider_reference,payment_link_created_at,
+    payment_link_expires_at,receipt_url,capture_method,transaction_nsu,paid_amount,provider_payload,
     raffle_campaigns(id,code,slug,title,prize_title,draw_at,status),
     customers(id,name,email,phone),
     raffle_numbers(id,number,label,status,reserved_until,sold_at)
@@ -208,6 +238,36 @@ function labelForNumber(number: number, maxNumber: number) {
 
 function normalizeQueryText(value: string) {
   return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_").trim();
+}
+
+function raffleOrderNsu(orderId: string) {
+  return `RAFFLE-${orderId}`;
+}
+
+function centsToCurrency(cents: number | null) {
+  return cents === null ? null : Number((cents / 100).toFixed(2));
+}
+
+function mapCaptureMethod(method: string | null) {
+  const normalized = String(method ?? "").toLowerCase();
+
+  if (normalized === "pix") {
+    return "pix";
+  }
+
+  if (normalized.includes("credit")) {
+    return "credit_card";
+  }
+
+  if (normalized.includes("debit")) {
+    return "debit_card";
+  }
+
+  return "infinitepay";
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function assertDateOrder(input: {
@@ -687,8 +747,11 @@ export class RaffleService {
       .from("raffle_orders")
       .update({
         cash_entry_id: cashEntry.id,
+        capture_method: input.method,
         notes: input.notes ?? null,
         paid_at: paidAt,
+        paid_amount: Number(order.total_amount),
+        payment_status: "paid",
         status: "paid",
       })
       .eq("id", orderId)
@@ -730,6 +793,64 @@ export class RaffleService {
     await this.safeAwardRaffleOrderPoints(orderId, actorProfileId);
 
     return data;
+  }
+
+  async generateRafflePaymentLink(raffleOrderId: string, actorProfileId = this.actorId, baseUrl = env.siteUrl) {
+    const order = (await this.getRaffleOrderById(raffleOrderId)) as unknown as RaffleOrderRow;
+
+    if (order.status === "paid") {
+      throw conflict("Pedido de rifa pago nao precisa de novo link");
+    }
+
+    if (order.status !== "pending_payment") {
+      throw conflict("Somente reserva pendente pode gerar link InfinitePay");
+    }
+
+    const result = await this.createInfinitePayLinkForRaffleOrder(order, baseUrl);
+    const now = new Date().toISOString();
+    const { data, error } = await this.supabase
+      .from("raffle_orders")
+      .update({
+        payment_link_created_at: now,
+        payment_link_url: result.checkoutUrl,
+        payment_provider: "infinitepay",
+        payment_provider_reference: result.providerReference,
+        payment_status: "pending",
+        provider_payload: result.raw,
+      })
+      .eq("id", raffleOrderId)
+      .select(orderSelect())
+      .single();
+
+    if (error) {
+      throwQueryError(error, "Falha ao salvar link InfinitePay da rifa");
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "raffle_order.payment_link_generated",
+      adminId: actorProfileId ?? undefined,
+      entityId: raffleOrderId,
+      entityType: "raffle_order",
+      newValue: data,
+      oldValue: order,
+    });
+
+    await this.createDrawAudit(
+      order.raffle_campaign_id,
+      "order.payment_link_generated",
+      {
+        orderId: raffleOrderId,
+        orderNsu: raffleOrderNsu(raffleOrderId),
+        providerReference: result.providerReference,
+      },
+      actorProfileId,
+    );
+
+    return {
+      checkoutUrl: result.checkoutUrl,
+      order: data,
+      providerReference: result.providerReference,
+    };
   }
 
   async cancelRaffleOrder(orderId: string, actorProfileId = this.actorId) {
@@ -843,12 +964,29 @@ export class RaffleService {
       this.throwFriendlyReservationError(error);
     }
 
-    return data as {
+    const reservation = data as {
       numbers: string[];
       orderId: string;
       orderNumber: string;
       reservedUntil: string;
       totalAmount: number;
+    };
+
+    let paymentLinkUrl: string | null = null;
+
+    if (hasInfinitePayCheckoutEnv()) {
+      try {
+        const link = await this.generateRafflePaymentLink(reservation.orderId, undefined);
+        paymentLinkUrl = link.checkoutUrl;
+      } catch (linkError) {
+        console.error("Falha ao gerar link InfinitePay da rifa", linkError);
+      }
+    }
+
+    return {
+      ...reservation,
+      paymentLinkUrl,
+      paymentStatus: "pending" as const,
     };
   }
 
@@ -899,6 +1037,93 @@ export class RaffleService {
     return Number(data ?? 0);
   }
 
+  async handleInfinitePayWebhook(payload: unknown) {
+    const normalized = normalizeInfinitePayWebhook(payload);
+
+    if (!normalized.eventId || !normalized.providerReference) {
+      throw badRequest("Webhook InfinitePay sem referencia de rifa");
+    }
+
+    const event = await this.createProviderEvent(normalized, payload);
+
+    if (event.processing_status !== "pending") {
+      return { status: "ignored", reason: "Evento ja recebido" };
+    }
+
+    const order = await this.findRaffleOrderForWebhook(normalized);
+
+    if (!order) {
+      await this.markProviderEvent(event.id, "ignored", "Pedido de rifa nao encontrado");
+      return { status: "ignored", reason: "Pedido de rifa nao encontrado" };
+    }
+
+    if (normalized.status === "paid") {
+      return this.applyPaidRaffleWebhook(order, normalized, event.id, payload);
+    }
+
+    if (["failed", "expired", "cancelled"].includes(normalized.status)) {
+      await this.supabase
+        .from("raffle_orders")
+        .update({
+          payment_status: normalized.status,
+          provider_payload: payload,
+        })
+        .eq("id", order.id)
+        .eq("status", "pending_payment");
+      await this.markProviderEvent(event.id, "processed");
+      return { status: "processed", paymentStatus: normalized.status };
+    }
+
+    await this.markProviderEvent(event.id, "ignored", "Status nao mapeado");
+    return { status: "ignored", reason: "Status nao mapeado" };
+  }
+
+  async syncRafflePayment(
+    raffleOrderId: string,
+    actorProfileId = this.actorId,
+    options: { slug?: string | null; transactionNsu?: string | null } = {},
+  ) {
+    const order = (await this.getRaffleOrderById(raffleOrderId)) as unknown as RaffleOrderRow;
+
+    if (!order.payment_link_url) {
+      throw conflict("Pedido de rifa ainda nao tem link InfinitePay");
+    }
+
+    if (order.status === "paid") {
+      return { paid: true, status: "ignored", reason: "Pedido de rifa ja pago" };
+    }
+
+    const check = await checkInfinitePayPaymentStatus({
+      orderNumber: raffleOrderNsu(order.id),
+      slug:
+        options.slug ??
+        (order.payment_provider_reference && order.payment_provider_reference !== raffleOrderNsu(order.id)
+          ? order.payment_provider_reference
+          : null),
+      transactionNsu: options.transactionNsu ?? order.transaction_nsu ?? null,
+    });
+    const event = await this.createProviderEvent(check.normalized, check.raw);
+
+    if (check.normalized.status === "paid") {
+      const result = await this.applyPaidRaffleWebhook(order, check.normalized, event.id, check.raw);
+      await this.audit.createAdminActionLog({
+        action: "raffle_order.payment_check_paid",
+        adminId: actorProfileId ?? undefined,
+        entityId: order.id,
+        entityType: "raffle_order",
+        newValue: result,
+        oldValue: order,
+      });
+      return { ...result, paid: true };
+    }
+
+    await this.markProviderEvent(event.id, "ignored", "Pagamento da rifa ainda nao confirmado");
+    return {
+      paid: false,
+      status: "pending",
+    };
+  }
+
   async listRaffleAuditLogs(campaignId: string) {
     const { data, error } = await this.supabase
       .from("raffle_draw_audit_logs")
@@ -912,6 +1137,344 @@ export class RaffleService {
     }
 
     return data ?? [];
+  }
+
+  private async createInfinitePayLinkForRaffleOrder(order: RaffleOrderRow, baseUrl = env.siteUrl) {
+    if (!hasInfinitePayCheckoutEnv()) {
+      throw conflict("Configure INFINITEPAY_HANDLE antes de gerar link de pagamento");
+    }
+
+    const labels = (order.raffle_numbers ?? []).map((number) => number.label).join(", ");
+    const campaignCode = order.raffle_campaigns?.code ?? order.raffle_campaign_id;
+
+    return createInfinitePayCheckout({
+      amountCents: Math.round(Number(order.total_amount) * 100),
+      customerEmail: order.customers?.email ?? null,
+      customerName: order.customers?.name ?? "Cliente Smart Funkos",
+      customerPhone: order.customers?.phone ?? null,
+      items: [
+        {
+          name: `Rifa ${campaignCode} - numeros ${labels || order.quantity}`,
+          quantity: 1,
+          unitAmountCents: Math.round(Number(order.total_amount) * 100),
+        },
+      ],
+      orderNumber: raffleOrderNsu(order.id),
+      redirectUrl: `${baseUrl}/conta/rifas/${order.id}`,
+      webhookUrl: `${baseUrl}/api/v1/webhooks/infinitepay`,
+    });
+  }
+
+  private async findRaffleOrderForWebhook(normalized: NormalizedInfinitePayWebhook) {
+    const orderId = normalized.orderNumber?.startsWith("RAFFLE-")
+      ? normalized.orderNumber.replace(/^RAFFLE-/, "")
+      : null;
+    const references = [
+      orderId,
+      normalized.providerReference,
+      normalized.invoiceSlug,
+      normalized.transactionNsu,
+    ].filter(Boolean) as string[];
+
+    for (const reference of references) {
+      const filters = [
+        `payment_provider_reference.eq.${reference}`,
+        `transaction_nsu.eq.${reference}`,
+        ...(isUuid(reference) ? [`id.eq.${reference}`] : []),
+      ];
+      const { data, error } = await this.supabase
+        .from("raffle_orders")
+        .select(orderSelect())
+        .or(filters.join(","))
+        .maybeSingle();
+
+      if (error) {
+        throwQueryError(error, "Falha ao localizar pedido de rifa do webhook");
+      }
+
+      if (data) {
+        return data as unknown as RaffleOrderRow;
+      }
+    }
+
+    return null;
+  }
+
+  private async createProviderEvent(normalized: NormalizedInfinitePayWebhook, payload: unknown) {
+    const { data, error } = await this.supabase
+      .from("payment_provider_events")
+      .insert({
+        event_id: normalized.eventId,
+        event_type: normalized.eventType,
+        payload,
+        provider: "infinitepay",
+        provider_reference: normalized.providerReference,
+      })
+      .select("id,processing_status")
+      .single();
+
+    if (error?.code === "23505") {
+      const { data: existing, error: existingError } = await this.supabase
+        .from("payment_provider_events")
+        .select("id,processing_status")
+        .eq("provider", "infinitepay")
+        .eq("event_id", normalized.eventId)
+        .single();
+
+      if (existingError) {
+        throwQueryError(existingError, "Falha ao buscar evento InfinitePay duplicado");
+      }
+
+      return {
+        ...existing,
+        processing_status: existing.processing_status === "pending" ? "ignored" : existing.processing_status,
+      };
+    }
+
+    if (error) {
+      throwQueryError(error, "Falha ao registrar evento InfinitePay da rifa");
+    }
+
+    return data;
+  }
+
+  private async markProviderEvent(
+    eventId: string,
+    status: "processed" | "ignored" | "failed" | "manual_review",
+    errorMessage?: string,
+  ) {
+    const { error } = await this.supabase
+      .from("payment_provider_events")
+      .update({
+        error_message: errorMessage ?? null,
+        processed_at: new Date().toISOString(),
+        processing_status: status,
+      })
+      .eq("id", eventId);
+
+    if (error) {
+      throwQueryError(error, "Falha ao atualizar evento InfinitePay da rifa");
+    }
+  }
+
+  private async markRafflePaymentManualReview(
+    order: RaffleOrderRow,
+    normalized: NormalizedInfinitePayWebhook,
+    eventId: string,
+    reason: string,
+    payload: unknown,
+  ) {
+    await this.supabase
+      .from("raffle_orders")
+      .update({
+        capture_method: mapCaptureMethod(normalized.captureMethod),
+        paid_amount: centsToCurrency(normalized.paidAmountCents ?? normalized.amountCents),
+        payment_provider: "infinitepay",
+        payment_provider_reference: normalized.invoiceSlug ?? normalized.providerReference,
+        payment_status: "manual_review",
+        provider_payload: payload,
+        receipt_url: normalized.receiptUrl,
+        transaction_nsu: normalized.transactionNsu,
+      })
+      .eq("id", order.id);
+    await this.markProviderEvent(eventId, "manual_review", reason);
+    await this.createDrawAudit(
+      order.raffle_campaign_id,
+      "order.payment_manual_review",
+      { orderId: order.id, reason, transactionNsu: normalized.transactionNsu },
+      undefined,
+    );
+
+    return { reason, status: "manual_review" };
+  }
+
+  private async applyPaidRaffleWebhook(
+    order: RaffleOrderRow,
+    normalized: NormalizedInfinitePayWebhook,
+    eventId: string,
+    payload: unknown,
+  ) {
+    if (order.status === "paid") {
+      await this.markProviderEvent(eventId, "ignored", "Pedido de rifa ja estava pago");
+      return { status: "ignored", reason: "Pedido de rifa ja pago" };
+    }
+
+    if (order.status !== "pending_payment") {
+      return this.markRafflePaymentManualReview(
+        order,
+        normalized,
+        eventId,
+        `Pedido de rifa esta ${order.status}; pagamento exige revisao manual`,
+        payload,
+      );
+    }
+
+    if (order.reserved_until && new Date(order.reserved_until).getTime() < Date.now()) {
+      return this.markRafflePaymentManualReview(
+        order,
+        normalized,
+        eventId,
+        "Pagamento recebido depois da expiracao da reserva",
+        payload,
+      );
+    }
+
+    const expectedCents = Math.round(Number(order.total_amount) * 100);
+    const receivedCents = normalized.paidAmountCents ?? normalized.amountCents;
+
+    if (receivedCents === null) {
+      return this.markRafflePaymentManualReview(order, normalized, eventId, "Valor pago nao informado", payload);
+    }
+
+    if (receivedCents + 1 < expectedCents) {
+      return this.markRafflePaymentManualReview(
+        order,
+        normalized,
+        eventId,
+        "Valor pago menor que o total da rifa",
+        payload,
+      );
+    }
+
+    const { data: linkedNumbers, error: linkedNumbersError } = await this.supabase
+      .from("raffle_numbers")
+      .select("id")
+      .eq("raffle_order_id", order.id)
+      .eq("status", "pending_payment");
+
+    if (linkedNumbersError) {
+      await this.markProviderEvent(eventId, "failed", linkedNumbersError.message);
+      throwQueryError(linkedNumbersError, "Falha ao validar numeros reservados da rifa");
+    }
+
+    if ((linkedNumbers ?? []).length !== order.quantity) {
+      return this.markRafflePaymentManualReview(
+        order,
+        normalized,
+        eventId,
+        "Numeros da reserva nao estao mais pendentes",
+        payload,
+      );
+    }
+
+    const paidAt = new Date().toISOString();
+    const paidAmount = centsToCurrency(receivedCents);
+    const { data: cashEntry, error: cashError } = await this.supabase
+      .from("cash_entries")
+      .insert({
+        amount: Number(order.total_amount),
+        category: "raffle",
+        created_by: null,
+        description: `Pagamento InfinitePay - Rifa ${order.raffle_campaigns?.code ?? order.raffle_campaign_id} - pedido ${order.order_number}`,
+        occurred_at: paidAt,
+        type: "income",
+      })
+      .select("id,type,category,amount,description,occurred_at,created_at")
+      .single();
+
+    if (cashError) {
+      await this.markProviderEvent(eventId, "failed", cashError.message);
+      throwQueryError(cashError, "Falha ao registrar caixa da rifa InfinitePay");
+    }
+
+    const { data, error } = await this.supabase
+      .from("raffle_orders")
+      .update({
+        cash_entry_id: cashEntry.id,
+        capture_method: mapCaptureMethod(normalized.captureMethod),
+        paid_amount: paidAmount,
+        paid_at: paidAt,
+        payment_provider: "infinitepay",
+        payment_provider_reference: normalized.invoiceSlug ?? normalized.providerReference,
+        payment_status: "paid",
+        provider_payload: payload,
+        receipt_url: normalized.receiptUrl,
+        status: "paid",
+        transaction_nsu: normalized.transactionNsu,
+      })
+      .eq("id", order.id)
+      .eq("status", "pending_payment")
+      .select(orderSelect())
+      .maybeSingle();
+
+    if (error) {
+      await this.markProviderEvent(eventId, "failed", error.message);
+      throwQueryError(error, "Falha ao confirmar pagamento InfinitePay da rifa");
+    }
+
+    if (!data) {
+      return this.markRafflePaymentManualReview(
+        order,
+        normalized,
+        eventId,
+        "Pedido de rifa mudou de status durante o processamento",
+        payload,
+      );
+    }
+
+    const { error: numberError } = await this.supabase
+      .from("raffle_numbers")
+      .update({
+        reserved_until: null,
+        sold_at: paidAt,
+        status: "sold",
+      })
+      .eq("raffle_order_id", order.id)
+      .eq("status", "pending_payment");
+
+    if (numberError) {
+      await this.markProviderEvent(eventId, "failed", numberError.message);
+      throwQueryError(numberError, "Falha ao marcar numeros da rifa como comprados");
+    }
+
+    const { count: availableCount, error: availableError } = await this.supabase
+      .from("raffle_numbers")
+      .select("id", { count: "exact", head: true })
+      .eq("raffle_campaign_id", order.raffle_campaign_id)
+      .eq("status", "available");
+
+    if (availableError) {
+      await this.markProviderEvent(eventId, "failed", availableError.message);
+      throwQueryError(availableError, "Falha ao verificar disponibilidade da rifa");
+    }
+
+    if ((availableCount ?? 0) === 0) {
+      await this.supabase
+        .from("raffle_campaigns")
+        .update({ status: "sold_out" })
+        .eq("id", order.raffle_campaign_id)
+        .not("status", "in", "(closed,drawn,cancelled)");
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "raffle_order.infinitepay_paid",
+      adminId: undefined,
+      entityId: order.id,
+      entityType: "raffle_order",
+      oldValue: order,
+      newValue: { cashEntry, order: data },
+    });
+
+    await this.createDrawAudit(
+      order.raffle_campaign_id,
+      "order.payment_confirmed_infinitepay",
+      {
+        cashEntry,
+        orderId: order.id,
+        paidAmount,
+        transactionNsu: normalized.transactionNsu,
+      },
+      undefined,
+    );
+    await this.markProviderEvent(eventId, "processed");
+    await this.safeAwardRaffleOrderPoints(order.id, null);
+
+    return {
+      cashEntryId: cashEntry.id,
+      orderId: order.id,
+      paymentId: null,
+      status: "processed",
+    };
   }
 
   private async changeCampaignStatus(

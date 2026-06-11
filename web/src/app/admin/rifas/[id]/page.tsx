@@ -207,7 +207,7 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-left text-sm">
+            <table className="w-full min-w-[1300px] text-left text-sm">
               <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
                 <tr>
                   <th className="px-4 py-3">Pedido</th>
@@ -215,8 +215,10 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                   <th className="px-4 py-3">Numeros</th>
                   <th className="px-4 py-3">Total</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Pagamento</th>
                   <th className="px-4 py-3">Reservado ate</th>
                   <th className="px-4 py-3">Pago em</th>
+                  <th className="px-4 py-3">Gateway</th>
                   <th className="px-4 py-3">Acoes</th>
                 </tr>
               </thead>
@@ -233,10 +235,22 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                     <td className="px-4 py-3">
                       <RaffleOrderStatusBadge status={order.status} />
                     </td>
+                    <td className="px-4 py-3 text-[var(--muted)]">{order.payment_status ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">{formatDateTime(order.reserved_until)}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">{order.paid_at ? formatDate(order.paid_at) : "-"}</td>
+                    <td className="px-4 py-3 text-[var(--muted)]">
+                      {order.payment_provider ?? "-"}
+                      {order.capture_method ? <p className="text-xs">{order.capture_method}</p> : null}
+                      {order.transaction_nsu ? <p className="max-w-48 break-all text-xs">{order.transaction_nsu}</p> : null}
+                      {order.cash_entry_id ? <p className="text-xs">Caixa: {order.cash_entry_id.slice(0, 8)}</p> : null}
+                      {order.payment_id ? <p className="text-xs">Pagamento: {order.payment_id.slice(0, 8)}</p> : null}
+                    </td>
                     <td className="px-4 py-3">
-                      <RaffleOrderActions orderId={order.id} status={order.status} />
+                      <RaffleOrderActions
+                        orderId={order.id}
+                        paymentLinkUrl={order.payment_link_url}
+                        status={order.status}
+                      />
                     </td>
                   </tr>
                 ))}

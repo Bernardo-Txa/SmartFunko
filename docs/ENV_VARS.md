@@ -48,6 +48,18 @@ O redirect_url enviado no link aponta para:
 {NEXT_PUBLIC_SITE_URL}/pedido/{orderNumber}?token={publicToken}
 ```
 
+Links de rifa usam o mesmo webhook e redirecionam para:
+
+```txt
+{NEXT_PUBLIC_SITE_URL}/conta/rifas/{raffleOrderId}
+```
+
+Para rifa, o `order_nsu` enviado a InfinitePay sempre usa:
+
+```txt
+RAFFLE-{raffleOrderId}
+```
+
 O redirect nao confirma pagamento por si so. Quando a InfinitePay devolve `slug`, `transaction_nsu` ou `receipt_url`, a pagina publica consulta `payment_check` no servidor e baixa o pedido se a InfinitePay responder `paid: true`. O webhook continua sendo o caminho principal.
 
 Os links gerados pelo painel admin usam o dominio real da requisicao admin como base. Ainda assim, mantenha `NEXT_PUBLIC_SITE_URL` apontando para o dominio valido do ambiente, por exemplo:
@@ -60,6 +72,7 @@ NEXT_PUBLIC_SITE_URL=https://dominio-valido.vercel.app
 
 ```txt
 NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT=true
+NEXT_PUBLIC_ENABLE_RAFFLES=true
 NEXT_PUBLIC_ENABLE_REWARDS=true
 INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io
 INFINITEPAY_HANDLE=smartfunko
@@ -72,7 +85,7 @@ INFINITEPAY_WEBHOOK_ENABLED=true
 
 ## Consulta manual de status
 
-O admin pode usar `Verificar pagamento` no detalhe do pedido. O backend chama:
+O admin pode usar `Verificar pagamento` no detalhe do pedido normal ou da reserva de rifa. O backend chama:
 
 ```txt
 POST https://api.checkout.infinitepay.io/payment_check
@@ -89,3 +102,5 @@ Com corpo:
 ```
 
 Se a resposta vier com `success: true` e `paid: true`, o sistema registra pagamento e caixa pelo mesmo fluxo financeiro usado no webhook.
+
+Para rifas, `order_nsu` deve ser `RAFFLE-{raffleOrderId}`. Pagamento de link de rifa depois da expiracao da reserva vai para revisao manual e nao marca numeros como vendidos automaticamente.

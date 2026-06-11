@@ -176,7 +176,7 @@ export default async function RaffleDetailPage({ params }: Props) {
             <div className="mb-4">
               <h2 className="text-2xl font-black text-[var(--foreground)]">Escolha seus numeros</h2>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                A reserva fica pendente ate a Smart Funkos confirmar manualmente o pagamento.
+                A reserva gera um link InfinitePay para Pix ou cartao. Se o link nao estiver disponivel, o atendimento manual continua como fallback.
               </p>
             </div>
             <RaffleNumberPicker

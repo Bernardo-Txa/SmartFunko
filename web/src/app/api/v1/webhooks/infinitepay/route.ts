@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { badRequest, forbidden } from "@/server/http/errors";
 import { handleApi, jsonOk } from "@/server/http/responses";
 import { verifyInfinitePayWebhook } from "@/server/payments/infinitepay-client";
+import { RaffleService } from "@/server/raffles/raffle-service";
 
 export async function POST(request: Request) {
   return handleApi(async () => {
@@ -24,7 +25,13 @@ export async function POST(request: Request) {
       throw badRequest("Webhook InfinitePay com JSON invalido");
     }
 
-    const result = await new AssistedCheckoutService().handleInfinitePayWebhook(payload);
+    const orderNsu =
+      payload && typeof payload === "object" && "order_nsu" in payload
+        ? String((payload as { order_nsu?: unknown }).order_nsu ?? "")
+        : "";
+    const result = orderNsu.startsWith("RAFFLE-")
+      ? await new RaffleService().handleInfinitePayWebhook(payload)
+      : await new AssistedCheckoutService().handleInfinitePayWebhook(payload);
     return jsonOk(result);
   });
 }

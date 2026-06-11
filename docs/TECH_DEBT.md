@@ -44,14 +44,14 @@ Pendencias:
 - baixa financeira automatica para despesas do lote;
 - RPC transacional para recebimento de lote, itens, pedido, estoque e logs.
 
-## Rifas DEV 1.1 nao produtivas
+## Rifas DEV 1.2 nao produtivas
 
-Rifas DEV 1.1 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao academica/interna de telas e fluxo operacional. O fluxo principal nao exige autorizacao governamental, codigo/link de autorizacao ou aceite legal para criar/abrir campanha em ambiente dev. Permanecem pendentes antes de qualquer uso produtivo:
+Rifas DEV 1.2 existe atras de `NEXT_PUBLIC_ENABLE_RAFFLES` para validacao academica/interna de telas e fluxo operacional. A sprint adiciona link InfinitePay, webhook e pontos, mas o fluxo principal ainda nao exige autorizacao governamental, codigo/link de autorizacao ou aceite legal para criar/abrir campanha em ambiente dev. Permanecem pendentes antes de qualquer uso produtivo:
 
 - revisao juridica/compliance por jurisdicao e tipo de promocao;
 - processo regulatorio real quando aplicavel, fora do contexto academico/dev;
-- gateway/Pix e conciliacao automatica;
-- idempotencia forte para reserva, confirmacao de pagamento e cancelamento;
+- idempotencia transacional mais forte para reserva, confirmacao de pagamento, caixa e cancelamento;
+- reconciliacao operacional de eventos InfinitePay em `manual_review`;
 - reembolso de pedido de rifa pago;
 - notificacoes de reserva, expiracao, pagamento e resultado;
 - sorteio certificado/auditavel ou integracao externa confiavel;
@@ -95,6 +95,6 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 - Criar fluxo financeiro completo de reembolso/cancelamento de rifa paga antes de liberar cancelamento produtivo de rifa já paga; hoje pontos de rifa paga sao concedidos e a reversao existe no service para quando houver fluxo operacional de reembolso.
 - Preparar Flutter mobile depois da V1 web/admin.
 - Manter Gamificacao / Clube Smart Funkos no radar como modulo futuro.
-- Evoluir Rifas DEV 1.1 apenas depois de resolver compliance, pagamento automatico, notificacoes, sorteio auditavel e reembolso.
+- Evoluir Rifas DEV 1.2 apenas depois de resolver compliance, notificacoes, sorteio auditavel, revisao manual de pagamentos atrasados e reembolso.
 - Planejar leilao e notificacoes automaticas fora do MVP operacional.
 - Enriquecer metadados de marcas no importador quando cada parceiro exigir campos proprios alem de `supplier_id`.

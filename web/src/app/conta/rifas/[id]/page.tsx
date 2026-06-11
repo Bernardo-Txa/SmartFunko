@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleOrder } from "@/components/raffles/raffle-types";
 import { RaffleNumberStatusBadge, RaffleOrderStatusBadge } from "@/components/ui/status-badge";
@@ -54,6 +55,30 @@ function resultText(order: RaffleOrder) {
   }
 
   return "Resultado ainda nao disponivel.";
+}
+
+function paymentMethodText(order: RaffleOrder) {
+  if (order.payment_provider === "infinitepay") {
+    if (order.capture_method === "pix") {
+      return "Pix via InfinitePay";
+    }
+
+    if (order.capture_method === "credit_card") {
+      return "Cartao de credito via InfinitePay";
+    }
+
+    if (order.capture_method === "debit_card") {
+      return "Cartao de debito via InfinitePay";
+    }
+
+    return "InfinitePay";
+  }
+
+  if (order.capture_method === "manual") {
+    return "Manual";
+  }
+
+  return order.capture_method ?? "-";
 }
 
 export default async function AccountRaffleDetailPage({ params }: Props) {
@@ -138,10 +163,62 @@ export default async function AccountRaffleDetailPage({ params }: Props) {
 
         {order.status === "pending_payment" ? (
           <section className="rounded-lg border border-yellow-300/35 bg-yellow-300/10 p-5">
-            <h2 className="text-lg font-bold text-yellow-100">Instrucoes de pagamento</h2>
-            <p className="mt-3 text-sm leading-6 text-yellow-100/90">
-              Entre em contato com a Smart Funkos pelo atendimento informado no site e envie o comprovante
-              com o pedido {order.order_number}. A reserva permanece pendente ate confirmacao manual.
+            <h2 className="text-lg font-bold text-yellow-100">Aguardando pagamento</h2>
+            {order.payment_link_url ? (
+              <div className="mt-3 grid gap-3 text-sm leading-6 text-yellow-100/90">
+                <p>Use o link InfinitePay para pagar com Pix ou cartao antes do fim da reserva.</p>
+                <a
+                  href={order.payment_link_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+                >
+                  <ExternalLink size={16} aria-hidden="true" />
+                  Pagar agora
+                </a>
+                <p className="break-all text-xs">{order.payment_link_url}</p>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-yellow-100/90">
+                O link automatico nao esta disponivel para esta reserva. Entre em contato com a Smart Funkos
+                e envie o comprovante com o pedido {order.order_number}.
+              </p>
+            )}
+          </section>
+        ) : null}
+
+        {order.status === "paid" ? (
+          <section className="rounded-lg border border-emerald-300/35 bg-emerald-500/10 p-5">
+            <h2 className="text-lg font-bold text-emerald-100">Pagamento confirmado</h2>
+            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="font-semibold text-emerald-100">Metodo</dt>
+                <dd className="text-emerald-100/90">{paymentMethodText(order)}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-emerald-100">Referencia</dt>
+                <dd className="break-words text-emerald-100/90">{order.transaction_nsu ?? order.payment_provider_reference ?? "-"}</dd>
+              </div>
+            </dl>
+            {order.receipt_url ? (
+              <a
+                href={order.receipt_url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-200/40 px-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/10"
+              >
+                <ExternalLink size={16} aria-hidden="true" />
+                Ver comprovante
+              </a>
+            ) : null}
+          </section>
+        ) : null}
+
+        {order.status === "expired" ? (
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            <h2 className="text-lg font-bold text-[var(--foreground)]">Reserva expirada</h2>
+            <p className="mt-3 text-sm text-[var(--muted)]">
+              Os numeros foram liberados. Se voce pagou depois da expiracao, a Smart Funkos precisa revisar manualmente.
             </p>
           </section>
         ) : null}

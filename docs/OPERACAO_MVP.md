@@ -150,7 +150,7 @@ Custos:
 - margem real simples = preco vendido - custo real;
 - nao ha rateio complexo, multi-moeda ou imposto automatico nesta sprint.
 
-## Rifas DEV 1.1
+## Rifas DEV 1.2 — Pagamento InfinitePay
 
 Rifas estao disponiveis somente quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`. Com a flag desligada, links somem da navegacao, paginas publicas/customer mostram modulo desativado e APIs de rifa ficam bloqueadas. Com a flag ligada, as telas exibem aviso experimental de nao producao.
 
@@ -161,24 +161,46 @@ Fluxo admin:
 3. Abrir a campanha para reservas.
 4. Pausar, fechar ou cancelar manualmente quando necessario.
 5. Ver pedidos da campanha no detalhe admin.
-6. Confirmar pagamento manual de reserva; o sistema marca numeros como comprados e cria entrada de caixa `category = raffle`.
-7. Cancelar reserva nao paga ou expirar reservas vencidas para liberar numeros.
-8. Fechar campanha e registrar ganhador manualmente informando numero comprado.
+6. Em reserva pendente, copiar/abrir link InfinitePay, gerar ou regerar link e consultar pagamento.
+7. Confirmar pagamento manual de reserva como fallback; o sistema marca numeros como comprados e cria entrada de caixa `category = raffle`.
+8. Cancelar reserva nao paga ou expirar reservas vencidas para liberar numeros.
+9. Fechar campanha e registrar ganhador manualmente informando numero comprado.
 
 Fluxo cliente/publico:
 
 1. Cliente acessa `/rifas` ou `/rifas/[slug]`.
 2. Escolhe numeros disponiveis no `RaffleNumberPicker`.
 3. Sistema cria reserva temporaria vinculada ao customer autenticado.
-4. Cliente ve instrucoes de pagamento manual e acompanha em `/conta/rifas` e `/conta/rifas/[id]`, vendo numeros, status, total, reservado ate, pago em e resultado.
+4. Sistema tenta criar link InfinitePay automaticamente.
+5. Se `payment_link_url` existir, cliente ve `Pagar agora` para Pix/cartao pela InfinitePay.
+6. Se o link nao existir, cliente ve instrucao manual/fallback.
+7. Cliente acompanha em `/conta/rifas` e `/conta/rifas/[id]`, vendo numeros, status, total, reservado ate, pago em, metodo/comprovante quando houver e resultado.
 
-Limites da DEV 1.1:
+Webhook InfinitePay para rifa:
+
+- endpoint: `POST /api/v1/webhooks/infinitepay`;
+- rifa e identificada por `order_nsu` com prefixo `RAFFLE-`;
+- `RAFFLE-{raffle_order_id}` nunca concilia por valor/cliente isoladamente;
+- payload bruto fica em `payment_provider_events`;
+- duplicidade usa `unique(provider, event_id)` e o proprio status da `raffle_order` para nao duplicar caixa;
+- pagamento aprovado valida valor, reserva vigente e numeros ainda `pending_payment`;
+- confirmacao marca `raffle_orders.status = paid`, `payment_status = paid`, numeros como `sold`, cria `cash_entries.category = raffle`, grava auditoria e gera pontos do Clube em `source_type = raffle_order`;
+- `payments` nao e criado para rifa nesta versao porque o schema atual exige `payments.order_id` de pedido normal;
+- pagamento atrasado, valor menor ou numeros ja liberados entram em `manual_review`, sem vender numeros automaticamente.
+
+APIs de rifa:
+
+- `POST /api/v1/me/raffles/[slug]/reserve` retorna `paymentLinkUrl` e `paymentStatus`;
+- `POST /api/v1/admin/raffles/orders/[orderId]/generate-payment-link`;
+- `POST /api/v1/admin/raffles/orders/[orderId]/sync-payment`;
+- confirmacao manual e cancelamento existentes continuam disponiveis.
+
+Limites da DEV 1.2:
 
 - o fluxo academico/dev nao exige codigo de autorizacao, link de autorizacao, aceite legal ou integracao governamental para criar/abrir campanha;
 - reserva expira por RPC acionada em listagens/reserva ou pelo endpoint/botao manual;
-- confirmacao de pagamento e sempre manual;
 - sorteio e resultado sao manuais;
-- nao ha Pix automatico, cartao, gateway, checkout, cron real, notificacao, validacao legal automatizada, sorteio certificado ou reembolso de pedido pago de rifa nesta versao;
+- nao ha checkout proprio interno, captura de cartao na SmartFunko, cron real, notificacao, validacao legal automatizada, sorteio certificado, nota fiscal, frete ou reembolso automatico de pedido pago de rifa nesta versao;
 - nao usar em producao.
 
 ## APIs principais

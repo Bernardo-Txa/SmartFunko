@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle2, CircleDollarSign, Clock3, Pause, Play, Trophy, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, CircleDollarSign, Clock3, Copy, ExternalLink, LinkIcon, Pause, Play, RefreshCw, Trophy, XCircle } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 type ActionResult = {
@@ -139,9 +139,11 @@ export function RaffleOpenCampaignButton({
 
 export function RaffleOrderActions({
   orderId,
+  paymentLinkUrl,
   status,
 }: {
   orderId: string;
+  paymentLinkUrl?: string | null;
   status: string;
 }) {
   const router = useRouter();
@@ -151,6 +153,7 @@ export function RaffleOrderActions({
   const [runningAction, setRunningAction] = useState<string | null>(null);
   const canConfirmPayment = status === "pending_payment";
   const canCancel = status !== "paid" && status !== "cancelled";
+  const canGeneratePaymentLink = status === "pending_payment";
 
   async function confirmPayment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -198,8 +201,114 @@ export function RaffleOrderActions({
     }
   }
 
+  async function generatePaymentLink() {
+    setError("");
+    setMessage("");
+    setRunningAction("generate-payment-link");
+
+    try {
+      const response = await fetch(`/api/v1/admin/raffles/orders/${orderId}/generate-payment-link`, {
+        method: "POST",
+      });
+      await parseActionResult(response);
+      setMessage("Link InfinitePay gerado.");
+      router.refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Falha ao gerar link InfinitePay");
+    } finally {
+      setRunningAction(null);
+    }
+  }
+
+  async function syncPayment() {
+    setError("");
+    setMessage("");
+    setRunningAction("sync-payment");
+
+    try {
+      const response = await fetch(`/api/v1/admin/raffles/orders/${orderId}/sync-payment`, {
+        body: JSON.stringify({}),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      await parseActionResult(response);
+      setMessage("Consulta InfinitePay concluida.");
+      router.refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Falha ao consultar pagamento");
+    } finally {
+      setRunningAction(null);
+    }
+  }
+
+  async function copyPaymentLink() {
+    if (!paymentLinkUrl) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(paymentLinkUrl);
+    setMessage("Link copiado.");
+  }
+
   return (
     <div className="grid gap-2">
+      {paymentLinkUrl ? (
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={paymentLinkUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-9 w-fit items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          >
+            <ExternalLink size={14} aria-hidden="true" />
+            Abrir link
+          </a>
+          <button
+            type="button"
+            onClick={copyPaymentLink}
+            className="inline-flex h-9 w-fit items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          >
+            <Copy size={14} aria-hidden="true" />
+            Copiar link
+          </button>
+        </div>
+      ) : null}
+      {canGeneratePaymentLink ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={runningAction !== null}
+            onClick={generatePaymentLink}
+            className="inline-flex h-9 w-fit items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {runningAction === "generate-payment-link" ? (
+              <SmartButtonLoading message="Gerando..." />
+            ) : (
+              <>
+                <LinkIcon size={14} aria-hidden="true" />
+                {paymentLinkUrl ? "Regerar link InfinitePay" : "Gerar link InfinitePay"}
+              </>
+            )}
+          </button>
+          {paymentLinkUrl ? (
+            <button
+              type="button"
+              disabled={runningAction !== null}
+              onClick={syncPayment}
+              className="inline-flex h-9 w-fit items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {runningAction === "sync-payment" ? (
+                <SmartButtonLoading message="Consultando..." />
+              ) : (
+                <>
+                  <RefreshCw size={14} aria-hidden="true" />
+                  Verificar pagamento
+                </>
+              )}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {canConfirmPayment ? (
         <form onSubmit={confirmPayment} className="grid gap-2 sm:grid-cols-[minmax(180px,1fr)_auto]">
           <input
