@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Heart, Package, Ticket, UserRound } from "lucide-react";
-import { isRafflesEnabled } from "@/lib/env";
+import { ArrowRight, Gem, Heart, Package, Ticket, UserRound } from "lucide-react";
+import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderService } from "@/server/orders/order-service";
@@ -99,6 +99,18 @@ export default async function AccountPage() {
             Lista de desejos e produtos acompanhados.
           </p>
         </Link>
+        {isRewardsEnabled() ? (
+          <Link
+            href="/conta/clube"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
+          >
+            <Gem className="text-[var(--accent)]" size={24} />
+            <strong className="mt-4 block text-sm">Clube Smart Funkos</strong>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Pontos, níveis e ranking mensal de pedidos.
+            </p>
+          </Link>
+        ) : null}
         {isRafflesEnabled() ? (
           <Link
             href="/conta/rifas"

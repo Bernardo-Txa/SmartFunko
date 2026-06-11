@@ -4,6 +4,7 @@ import {
   BadgePercent,
   ChartNoAxesColumn,
   CreditCard,
+  Gem,
   Handshake,
   HeartPulse,
   LayoutDashboard,
@@ -13,7 +14,7 @@ import {
   Ticket,
   Users,
 } from "lucide-react";
-import { isRafflesEnabled } from "@/lib/env";
+import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
 
 function getNavItems() {
   return [
@@ -24,6 +25,7 @@ function getNavItems() {
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
     { href: "/admin/cupons", label: "Cupons", icon: BadgePercent },
+    ...(isRewardsEnabled() ? [{ href: "/admin/clube", label: "Clube", icon: Gem }] : []),
     ...(isRafflesEnabled() ? [{ href: "/admin/rifas", label: "Rifas", icon: Ticket }] : []),
     { href: "/admin/lotes", label: "Lotes", icon: PackageSearch },
     { href: "/admin/estoque", label: "Estoque", icon: Boxes },

@@ -266,6 +266,7 @@ Limites da DEV 1.1:
 - `/fornecedores/[slug]`: catalogo separado de uma collab/fornecedor, com filtro implicito pelo slug.
 - `/carrinho`: carrinho local para intencao de compra assistida, com cupom de desconto, envio de pedido para analise e WhatsApp como atendimento.
 - `/conta/wishlist`: favoritos do cliente autenticado.
+- `/conta/clube`: Clube Smart Funkos com pontos, niveis longos, extrato e ranking mensal quando `NEXT_PUBLIC_ENABLE_REWARDS=true`.
 - `/rifas` e `/rifas/[slug]`: rifas experimentais quando a flag esta ligada.
 - `/conta/rifas` e `/conta/rifas/[id]`: acompanhamento de rifas do cliente quando a flag esta ligada.
 
@@ -299,6 +300,13 @@ Limites da DEV 1.1:
 - `POST /api/v1/me/orders` cria pedido em analise para o proprio cliente autenticado; precos e variantes sao revalidados no servidor.
 - `POST /api/v1/me/coupons/validate` valida cupom do carrinho com precos recalculados no servidor.
 - `/admin/cupons` permite criar, ativar e desativar cupons; cupons aplicados gravam `orders.coupon_id`, `orders.coupon_code` e `orders.discount`.
+- Clube Smart Funkos 1.0 fica atras de `NEXT_PUBLIC_ENABLE_REWARDS`.
+- Pontos do clube sao registrados em `reward_point_ledger` quando um pagamento manual ou InfinitePay e confirmado; o calculo inicial e 1 ponto por R$ 1 pago.
+- Estorno de pagamento gera lancamento `reverse` no extrato de pontos e nao reduz `lifetime_points`, portanto nao rebaixa nivel.
+- Niveis longos usam `lifetime_points`: Visitante 0, Colecionador Iniciante 1.000, Caçador de Exclusivos 3.000, Mestre dos Funkos 7.500, Grail Hunter 15.000, Elite Smart 30.000, Lenda Smart 60.000 e Hall da Fama 100.000.
+- `/admin/clube` lista clientes do clube, pontos atuais, lifetime e nivel.
+- `/admin/clube/ranking` recalcula e acompanha o Ranking Mensal Top 3 Pedidos, baseado no valor de cada pedido individual pago no mes.
+- Ganhadores do ranking possuem controle de brinde por status `pending`, `delivered` ou `cancelled`.
 - Cliente nao consegue pagar antes da aprovacao admin, porque o link InfinitePay so e gerado em `awaiting_payment`.
 - A consulta `payment_check` e server-side; se `paid = true`, gera pagamento e caixa pelo mesmo fluxo financeiro do webhook.
 - `payment_provider_events` guarda eventos de gateway para auditoria e idempotencia; segredos da InfinitePay nunca sao enviados ao client.

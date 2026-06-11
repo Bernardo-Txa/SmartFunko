@@ -90,6 +90,8 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 - Automatizar Pix/cartao apenas pelo fluxo aprovado de gateway e webhook; manter redirect como informativo, nao confirmatorio.
 - Criar checkout proprio interno apenas depois do fluxo de carrinho assistido, cupons e pagamento por link estabilizar.
 - Tornar o incremento de uso de cupom totalmente transacional via RPC se houver alto volume ou concorrencia real.
+- Criar rotina admin de backfill de pontos para pagamentos antigos antes de ativar o Clube em producao real.
+- Evoluir rewards para RPC transacional se pontos, badges e ranking virarem regra promocional sensivel.
 - Preparar Flutter mobile depois da V1 web/admin.
 - Manter Gamificacao / Clube Smart Funkos no radar como modulo futuro.
 - Evoluir Rifas DEV 1.1 apenas depois de resolver compliance, pagamento automatico, notificacoes, sorteio auditavel e reembolso.

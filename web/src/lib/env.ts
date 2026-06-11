@@ -1,6 +1,7 @@
 export const env = {
   enableAssistedCheckout: process.env.NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT ?? "true",
   enableRaffles: process.env.NEXT_PUBLIC_ENABLE_RAFFLES ?? "",
+  enableRewards: process.env.NEXT_PUBLIC_ENABLE_REWARDS ?? "",
   infinitePayApiBaseUrl: process.env.INFINITEPAY_API_BASE_URL ?? "https://api.checkout.infinitepay.io",
   infinitePayApiKey: process.env.INFINITEPAY_API_KEY ?? "",
   infinitePayHandle: process.env.INFINITEPAY_HANDLE ?? "",
@@ -19,6 +20,10 @@ export function isAssistedCheckoutEnabled() {
 
 export function isRafflesEnabled() {
   return env.enableRaffles === "true";
+}
+
+export function isRewardsEnabled() {
+  return env.enableRewards === "true";
 }
 
 export function hasInfinitePayCheckoutEnv() {

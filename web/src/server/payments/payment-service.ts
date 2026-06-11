@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
+import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
@@ -308,7 +309,10 @@ export class PaymentService {
       throwFriendlyPaymentRpcError(error);
     }
 
-    return data as PaymentRpcResult;
+    const result = data as PaymentRpcResult;
+    await this.safeAwardPaymentPoints(result.payment_id);
+
+    return result;
   }
 
   async refundManualPayment(paymentId: string, input: RefundManualPaymentInput) {
@@ -323,7 +327,10 @@ export class PaymentService {
       throwFriendlyRefundRpcError(error);
     }
 
-    return data as RefundRpcResult;
+    const result = data as RefundRpcResult;
+    await this.safeReversePaymentPoints(result.payment_id, result.refunded_amount);
+
+    return result;
   }
 
   async refundPayment(paymentId: string, input: RefundManualPaymentInput) {
@@ -400,5 +407,21 @@ export class PaymentService {
     }
 
     return data;
+  }
+
+  private async safeAwardPaymentPoints(paymentId: string) {
+    try {
+      await new RewardsService(this.supabase, this.actorId).awardPaymentPoints(paymentId);
+    } catch (error) {
+      console.error("Falha ao registrar pontos do pagamento", error);
+    }
+  }
+
+  private async safeReversePaymentPoints(paymentId: string, refundedAmount?: number | null) {
+    try {
+      await new RewardsService(this.supabase, this.actorId).reversePaymentPoints(paymentId, refundedAmount);
+    } catch (error) {
+      console.error("Falha ao reverter pontos do pagamento", error);
+    }
   }
 }

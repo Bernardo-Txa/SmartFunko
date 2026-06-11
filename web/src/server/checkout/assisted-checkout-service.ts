@@ -11,6 +11,7 @@ import {
   normalizeInfinitePayWebhook,
   type NormalizedInfinitePayWebhook,
 } from "@/server/payments/infinitepay-client";
+import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
@@ -562,6 +563,7 @@ export class AssistedCheckoutService {
 
     await this.addOrderHistory(order.id, order.review_status, "paid", "Pagamento confirmado pela InfinitePay", null);
     await this.markProviderEvent(eventId, "processed", undefined, paymentId);
+    await this.safeAwardPaymentPoints(paymentId);
 
     return {
       orderId: order.id,
@@ -691,6 +693,18 @@ export class AssistedCheckoutService {
 
     if (error) {
       throwQueryError(error, "Falha ao registrar historico do checkout assistido");
+    }
+  }
+
+  private async safeAwardPaymentPoints(paymentId: string | null) {
+    if (!paymentId) {
+      return;
+    }
+
+    try {
+      await new RewardsService(this.supabase, null).awardPaymentPoints(paymentId);
+    } catch (error) {
+      console.error("Falha ao registrar pontos do pagamento InfinitePay", error);
     }
   }
 }

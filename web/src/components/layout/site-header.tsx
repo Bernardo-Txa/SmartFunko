@@ -4,7 +4,7 @@ import { HeaderActions } from "@/components/layout/header-actions";
 import { HeaderNavLink } from "@/components/layout/header-nav-link";
 import { MegaMenu } from "@/components/storefront/mega-menu";
 import { getCatalogCategories, getCatalogFranchises } from "@/lib/catalog";
-import { isRafflesEnabled } from "@/lib/env";
+import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 
 export async function SiteHeader() {
@@ -23,6 +23,9 @@ export async function SiteHeader() {
     ...(isRafflesEnabled() ? [{ href: "/rifas", label: "Rifas" }] : []),
     { href: "/#como-funciona", label: "Como funciona" },
     { href: ordersHref, label: "Meus pedidos" },
+    ...(isRewardsEnabled()
+      ? [{ href: currentUser ? "/conta/clube" : "/login?next=/conta/clube", label: "Clube" }]
+      : []),
   ];
 
   if (currentUser) {

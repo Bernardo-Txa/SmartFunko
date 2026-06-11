@@ -7,6 +7,7 @@
 - `NEXT_PUBLIC_SUPABASE_URL`: URL publica do Supabase.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: anon key publica do Supabase.
 - `NEXT_PUBLIC_ENABLE_RAFFLES`: ativa Rifas DEV 1.1 quando `true`.
+- `NEXT_PUBLIC_ENABLE_REWARDS`: ativa Clube Smart Funkos, pontos, niveis e ranking mensal quando `true`.
 - `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT`: ativa envio do carrinho para analise quando diferente de `false`.
 
 ## Server-only
@@ -59,6 +60,7 @@ NEXT_PUBLIC_SITE_URL=https://dominio-valido.vercel.app
 
 ```txt
 NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT=true
+NEXT_PUBLIC_ENABLE_REWARDS=true
 INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io
 INFINITEPAY_HANDLE=smartfunko
 INFINITEPAY_API_KEY=
