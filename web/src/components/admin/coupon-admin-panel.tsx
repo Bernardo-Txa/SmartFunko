@@ -50,6 +50,14 @@ function toPayload(formData: FormData) {
   };
 }
 
+function normalizeCouponCode(code: string) {
+  return code
+    .trim()
+    .toUpperCase()
+    .replaceAll(" ", "")
+    .replace(/[^A-Z0-9_-]/g, "");
+}
+
 function formatCouponValue(coupon: DiscountCouponRow) {
   if (coupon.discount_type === "percent") {
     return `${Number(coupon.value).toLocaleString("pt-BR")}%`;
@@ -71,23 +79,31 @@ export function CouponAdminPanel({ coupons }: Props) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setError("");
     setMessage("");
     setIsSubmitting(true);
 
     try {
+      const payload = toPayload(new FormData(form));
+      const code = normalizeCouponCode(payload.code);
+
+      if (coupons.some((coupon) => coupon.code === code)) {
+        throw new Error("Ja existe um cupom com este codigo. Use outro codigo ou ative/desative o cupom existente.");
+      }
+
       const response = await fetch("/api/v1/admin/coupons", {
-        body: JSON.stringify(toPayload(new FormData(event.currentTarget))),
+        body: JSON.stringify({ ...payload, code }),
         headers: { "content-type": "application/json" },
         method: "POST",
       });
-      const payload = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Falha ao criar cupom");
+        throw new Error(result.error?.message ?? "Falha ao criar cupom");
       }
 
-      event.currentTarget.reset();
+      form.reset();
       setMessage("Cupom criado.");
       router.refresh();
     } catch (submitError) {
