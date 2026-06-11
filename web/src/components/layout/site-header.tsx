@@ -24,7 +24,7 @@ export async function SiteHeader() {
     { href: "/#como-funciona", label: "Como funciona" },
     { href: ordersHref, label: "Meus pedidos" },
     ...(isRewardsEnabled()
-      ? [{ href: currentUser ? "/conta/clube" : "/login?next=/conta/clube", label: "Clube" }]
+      ? [{ href: currentUser ? "/conta/clube" : "/login?next=/conta/clube", label: "Smart Clube" }]
       : []),
   ];
 
