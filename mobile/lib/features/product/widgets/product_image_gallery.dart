@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/network/image_url_resolver.dart';
 import '../../catalog/data/product_models.dart';
 
 class ProductImageGallery extends StatefulWidget {
@@ -98,8 +99,13 @@ class _ImageFrame extends StatelessWidget {
       return fallback;
     }
 
+    final resolvedUrl = resolveImageUrl(image!.url);
+    if (resolvedUrl.isEmpty) {
+      return fallback;
+    }
+
     return CachedNetworkImage(
-      imageUrl: image!.url,
+      imageUrl: resolvedUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,

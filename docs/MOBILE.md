@@ -65,6 +65,29 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:33539,https://smart-
 
 CORS nao libera acesso anonimo a APIs autenticadas: `/api/v1/me/*` segue exigindo Bearer token. `/api/v1/admin/*` nao foi liberado para mobile.
 
+## Imagens Externas 0.2.2
+
+Flutter Web pode bloquear imagens de CDNs externas quando o host nao envia `Access-Control-Allow-Origin`. Para o catalogo/produto, o app resolve imagens externas pelo proxy publico:
+
+```txt
+GET /api/v1/public/image-proxy?url=<encoded_url>
+```
+
+O proxy aplica CORS, cache publico e valida seguranca antes de buscar a imagem. Allowlist inicial:
+
+- `cdn.awsli.com.br`.
+- `smart-funko.vercel.app`.
+- `*.supabase.co`, validado por sufixo exato `.supabase.co`.
+
+Bloqueios importantes:
+
+- `localhost`, `127.0.0.1`, `0.0.0.0`, `::1`.
+- faixas privadas `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`.
+- metadata/cloud internals como `169.254.169.254` e `metadata.google.internal`.
+- respostas que nao sejam `image/jpeg`, `image/png`, `image/webp` ou `image/gif`.
+
+No mobile, a URL e resolvida em `mobile/lib/core/network/image_url_resolver.dart`. Supabase Storage e imagens do proprio backend continuam diretas; imagens externas no Flutter Web usam o proxy. Futuro recomendado: migrar imagens externas para Supabase Storage/CDN proprio, padronizando o bucket `product-images`.
+
 ## Fora do MVP
 
 - Admin mobile.

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/network/image_url_resolver.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../data/product_models.dart';
 
@@ -148,8 +149,13 @@ class _ProductImage extends StatelessWidget {
       return fallback;
     }
 
+    final resolvedUrl = resolveImageUrl(imageUrl);
+    if (resolvedUrl.isEmpty) {
+      return fallback;
+    }
+
     return CachedNetworkImage(
-      imageUrl: imageUrl!,
+      imageUrl: resolvedUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,

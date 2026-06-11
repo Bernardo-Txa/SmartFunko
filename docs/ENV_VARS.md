@@ -57,6 +57,7 @@ Variaveis `NEXT_PUBLIC_*` sao embutidas no bundle no build. Alterar essas variav
 - CORS permite Flutter Web local em `http://localhost:*` e `http://127.0.0.1:*`, `NEXT_PUBLIC_SITE_URL`, `https://smart-funko.vercel.app` e origens extras em `CORS_ALLOWED_ORIGINS`.
 - CORS nao substitui autenticacao: endpoints `/api/v1/me/*` continuam exigindo Bearer token/sessao valida.
 - `/api/v1/admin/*` nao e liberado para mobile nesta sprint.
+- O proxy publico `/api/v1/public/image-proxy` aceita apenas URLs de imagem em allowlist: `cdn.awsli.com.br`, `smart-funko.vercel.app` e hosts terminando exatamente em `.supabase.co`. Nao adicione dominios sem revisar SSRF e tipo de conteudo.
 
 ## Webhook InfinitePay
 

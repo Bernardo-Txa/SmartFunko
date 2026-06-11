@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/network/image_url_resolver.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
@@ -242,8 +243,13 @@ class _CartImage extends StatelessWidget {
       return fallback;
     }
 
+    final resolvedUrl = resolveImageUrl(imageUrl);
+    if (resolvedUrl.isEmpty) {
+      return fallback;
+    }
+
     return CachedNetworkImage(
-      imageUrl: imageUrl!,
+      imageUrl: resolvedUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,

@@ -142,6 +142,15 @@ Mobile 0.2.1 adicionou allowlist de CORS para APIs publicas e `/api/v1/me/*`, pr
 - adicionar testes automatizados de OPTIONS/headers para rotas publicas e de cliente;
 - revisar allowlist quando existir admin mobile explicito.
 
+## Imagens externas mobile futuro
+
+Mobile 0.2.2 adicionou proxy seguro para imagens externas que falham em Flutter Web por CORS de CDN. Permanecem pendentes:
+
+- migrar imagens externas relevantes para Supabase Storage ou CDN proprio;
+- padronizar upload/importacao no bucket `product-images`;
+- adicionar testes automatizados para bloqueios SSRF do proxy;
+- revisar a allowlist quando novos fornecedores/CDNs forem adicionados.
+
 ## Proxima sprint
 
 - Remover tambem o arquivo fisico do Supabase Storage quando uma imagem for removida da galeria. Hoje a remocao apaga o registro de `product_images` e preserva o objeto no bucket para evitar inconsistencias fora de transacao.

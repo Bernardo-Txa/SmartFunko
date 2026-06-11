@@ -73,6 +73,14 @@ Depois abra `http://127.0.0.1:8080` no Brave ou Chrome.
 
 O backend permite CORS para Flutter Web local em `http://localhost:*` e `http://127.0.0.1:*`. Em ambientes remotos, mantenha `NEXT_PUBLIC_SITE_URL` correto e use `CORS_ALLOWED_ORIGINS` no web se precisar autorizar origens adicionais. CORS nao substitui login: chamadas futuras para `/api/v1/me/*` continuam usando Bearer token.
 
+Imagens externas que nao suportam CORS no navegador passam pelo proxy seguro do backend no Flutter Web:
+
+```txt
+GET /api/v1/public/image-proxy?url=<encoded_url>
+```
+
+O proxy aceita apenas dominios em allowlist (`cdn.awsli.com.br`, `smart-funko.vercel.app`, `*.supabase.co`) e bloqueia hosts locais/privados.
+
 Android:
 
 ```bash
@@ -114,6 +122,13 @@ curl -i -X OPTIONS \
   "https://smart-funko.vercel.app/api/v1/public/products?page=1&pageSize=24&sort=specials_first" \
   -H "Origin: http://localhost:33539" \
   -H "Access-Control-Request-Method: GET"
+```
+
+Validacao do proxy de imagem:
+
+```bash
+curl -I "https://smart-funko.vercel.app/api/v1/public/image-proxy?url=https%3A%2F%2Fcdn.awsli.com.br%2F800x800%2F84%2F84034%2Fproduto%2F161912510%2Ffunko-pop--disney-classics-dumbo-1195-exclusivo-a-1--800-5ixl3unfcx.jpg" \
+  -H "Origin: http://localhost:36883"
 ```
 
 Fluxos para testar:

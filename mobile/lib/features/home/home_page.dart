@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../core/network/image_url_resolver.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/smart_card.dart';
@@ -271,8 +272,13 @@ class _HighlightImage extends StatelessWidget {
       return fallback;
     }
 
+    final resolvedUrl = resolveImageUrl(imageUrl);
+    if (resolvedUrl.isEmpty) {
+      return fallback;
+    }
+
     return CachedNetworkImage(
-      imageUrl: imageUrl!,
+      imageUrl: resolvedUrl,
       fit: BoxFit.cover,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
