@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Gem, Heart, Package, Ticket, UserRound } from "lucide-react";
+import { ArrowRight, Gem, Heart, Package, Ticket } from "lucide-react";
 import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
 import { getOrderPendingAmount } from "@/lib/orders/payable";
@@ -22,12 +22,6 @@ type AccountOrder = {
   }>;
 };
 
-const customerStatusLabels: Record<string, string> = {
-  active: "Ativo",
-  blocked: "Bloqueado",
-  vip: "VIP",
-};
-
 export default async function AccountPage() {
   const { customer, profile } = await requireUserPage("/conta");
   const orders = customer
@@ -45,38 +39,6 @@ export default async function AccountPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 md:col-span-2">
-          <UserRound className="text-[var(--accent)]" size={24} />
-          <strong className="mt-4 block text-sm">Cadastro</strong>
-          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="font-semibold text-[var(--foreground)]">Nome</dt>
-              <dd className="text-[var(--muted)]">{customer?.name ?? profile.name}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--foreground)]">E-mail</dt>
-              <dd className="text-[var(--muted)]">{customer?.email ?? profile.email}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--foreground)]">Telefone</dt>
-              <dd className="text-[var(--muted)]">{customer?.phone ?? "Nao informado"}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--foreground)]">CPF</dt>
-              <dd className="text-[var(--muted)]">{customer?.cpf ?? "Nao informado"}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--foreground)]">Instagram</dt>
-              <dd className="text-[var(--muted)]">{customer?.instagram ?? "Nao informado"}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--foreground)]">Status</dt>
-              <dd className="text-[var(--muted)]">
-                {customer ? customerStatusLabels[customer.status] ?? customer.status : "Sem cliente vinculado"}
-              </dd>
-            </div>
-          </dl>
-        </section>
         <AccountProfileForm
           customer={customer}
           email={customer?.email ?? profile.email}

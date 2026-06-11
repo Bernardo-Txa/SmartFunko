@@ -10,12 +10,19 @@ type AccountCustomer = {
   instagram: string | null;
   name: string;
   phone: string | null;
+  status?: string | null;
 } | null;
 
 type ApiResult = {
   error?: {
     message?: string;
   };
+};
+
+const customerStatusLabels: Record<string, string> = {
+  active: "Ativo",
+  blocked: "Bloqueado",
+  vip: "VIP",
 };
 
 export function AccountProfileForm({
@@ -70,7 +77,7 @@ export function AccountProfileForm({
   if (!customer) {
     return (
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 md:col-span-2">
-        <h2 className="text-lg font-bold text-[var(--foreground)]">Meus dados</h2>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Cadastro</h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Nenhum cadastro de cliente vinculado a este login ainda.
         </p>
@@ -82,7 +89,7 @@ export function AccountProfileForm({
     <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 md:col-span-2">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-[var(--foreground)]">Meus dados</h2>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Cadastro</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             E-mail de login somente leitura. Para alterar o e-mail, fale com a Smart Funkos.
           </p>
@@ -124,6 +131,12 @@ export function AccountProfileForm({
           <div>
             <dt className="font-semibold text-[var(--foreground)]">Instagram</dt>
             <dd className="text-[var(--muted)]">{customer.instagram ?? "Nao informado"}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-[var(--foreground)]">Status</dt>
+            <dd className="text-[var(--muted)]">
+              {customer.status ? customerStatusLabels[customer.status] ?? customer.status : "Nao informado"}
+            </dd>
           </div>
         </dl>
       ) : (
