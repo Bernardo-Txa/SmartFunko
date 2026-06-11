@@ -6,13 +6,16 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-export async function POST(_request: Request, { params }: Params) {
+export async function POST(request: Request, { params }: Params) {
   return handleApi(async () => {
     const { id } = await params;
     const admin = await requireAdmin();
+    const baseUrl = new URL(request.url).origin;
     const result = await new AssistedCheckoutService(undefined, admin.profile.id).generatePaymentLinkForOrder(
       id,
       admin.profile.id,
+      undefined,
+      baseUrl,
     );
 
     return jsonOk(result);

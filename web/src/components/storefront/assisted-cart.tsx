@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
+import { BadgePercent, ClipboardCheck, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   clearCart,
@@ -26,6 +26,14 @@ export function AssistedCart({
   const router = useRouter();
   const items = useSyncExternalStore(subscribeCart, readCart, readServerCart);
   const [error, setError] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [couponResult, setCouponResult] = useState<{
+    code: string;
+    discount: number;
+    totalAfterDiscount: number;
+  } | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const total = useMemo(
@@ -38,6 +46,52 @@ export function AssistedCart({
     items,
   });
   const canSubmitForReview = items.every((item) => item.variantId);
+  const finalTotal = couponResult?.totalAfterDiscount ?? total;
+
+  function clearCoupon() {
+    setCouponResult(null);
+    setCouponError("");
+  }
+
+  async function applyCoupon() {
+    const code = couponCode.trim();
+
+    if (!code) {
+      setCouponResult(null);
+      setCouponError("Informe um cupom.");
+      return;
+    }
+
+    setCouponError("");
+    setIsApplyingCoupon(true);
+
+    try {
+      const response = await fetch("/api/v1/me/coupons/validate", {
+        body: JSON.stringify({
+          code,
+          items: items.map((item) => ({
+            quantity: item.quantity,
+            variantId: item.variantId,
+          })),
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error?.message ?? "Cupom invalido");
+      }
+
+      setCouponResult(payload.data);
+      setCouponCode(payload.data.code);
+    } catch (requestError) {
+      setCouponResult(null);
+      setCouponError(requestError instanceof Error ? requestError.message : "Cupom invalido");
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  }
 
   async function submitForReview() {
     setError("");
@@ -50,6 +104,7 @@ export function AssistedCart({
             quantity: item.quantity,
             variantId: item.variantId,
           })),
+          couponCode: couponResult?.code ?? undefined,
           notes: "Pedido enviado pelo carrinho assistido.",
         }),
         headers: { "content-type": "application/json" },
@@ -133,7 +188,10 @@ export function AssistedCart({
                 <button
                   type="button"
                   className="inline-flex h-10 w-10 items-center justify-center text-[var(--foreground)] hover:text-[var(--accent)]"
-                  onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
+                  onClick={() => {
+                    clearCoupon();
+                    updateCartItemQuantity(item.id, item.quantity - 1);
+                  }}
                   aria-label={`Diminuir quantidade de ${item.name}`}
                 >
                   <Minus size={15} aria-hidden="true" />
@@ -144,7 +202,10 @@ export function AssistedCart({
                 <button
                   type="button"
                   className="inline-flex h-10 w-10 items-center justify-center text-[var(--foreground)] hover:text-[var(--accent)]"
-                  onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
+                  onClick={() => {
+                    clearCoupon();
+                    updateCartItemQuantity(item.id, item.quantity + 1);
+                  }}
                   aria-label={`Aumentar quantidade de ${item.name}`}
                 >
                   <Plus size={15} aria-hidden="true" />
@@ -156,7 +217,10 @@ export function AssistedCart({
                 </strong>
                 <button
                   type="button"
-                  onClick={() => removeCartItem(item.id)}
+                  onClick={() => {
+                    clearCoupon();
+                    removeCartItem(item.id);
+                  }}
                   className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-red-100 hover:text-red-200"
                 >
                   <Trash2 size={13} aria-hidden="true" />
@@ -181,9 +245,51 @@ export function AssistedCart({
             <span className="text-[var(--muted)]">Total estimado</span>
             <strong className="text-xl text-[var(--foreground)]">{formatCurrency(total)}</strong>
           </div>
+          {couponResult ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--muted)]">Cupom {couponResult.code}</span>
+                <strong className="text-emerald-300">-{formatCurrency(couponResult.discount)}</strong>
+              </div>
+              <div className="flex items-center justify-between border-t border-[var(--border)] pt-3">
+                <span className="text-[var(--muted)]">Total com desconto</span>
+                <strong className="text-xl text-[var(--foreground)]">{formatCurrency(finalTotal)}</strong>
+              </div>
+            </>
+          ) : null}
+        </div>
+        <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+          <label className="block">
+            <span className="text-sm font-bold text-[var(--foreground)]">Cupom de desconto</span>
+            <div className="mt-2 flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(event) => {
+                  setCouponCode(event.target.value);
+                  setCouponResult(null);
+                  setCouponError("");
+                }}
+                placeholder="SMART10"
+                className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold uppercase text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+              />
+              <button
+                type="button"
+                disabled={isApplyingCoupon || !canSubmitForReview}
+                onClick={applyCoupon}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-3 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <BadgePercent size={16} aria-hidden="true" />
+                {isApplyingCoupon ? "Validando..." : "Aplicar"}
+              </button>
+            </div>
+          </label>
+          {couponResult ? (
+            <p className="mt-2 text-xs font-semibold text-emerald-300">Cupom aplicado.</p>
+          ) : null}
+          {couponError ? <p className="mt-2 text-xs font-semibold text-red-300">{couponError}</p> : null}
         </div>
         <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-          Este carrinho não reserva estoque, não calcula frete e só gera pagamento após aprovação da Smart Funkos.
+          Este carrinho não reserva estoque, não calcula frete e só gera pagamento por link após aprovação da Smart Funkos.
         </p>
         <button
           type="button"
@@ -207,7 +313,7 @@ export function AssistedCart({
           className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--green)] px-4 text-sm font-black text-[#052e16] hover:brightness-110"
         >
           <MessageCircle size={17} aria-hidden="true" />
-          Finalizar pelo WhatsApp
+          Falar com atendimento
         </a>
         <Link
           href="/catalogo"

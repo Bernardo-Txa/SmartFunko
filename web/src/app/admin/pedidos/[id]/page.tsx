@@ -33,6 +33,7 @@ type OrderDetail = {
   order_number: string;
   customer_id: string;
   channel: string;
+  coupon_code: string | null;
   seller: string | null;
   status: string;
   subtotal: number;
@@ -206,11 +207,16 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
+          <MetricCard
+            label="Subtotal"
+            value={formatCurrency(order.subtotal)}
+            detail={order.coupon_code ? `Cupom ${order.coupon_code}` : "Antes de descontos"}
+          />
+          <MetricCard label="Desconto" value={formatCurrency(order.discount)} detail="Aplicado no pedido" />
           <MetricCard label="Total" value={formatCurrency(order.total)} detail="Valor do pedido" />
           <MetricCard label="Pago" value={formatCurrency(paidAmount)} detail="Pagamentos confirmados" />
           <MetricCard label="Pendente" value={formatCurrency(pendingAmount)} detail="Saldo aberto" />
-          <MetricCard label="Itens" value={`${order.order_items?.length ?? 0}`} detail="Unidades no pedido" />
         </div>
 
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">

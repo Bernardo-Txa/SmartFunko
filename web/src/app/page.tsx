@@ -68,7 +68,7 @@ const trustItems = [
   {
     icon: MessageCircle,
     label: "Atendimento próximo",
-    text: "A compra é finalizada com contexto pelo WhatsApp.",
+    text: "WhatsApp fica como apoio para dúvidas e combinações especiais.",
   },
   {
     icon: PackageCheck,
@@ -172,13 +172,13 @@ export default async function Home() {
       <CommercialSection
         eyebrow="Fluxo assistido"
         title="Como funciona"
-        description="O site organiza desejo e intenção de compra; o fechamento continua pelo atendimento."
+        description="O site organiza desejo e intenção de compra; a Smart aprova e libera pagamento por link."
       >
         <div id="como-funciona" className="grid gap-4 md:grid-cols-4">
           {[
             ["Escolha o produto", "Use catálogo, vitrines e favoritos para montar sua lista."],
-            ["Chame no WhatsApp", "A mensagem já leva produto, SKU e link para o atendimento."],
-            ["A Smart organiza", "Reserva, encomenda ou pré-venda entram no fluxo operacional."],
+            ["Envie o carrinho", "O pedido entra em análise para confirmar disponibilidade e valores."],
+            ["Pague pelo link", "Após aprovação, o checkout seguro libera Pix ou cartão."],
             ["Acompanhe o status", "Pedidos vinculados aparecem na conta do cliente."],
           ].map(([label, text], index) => (
             <div

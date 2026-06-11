@@ -26,6 +26,8 @@ Configure as variaveis em Production e Preview conforme o ambiente. Depois de al
 
 ## Webhook InfinitePay
 
+Antes de usar em producao/preview, confirme que a URL base abre no navegador. Se a Vercel responder `DEPLOYMENT_NOT_FOUND`, o dominio nao esta apontando para um deployment valido e nenhum redirect/webhook funcionara nesse host.
+
 Configure na InfinitePay:
 
 ```txt
@@ -46,6 +48,12 @@ O redirect_url enviado no link aponta para:
 ```
 
 O redirect nao confirma pagamento por si so. Quando a InfinitePay devolve `slug`, `transaction_nsu` ou `receipt_url`, a pagina publica consulta `payment_check` no servidor e baixa o pedido se a InfinitePay responder `paid: true`. O webhook continua sendo o caminho principal.
+
+Os links gerados pelo painel admin usam o dominio real da requisicao admin como base. Ainda assim, mantenha `NEXT_PUBLIC_SITE_URL` apontando para o dominio valido do ambiente, por exemplo:
+
+```txt
+NEXT_PUBLIC_SITE_URL=https://dominio-valido.vercel.app
+```
 
 ## Valores recomendados SmartFunko
 

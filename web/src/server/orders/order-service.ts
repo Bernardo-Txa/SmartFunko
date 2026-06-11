@@ -142,10 +142,12 @@ type PublicOrderItem = {
 };
 
 type PublicOrderRow = {
+  coupon_code: string | null;
   created_at: string;
   customers?: {
     name?: string;
   } | null;
+  discount: number;
   seller: string | null;
   notes: string | null;
   order_items?: PublicOrderItem[];
@@ -164,7 +166,7 @@ type PublicOrderRow = {
 
 function orderSelect() {
   return `
-    id,order_number,customer_id,channel,seller,status,subtotal,discount,shipping_amount,total,
+    id,order_number,customer_id,channel,seller,status,subtotal,discount,shipping_amount,total,coupon_id,coupon_code,
     public_token,public_token_created_at,public_tracking_enabled,notes,internal_notes,created_by,created_at,updated_at,
     review_status,review_notes,rejected_reason,reviewed_by,reviewed_at,
     payment_provider,payment_link_url,payment_provider_reference,payment_link_created_at,payment_link_expires_at,
@@ -766,6 +768,8 @@ export class OrderService {
       reviewStatus: order.review_status,
       seller: order.seller,
       status: order.status,
+      couponCode: order.coupon_code,
+      discount: Number(order.discount ?? 0),
       total: order.total,
       updatedAt: order.updated_at,
     };

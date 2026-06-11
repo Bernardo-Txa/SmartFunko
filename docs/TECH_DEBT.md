@@ -88,7 +88,8 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 - Evoluir Checkout Assistido 1.0 com expiracao de links, observabilidade, conciliacao periodica e testes automatizados de webhook/payment_check.
 - Evoluir `/admin/demanda` com notificacoes manuais/automaticas para interessados e criacao controlada de encomendas.
 - Automatizar Pix/cartao apenas pelo fluxo aprovado de gateway e webhook; manter redirect como informativo, nao confirmatorio.
-- Criar checkout proprio apenas depois do fluxo WhatsApp estabilizar.
+- Criar checkout proprio interno apenas depois do fluxo de carrinho assistido, cupons e pagamento por link estabilizar.
+- Tornar o incremento de uso de cupom totalmente transacional via RPC se houver alto volume ou concorrencia real.
 - Preparar Flutter mobile depois da V1 web/admin.
 - Manter Gamificacao / Clube Smart Funkos no radar como modulo futuro.
 - Evoluir Rifas DEV 1.1 apenas depois de resolver compliance, pagamento automatico, notificacoes, sorteio auditavel e reembolso.

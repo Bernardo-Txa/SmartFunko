@@ -6,7 +6,7 @@ Projeto da Smart Funkos.
 
 Construir uma operacao assistida por tecnologia para vendas de colecionaveis.
 
-Na V1, as vendas continuam pelo WhatsApp, mas o sistema passa a controlar:
+Na V1, as vendas sao assistidas pelo site/admin, com WhatsApp preservado como suporte, e o sistema controla:
 
 - catalogo;
 - clientes;
@@ -32,7 +32,7 @@ Na V1, as vendas continuam pelo WhatsApp, mas o sistema passa a controlar:
 
 ## Direcao da V1
 
-Cliente escolhe no site, compra pelo WhatsApp, acompanha pela conta e a Smart Funkos controla tudo pelo admin.
+Cliente escolhe no site, envia o carrinho para analise, paga por link apos aprovacao e acompanha pela conta. A Smart Funkos controla tudo pelo admin.
 
 ## Camada premium de loja
 
@@ -46,10 +46,10 @@ A camada publica agora organiza descoberta e intencao de compra por cima do core
 - pagina de produto com galeria, badges comerciais, CTA "Tenho interesse", favoritos, carrinho assistido e relacionados;
 - cards de produto com favoritos e carrinho em acoes compactas, sem transformar o card em checkout;
 - favoritos reais em cards, produto e `/conta/wishlist`, usando `/api/v1/me/wishlist`;
-- carrinho assistido em `/carrinho`, persistido no navegador, com envio de pedido para análise e alternativa por WhatsApp;
+- carrinho assistido em `/carrinho`, persistido no navegador, com envio de pedido para análise, cupom de desconto e WhatsApp como atendimento;
 - admin de demanda em `/admin/demanda`, restrito a owner, com ranking real de wishlist.
 
-O carrinho assistido nao e checkout automatico: nao reserva estoque automaticamente, nao calcula frete e nao cobra pagamento antes da aprovacao humana. Quando o cliente envia o carrinho, o sistema cria um pedido `review_status = under_review`; o admin aprova/recusa e, se aprovar, gera o link InfinitePay.
+O carrinho assistido nao reserva estoque automaticamente, nao calcula frete e nao cobra pagamento antes da aprovacao humana. Quando o cliente envia o carrinho, o sistema cria um pedido `review_status = under_review`; o admin aprova/recusa e, se aprovar, gera o link InfinitePay. Cupons criados em `/admin/cupons` podem ser aplicados antes do envio.
 
 ## Checkout Assistido 1.0 — InfinitePay
 
@@ -68,7 +68,7 @@ Limitacoes desta sprint:
 - nao ha checkout interno com cartao;
 - nao ha captura de cartao pela SmartFunko;
 - nao ha frete automatico, nota fiscal, split, antifraude avancado ou parcelamento customizado;
-- pagamentos manuais, WhatsApp, caixa e financeiro existentes continuam preservados.
+- pagamentos manuais, atendimento por WhatsApp, caixa e financeiro existentes continuam preservados.
 
 ## Tema claro/escuro
 
@@ -104,7 +104,7 @@ O pagamento manual agora passa pela RPC Postgres `record_manual_payment`, chamad
 
 As telas principais sao `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`. O relatorio mostra recebido por periodo, a receber, reembolsos, taxas, liquido, pedidos por situacao financeira, vendas por metodo e caixa por categoria.
 
-Financeiro 2.0 nao implementa Pix automatico, gateway, webhook, checkout proprio, cartao, frete automatico ou nota fiscal.
+Financeiro 2.0 preserva baixa manual e tambem recebe pagamentos confirmados pelo Checkout Assistido InfinitePay. Frete automatico, nota fiscal e checkout proprio interno seguem fora do escopo.
 
 ## Lotes / Importacao 1.0
 

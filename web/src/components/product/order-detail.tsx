@@ -8,6 +8,8 @@ export type OrderDetailData = {
   customerName: string;
   status: string;
   total: number;
+  couponCode?: string | null;
+  discount?: number | null;
   paidAmount: number;
   pendingAmount?: number;
   notes?: string | null;
@@ -47,6 +49,10 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
   const pendingAmount = order.pendingAmount ?? order.total - order.paidAmount;
   const reviewMeta = getOrderReviewStatusMeta(order.reviewStatus);
   const canPayNow = order.reviewStatus === "awaiting_payment" && order.paymentLinkUrl && pendingAmount > 0;
+  const shouldShowReviewBadge = Boolean(
+    order.reviewStatus &&
+      !(order.status === "paid" && order.reviewStatus === "paid"),
+  );
   const shouldShowReviewPanel =
     order.reviewStatus === "under_review" ||
     order.reviewStatus === "rejected" ||
@@ -64,7 +70,7 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
               {order.orderNumber}
             </h1>
             <OrderStatusBadge status={order.status} />
-            {order.reviewStatus ? (
+            {shouldShowReviewBadge ? (
               <span className={getStatusBadgeClassName(reviewMeta)}>{reviewMeta.label}</span>
             ) : null}
           </div>
@@ -78,6 +84,11 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
           ) : null}
         </div>
         <div className="grid gap-2 text-sm md:text-right">
+          {order.discount && order.discount > 0 ? (
+            <span>
+              Desconto{order.couponCode ? ` (${order.couponCode})` : ""}: -{formatCurrency(order.discount)}
+            </span>
+          ) : null}
           <span>Total: {formatCurrency(order.total)}</span>
           <span>Pago: {formatCurrency(order.paidAmount)}</span>
           <strong className="text-[var(--foreground)]">

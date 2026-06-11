@@ -3,7 +3,7 @@
 ## Fluxo principal
 
 1. Cliente escolhe um produto no catalogo.
-2. Cliente pode favoritar produtos, montar carrinho assistido ou chamar a Smart Funkos pelo WhatsApp.
+2. Cliente pode favoritar produtos, montar carrinho assistido, aplicar cupom e chamar a Smart Funkos pelo WhatsApp para suporte.
 3. Admin entra no painel e cadastra ou seleciona o cliente.
 4. Admin cria um pedido manual.
 5. Admin seleciona o vendedor responsavel pela venda: Daniel ou Allana.
@@ -264,7 +264,7 @@ Limites da DEV 1.1:
 - `/pronta-entrega`, `/pre-venda`, `/specials`, `/novidades` e `/encomendas`: redirects para `/catalogo` para preservar links antigos sem criar catalogos concorrentes.
 - `/fornecedores`: lista collabs/fornecedores ativos.
 - `/fornecedores/[slug]`: catalogo separado de uma collab/fornecedor, com filtro implicito pelo slug.
-- `/carrinho`: carrinho local para intencao de compra assistida, com envio de pedido para analise e alternativa pelo WhatsApp.
+- `/carrinho`: carrinho local para intencao de compra assistida, com cupom de desconto, envio de pedido para analise e WhatsApp como atendimento.
 - `/conta/wishlist`: favoritos do cliente autenticado.
 - `/rifas` e `/rifas/[slug]`: rifas experimentais quando a flag esta ligada.
 - `/conta/rifas` e `/conta/rifas/[id]`: acompanhamento de rifas do cliente quando a flag esta ligada.
@@ -297,6 +297,8 @@ Limites da DEV 1.1:
 - `/conta/pedidos/[orderNumber]` mostra dados seguros do pedido do proprio cliente, incluindo itens, status, pagamentos e observacoes publicas.
 - `/api/v1/me/orders` e `/api/v1/me/orders/[orderNumber]` retornam pedidos sanitizados, sem `internal_notes`, custos, margem, logs ou token publico.
 - `POST /api/v1/me/orders` cria pedido em analise para o proprio cliente autenticado; precos e variantes sao revalidados no servidor.
+- `POST /api/v1/me/coupons/validate` valida cupom do carrinho com precos recalculados no servidor.
+- `/admin/cupons` permite criar, ativar e desativar cupons; cupons aplicados gravam `orders.coupon_id`, `orders.coupon_code` e `orders.discount`.
 - Cliente nao consegue pagar antes da aprovacao admin, porque o link InfinitePay so e gerado em `awaiting_payment`.
 - A consulta `payment_check` e server-side; se `paid = true`, gera pagamento e caixa pelo mesmo fluxo financeiro do webhook.
 - `payment_provider_events` guarda eventos de gateway para auditoria e idempotencia; segredos da InfinitePay nunca sao enviados ao client.

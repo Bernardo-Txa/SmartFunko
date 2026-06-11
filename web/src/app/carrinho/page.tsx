@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/server/auth/get-current-user";
 export const metadata: Metadata = {
   title: "Carrinho assistido",
   description:
-    "Monte uma intenção de compra e finalize pelo WhatsApp com a Smart Funkos.",
+    "Monte uma intenção de compra e receba o link de pagamento após aprovação da Smart Funkos.",
   alternates: {
     canonical: "/carrinho",
   },
@@ -29,7 +29,7 @@ export default async function CartPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-black text-[var(--foreground)]">Carrinho assistido</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-          Monte sua intenção de compra no site e finalize pelo WhatsApp. Ainda não é checkout automático.
+          Monte sua intenção de compra no site. A Smart Funkos aprova disponibilidade e libera o pagamento por link.
         </p>
       </div>
       <AssistedCart customerContact={customerContact} customerName={customerName} />

@@ -6,7 +6,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm text-[var(--muted)] sm:px-6 md:grid-cols-3 lg:px-8">
         <div>
           <strong className="block text-[var(--foreground)]">Smart Funkos</strong>
-          <span>Vendas assistidas pelo WhatsApp com historico de pedidos.</span>
+          <span>Vendas assistidas com carrinho, link de pagamento e historico de pedidos.</span>
         </div>
         <div className="flex flex-wrap gap-3 md:justify-center">
           <Link href="/politica-de-envio" className="hover:text-[var(--foreground)]">

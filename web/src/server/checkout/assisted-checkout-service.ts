@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { env, isAssistedCheckoutEnabled } from "@/lib/env";
 import { AuditLogService } from "@/server/audit/audit-log-service";
+import { couponCodeSchema, DiscountCouponService } from "@/server/coupons/discount-coupon-service";
 import { badRequest, conflict, forbidden, notFound } from "@/server/http/errors";
 import { calculateOrderTotals } from "@/server/orders/order-calculator";
 import {
@@ -14,6 +15,7 @@ import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/su
 import { throwQueryError } from "@/server/supabase/query-error";
 
 export const createCustomerOrderRequestSchema = z.object({
+  couponCode: couponCodeSchema.optional().nullable(),
   items: z.array(z.object({
     quantity: z.number().int().positive(),
     variantId: z.string().uuid(),
@@ -174,8 +176,17 @@ export class AssistedCheckoutService {
         unitPrice,
       };
     });
-    const totals = calculateOrderTotals({
+    const subtotalTotals = calculateOrderTotals({
       discount: 0,
+      items: items.map((item) => ({ quantity: item.quantity, unitPrice: item.unitPrice })),
+      shippingAmount: 0,
+    });
+    const couponService = new DiscountCouponService(this.supabase, actorProfileId ?? this.actorId);
+    const coupon = input.couponCode
+      ? await couponService.validateCoupon(input.couponCode, subtotalTotals.subtotal)
+      : null;
+    const totals = calculateOrderTotals({
+      discount: coupon?.discount ?? 0,
       items: items.map((item) => ({ quantity: item.quantity, unitPrice: item.unitPrice })),
       shippingAmount: 0,
     });
@@ -185,7 +196,10 @@ export class AssistedCheckoutService {
       .insert({
         channel: "website",
         created_by: actorProfileId ?? this.actorId ?? null,
+        coupon_code: coupon?.code ?? null,
+        coupon_id: coupon?.couponId ?? null,
         customer_id: customerId,
+        discount: totals.discount,
         notes: input.notes ?? null,
         order_number: createOrderNumber(),
         review_status: "under_review",
@@ -216,7 +230,19 @@ export class AssistedCheckoutService {
       throwQueryError(itemsError, "Falha ao criar itens do pedido em analise");
     }
 
-    await this.addOrderHistory(order.id, null, "under_review", "Pedido enviado pelo cliente para analise", actorProfileId);
+    if (coupon) {
+      await couponService.incrementUsage(coupon.couponId);
+    }
+
+    await this.addOrderHistory(
+      order.id,
+      null,
+      "under_review",
+      coupon
+        ? `Pedido enviado pelo cliente para analise com cupom ${coupon.code}`
+        : "Pedido enviado pelo cliente para analise",
+      actorProfileId,
+    );
     await this.audit.createAdminActionLog({
       action: "checkout.request_created",
       adminId: actorProfileId ?? this.actorId,
@@ -233,14 +259,14 @@ export class AssistedCheckoutService {
     };
   }
 
-  async approveOrderForPayment(orderId: string, actorProfileId: string) {
+  async approveOrderForPayment(orderId: string, actorProfileId: string, baseUrl?: string) {
     const order = await this.getAssistedOrder(orderId);
 
     if (order.review_status !== "under_review" && order.review_status !== "awaiting_payment") {
       throw conflict("Somente pedido em analise ou aguardando pagamento pode gerar link");
     }
 
-    return this.generatePaymentLinkForOrder(orderId, actorProfileId, "Pedido aprovado e link InfinitePay gerado");
+    return this.generatePaymentLinkForOrder(orderId, actorProfileId, "Pedido aprovado e link InfinitePay gerado", baseUrl);
   }
 
   async rejectOrder(orderId: string, reason: string, actorProfileId: string) {
@@ -279,7 +305,12 @@ export class AssistedCheckoutService {
     return data;
   }
 
-  async generatePaymentLinkForOrder(orderId: string, actorProfileId: string, historyNote = "Link InfinitePay regerado") {
+  async generatePaymentLinkForOrder(
+    orderId: string,
+    actorProfileId: string,
+    historyNote = "Link InfinitePay regerado",
+    baseUrl = env.siteUrl,
+  ) {
     const order = await this.getAssistedOrder(orderId);
 
     if (order.status === "paid" || order.review_status === "paid") {
@@ -301,8 +332,8 @@ export class AssistedCheckoutService {
         unitAmountCents: Math.round(Number(item.unit_price) * 100),
       })),
       orderNumber: order.order_number,
-      redirectUrl: `${env.siteUrl}/pedido/${order.order_number}?token=${order.public_token}`,
-      webhookUrl: `${env.siteUrl}/api/v1/webhooks/infinitepay`,
+      redirectUrl: `${baseUrl}/pedido/${order.order_number}?token=${order.public_token}`,
+      webhookUrl: `${baseUrl}/api/v1/webhooks/infinitepay`,
     });
 
     const now = new Date().toISOString();

@@ -72,7 +72,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   })) as unknown as AdminOrder[];
 
   return (
-    <AdminShell title="Pedidos" description="Pedidos manuais criados a partir do WhatsApp.">
+    <AdminShell title="Pedidos" description="Pedidos manuais e pedidos enviados pelo carrinho assistido.">
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_150px_170px_150px_150px_auto] md:items-end">
           <label className="block">

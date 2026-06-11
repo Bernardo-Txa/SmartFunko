@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Boxes,
+  BadgePercent,
   ChartNoAxesColumn,
   CreditCard,
   Handshake,
@@ -22,6 +23,7 @@ function getNavItems() {
     { href: "/admin/fornecedores", label: "Fornecedores", icon: Handshake },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
+    { href: "/admin/cupons", label: "Cupons", icon: BadgePercent },
     ...(isRafflesEnabled() ? [{ href: "/admin/rifas", label: "Rifas", icon: Ticket }] : []),
     { href: "/admin/lotes", label: "Lotes", icon: PackageSearch },
     { href: "/admin/estoque", label: "Estoque", icon: Boxes },
