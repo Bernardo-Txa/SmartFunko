@@ -60,6 +60,17 @@ flutter run -d chrome \
   --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
 ```
 
+Web no Brave/Chromium:
+
+```bash
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 \
+  --dart-define=API_BASE_URL=https://smart-funko.vercel.app \
+  --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
+  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
+```
+
+Depois abra `http://127.0.0.1:8080` no Brave ou Chrome.
+
 Android:
 
 ```bash
@@ -86,6 +97,27 @@ Sem as três variáveis, o app abre uma tela de erro clara em desenvolvimento.
 flutter analyze
 flutter test
 ```
+
+## Mobile MVP Cliente 0.2
+
+O app consome endpoints públicos do backend web em `API_BASE_URL`:
+
+- `GET /api/v1/public/products`
+- `GET /api/v1/public/products/[slug]`
+
+Fluxos para testar:
+
+- Home: abre com hero Smart Funkos, CTAs, destaques reais ou estado de erro.
+- Catálogo: busca produtos reais, permite busca por texto, pull to refresh, card premium e adicionar ao carrinho.
+- Produto: abre por slug, mostra galeria, preço, badges, descrição, adicionar ao carrinho e compartilhar `${API_BASE_URL}/produto/[slug]`.
+- Carrinho: lista itens locais, altera quantidade, remove, limpa e calcula total estimado.
+
+Limitações assumidas:
+
+- Criação real de pedido entra na sprint `0.3`.
+- Rifa real entra na sprint `0.4`.
+- Clube real entra na sprint `0.5`.
+- O carrinho `0.2` é local em memória e não persiste ao reiniciar o app.
 
 ## Estrutura
 

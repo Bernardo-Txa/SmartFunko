@@ -1,112 +1,175 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/utils/currency_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
-import '../../shared/widgets/smart_card.dart';
+import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/loading_state.dart';
+import '../cart/data/cart_controller.dart';
+import 'data/catalog_repository.dart';
+import 'data/product_models.dart';
+import 'widgets/product_card.dart';
 
-class CatalogPage extends StatelessWidget {
+class CatalogPage extends ConsumerStatefulWidget {
   const CatalogPage({super.key});
 
-  static const _products = [
-    _ProductDemo('Funko Pop Spider-Man', 'Marvel', 129.90),
-    _ProductDemo('Funko Pop Darth Vader', 'Star Wars', 149.90),
-    _ProductDemo('Funko Pop Luffy Gear 5', 'Anime', 189.90),
-  ];
+  @override
+  ConsumerState<CatalogPage> createState() => _CatalogPageState();
+}
+
+class _CatalogPageState extends ConsumerState<CatalogPage> {
+  final _searchController = TextEditingController();
+  String _search = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final request = CatalogRequest(search: _search, sort: 'specials_first');
+    final products = ref.watch(catalogProductsProvider(request));
 
     return AppScaffold(
       title: 'Catálogo',
+      onRefresh: () async => ref.invalidate(catalogProductsProvider(request)),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
-            enabled: false,
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: 'Buscar por personagem, franquia ou SKU',
               prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: Icon(
-                Icons.tune_rounded,
-                color: theme.colorScheme.primary,
-              ),
+              suffixIcon: _search.isEmpty
+                  ? const Icon(Icons.tune_rounded)
+                  : IconButton(
+                      tooltip: 'Limpar busca',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _search = '');
+                      },
+                    ),
             ),
+            onSubmitted: (value) => setState(() => _search = value.trim()),
+            onChanged: (value) {
+              if (value.isEmpty && _search.isNotEmpty) {
+                setState(() => _search = '');
+              }
+            },
           ),
           const SizedBox(height: 18),
-          Text(
-            'Destaques placeholder',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w900,
+          products.when(
+            data: (items) => _CatalogContent(
+              products: items,
+              search: _search,
+              onAddToCart: _addToCart,
+            ),
+            loading: () =>
+                const LoadingState(message: 'Carregando catálogo...'),
+            error: (error, stackTrace) => ErrorState(
+              message: 'Não foi possível carregar o catálogo.',
+              onRetry: () => ref.invalidate(catalogProductsProvider(request)),
             ),
           ),
-          const SizedBox(height: 12),
-          for (final product in _products)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SmartCard(
-                onTap: () => context.go('/produto/demo'),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 76,
-                      width: 76,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondary.withValues(
-                          alpha: 0.14,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.toys_rounded,
-                        color: theme.colorScheme.secondary,
-                        size: 34,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product.name,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            product.franchise,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            CurrencyFormatter.brl(product.price),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded),
-                  ],
-                ),
-              ),
-            ),
         ],
+      ),
+    );
+  }
+
+  void _addToCart(ProductSummary product) {
+    ref.read(cartControllerProvider.notifier).addProduct(product);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${product.name} adicionado ao carrinho.'),
+        action: SnackBarAction(
+          label: 'Ver',
+          onPressed: () => context.go('/carrinho'),
+        ),
       ),
     );
   }
 }
 
-class _ProductDemo {
-  const _ProductDemo(this.name, this.franchise, this.price);
+class _CatalogContent extends StatelessWidget {
+  const _CatalogContent({
+    required this.products,
+    required this.search,
+    required this.onAddToCart,
+  });
 
-  final String name;
-  final String franchise;
-  final double price;
+  final List<ProductSummary> products;
+  final String search;
+  final ValueChanged<ProductSummary> onAddToCart;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (products.isEmpty) {
+      return EmptyState(
+        icon: Icons.manage_search_rounded,
+        title: search.isEmpty ? 'Nenhum produto disponível' : 'Nada encontrado',
+        message: search.isEmpty
+            ? 'O catálogo público não retornou produtos agora.'
+            : 'Tente buscar por outro personagem, franquia ou categoria.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          search.isEmpty
+              ? 'Produtos Smart Funkos'
+              : 'Resultados para "$search"',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final columns = width >= 900
+                ? 4
+                : width >= 640
+                ? 3
+                : width >= 360
+                ? 2
+                : 1;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: products.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: columns == 1
+                    ? 0.62
+                    : columns == 2
+                    ? 0.36
+                    : 0.46,
+              ),
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return ProductCard(
+                  product: product,
+                  onDetails: () => context.go('/produto/${product.slug}'),
+                  onAddToCart: () => onAddToCart(product),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
 }

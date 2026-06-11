@@ -3,6 +3,7 @@ import {
   type CatalogProductFilter,
   type CatalogProductSort,
 } from "@/lib/catalog";
+import { publicCorsPreflight, withPublicCors } from "@/server/http/cors";
 
 const filters: CatalogProductFilter[] = ["all", "new", "ready", "order", "preorder", "specials"];
 const sorts: CatalogProductSort[] = [
@@ -42,9 +43,13 @@ export async function GET(request: Request) {
       meta: products.meta,
     },
     {
-      headers: {
+      headers: withPublicCors({
         "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-      },
+      }),
     },
   );
+}
+
+export function OPTIONS() {
+  return publicCorsPreflight();
 }

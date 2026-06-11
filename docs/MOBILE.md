@@ -21,13 +21,29 @@ Pagamentos, rifas produtivas, pedidos e operações sensíveis continuam central
 
 - Login Supabase Auth.
 - Home cliente.
-- Catálogo placeholder.
-- Produto placeholder.
-- Carrinho placeholder.
+- Home com identidade Smart Funkos, CTAs e destaques do catálogo público.
+- Catálogo real via API pública Next.js.
+- Produto real por slug com galeria, preço, badges, descrição e compartilhamento.
+- Carrinho local em memória com adicionar, remover, quantidade, limpar e total estimado.
 - Pedidos placeholder.
 - Rifas placeholder.
 - Clube placeholder.
 - Perfil com usuário Supabase e logout.
+
+## Integração Mobile 0.2
+
+Endpoints públicos usados:
+
+- `GET /api/v1/public/products?q=&category=&filter=&page=&pageSize=&sort=`
+- `GET /api/v1/public/products/[slug]`
+
+Contrato consumido pelo app:
+
+- `ProductSummary`: `id`, `slug`, `name`, `price`, `imageUrl`, `status`, `category`, `special`, `supplierName`, `isAvailable`.
+- `ProductDetail`: `id`, `slug`, `name`, `description`, `price`, `images`, `status`, `category`, `subcategory`, `special`, `supplierName`, `badges`.
+- `CartItem`: produto, preço, imagem, quantidade e subtotal local.
+
+O app aceita campos nulos e variações simples de shape (`data`, `products`, `items`) para manter a UI resiliente. O compartilhamento de produto usa `${API_BASE_URL}/produto/[slug]`.
 
 ## Fora do MVP
 
@@ -54,9 +70,10 @@ Login:
 
 Pedido:
 
-1. Cliente acessa `/pedidos`.
-2. Visitante vê CTA de login.
-3. Usuário logado vê placeholder até integração com APIs reais.
+1. Cliente adiciona produtos ao carrinho local.
+2. Cliente ajusta quantidades e confere total estimado.
+3. Botão `Enviar pedido` mostra aviso de que a criação real entra na próxima etapa.
+4. Histórico em `/pedidos` permanece placeholder até integração com APIs reais.
 
 Rifa:
 
@@ -67,8 +84,8 @@ Rifa:
 ## Roadmap
 
 - `0.1.1`: base compilável, auth, router, tema e placeholders.
-- `0.2`: catálogo/produto reais via APIs Next.
-- `0.3`: carrinho e pedidos reais.
+- `0.2`: catálogo/produto reais via APIs Next e carrinho local.
+- `0.3`: criação real de pedido a partir do carrinho.
 - `0.4`: rifas cliente.
 - `0.5`: Clube e perfil conectados a dados reais.
 - Release prep: ícones, splash, screenshots, políticas e lojas.

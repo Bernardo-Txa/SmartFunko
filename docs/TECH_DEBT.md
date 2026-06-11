@@ -121,10 +121,11 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 
 ## Mobile futuro
 
-Mobile MVP Cliente 0.1.1 iniciou a base Flutter compilavel, com Supabase Auth, ApiClient, router, tema e telas placeholder. Permanecem pendentes:
+Mobile MVP Cliente 0.2 conectou home, catalogo, produto e carrinho local aos endpoints publicos de produto do backend web. Permanecem pendentes:
 
-- conectar catalogo, produto, pedidos, rifas, clube e perfil a APIs reais;
-- persistir carrinho local e definir contrato com checkout assistido;
+- criar pedido real a partir do carrinho na sprint 0.3;
+- persistir carrinho local, se a experiencia exigir retomada apos fechar o app;
+- conectar pedidos, rifas, clube e perfil a APIs reais;
 - revisar fluxo de reset/cadastro de senha no Supabase Auth;
 - adicionar testes de widget para rotas autenticadas com mocks;
 - configurar Android SDK, Chrome/Chromium e Xcode nos ambientes de build;

@@ -11,6 +11,7 @@ class AppScaffold extends StatelessWidget {
     this.showBackButton = false,
     this.showBottomNavigation = true,
     this.showCartAction = true,
+    this.onRefresh,
     this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 24),
     super.key,
   });
@@ -21,6 +22,7 @@ class AppScaffold extends StatelessWidget {
   final bool showBackButton;
   final bool showBottomNavigation;
   final bool showCartAction;
+  final Future<void> Function()? onRefresh;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -39,13 +41,20 @@ class AppScaffold extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return SingleChildScrollView(
+            final scrollView = SingleChildScrollView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const AlwaysScrollableScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(padding: padding, child: body),
               ),
             );
+
+            if (onRefresh == null) {
+              return scrollView;
+            }
+
+            return RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
           },
         ),
       ),

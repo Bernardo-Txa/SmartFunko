@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../features/cart/data/cart_controller.dart';
 
 class SmartAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const SmartAppBar({
@@ -24,6 +25,9 @@ class SmartAppBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
+    final cartQuantity = ref.watch(
+      cartControllerProvider.select((cart) => cart.totalQuantity),
+    );
 
     return AppBar(
       leading: showBackButton
@@ -43,7 +47,12 @@ class SmartAppBar extends ConsumerWidget implements PreferredSizeWidget {
       actions: [
         if (showCartAction)
           IconButton(
-            icon: const Icon(Icons.shopping_bag_outlined),
+            icon: cartQuantity > 0
+                ? Badge.count(
+                    count: cartQuantity,
+                    child: const Icon(Icons.shopping_bag_outlined),
+                  )
+                : const Icon(Icons.shopping_bag_outlined),
             tooltip: 'Carrinho',
             onPressed: () => context.go('/carrinho'),
           ),
