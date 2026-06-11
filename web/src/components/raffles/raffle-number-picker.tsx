@@ -101,7 +101,7 @@ export function RaffleNumberPicker({
       <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:flex-row md:items-end md:justify-between">
         <label className="block md:w-72">
           <span className="text-sm font-semibold text-[var(--foreground)]">Buscar numero</span>
-          <span className="mt-2 flex h-10 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-3">
+          <span className="mt-2 flex h-11 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-3">
             <Search size={16} className="text-[var(--muted)]" aria-hidden="true" />
             <input
               value={query}
@@ -120,7 +120,7 @@ export function RaffleNumberPicker({
         </div>
       </div>
 
-      <div className="grid max-h-[36rem] grid-cols-5 gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
+      <div className="grid max-h-[36rem] grid-cols-4 gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 min-[390px]:grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12">
         {visibleNumbers.map((item) => {
           const isSelected = selected.includes(item.number);
           const isAvailable = item.status === "available";
@@ -132,7 +132,7 @@ export function RaffleNumberPicker({
               disabled={!isAvailable}
               onClick={() => toggleNumber(item)}
               className={clsx(
-                "h-10 rounded-md border text-xs font-black transition",
+                "min-h-11 rounded-md border text-xs font-black transition",
                 isSelected
                   ? "border-cyan-200 bg-cyan-300 text-slate-950"
                   : isAvailable
@@ -153,7 +153,7 @@ export function RaffleNumberPicker({
         </p>
       ) : null}
 
-      <div className="sticky bottom-4 rounded-lg border border-cyan-300/28 bg-[#020617]/95 p-4 shadow-[0_20px_54px_rgba(2,6,23,0.45)] backdrop-blur">
+      <div className="sticky bottom-2 rounded-lg border border-cyan-300/28 bg-[#020617]/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_20px_54px_rgba(2,6,23,0.45)] backdrop-blur sm:bottom-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-semibold text-[var(--foreground)]">
@@ -167,7 +167,7 @@ export function RaffleNumberPicker({
             type="button"
             disabled={selected.length === 0 || isSubmitting}
             onClick={reserveNumbers}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
           >
             {isSubmitting ? (
               <SmartButtonLoading message="Reservando..." />
@@ -186,7 +186,7 @@ export function RaffleNumberPicker({
                 key={number}
                 type="button"
                 onClick={() => setSelected((current) => current.filter((item) => item !== number))}
-                className="inline-flex h-7 items-center gap-1 rounded-md bg-cyan-300 px-2 text-xs font-black text-slate-950"
+                className="inline-flex min-h-9 items-center gap-1 rounded-md bg-cyan-300 px-2 text-xs font-black text-slate-950"
               >
                 {numbers.find((item) => item.number === number)?.label ?? number}
                 <X size={12} aria-hidden="true" />
@@ -206,7 +206,7 @@ export function RaffleNumberPicker({
                   href={result.paymentLinkUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
                 >
                   <ExternalLink size={16} aria-hidden="true" />
                   Pagar agora

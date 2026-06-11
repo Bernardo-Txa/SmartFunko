@@ -187,7 +187,7 @@ function WishlistCard({ item }: { item: WishlistProductListItem }) {
 
           <div className="mt-5 grid gap-2">
             <CartButton
-              className="h-10 w-full rounded-lg bg-[var(--green)] px-3 text-xs text-[#052e16] hover:brightness-110"
+              className="h-11 w-full rounded-lg bg-[var(--green)] px-3 text-xs text-[#052e16] hover:brightness-110"
               label="Comprar"
               product={cartProduct}
             />
@@ -244,7 +244,7 @@ export default async function AccountWishlistPage() {
             <Link
               href="/catalogo"
               prefetch={false}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-yellow-300/45 px-4 text-sm font-black text-yellow-100 hover:bg-yellow-300/12"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-yellow-300/45 px-4 text-sm font-black text-yellow-100 hover:bg-yellow-300/12"
             >
               Ver catálogo
             </Link>

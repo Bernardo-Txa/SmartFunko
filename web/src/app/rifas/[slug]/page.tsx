@@ -186,7 +186,7 @@ export default async function RaffleDetailPage({ params }: Props) {
               href={createRaffleWhatsAppUrl({ slug: raffle.slug, title: raffle.title })}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-200/30 bg-emerald-500/90 px-4 text-sm font-black text-[#042f1a] hover:bg-emerald-400"
+              className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-md border border-emerald-200/30 bg-emerald-500/90 px-4 text-sm font-black text-[#042f1a] hover:bg-emerald-400"
             >
               <MessageCircle size={16} aria-hidden="true" />
               Compartilhar rifa

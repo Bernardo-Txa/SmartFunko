@@ -90,7 +90,7 @@ export default async function AccountOrdersPage() {
                     </strong>
                     <Link
                       href={`/conta/pedidos/${order.order_number}`}
-                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                    className="inline-flex h-11 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
                     >
                       Abrir
                       <ArrowRight size={16} aria-hidden="true" />

@@ -121,7 +121,7 @@ export function CartNavButton({
       href="/carrinho"
       prefetch={false}
       className={clsx(
-        "relative inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border)] bg-[#020617]/42 px-3 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15",
+        "relative inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[#020617]/42 px-3 text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/15",
         className,
       )}
       aria-label={`Carrinho com ${count} item(ns)`}

@@ -1,5 +1,5 @@
 export const quickActionButtonBase =
-  "h-9 w-9 shrink-0 px-0 text-white/80 shadow-[0_6px_16px_rgba(2,6,23,0.22)] backdrop-blur-md hover:text-white focus-visible:ring-cyan-200/80 motion-safe:active:scale-95 motion-reduce:transform-none";
+  "h-11 w-11 shrink-0 px-0 text-white/80 shadow-[0_6px_16px_rgba(2,6,23,0.22)] backdrop-blur-md hover:text-white focus-visible:ring-cyan-200/80 motion-safe:active:scale-95 motion-reduce:transform-none";
 
 export const quickActionButtonIdle =
   "border-white/12 bg-slate-950/58 hover:border-white/22 hover:bg-slate-900/76";

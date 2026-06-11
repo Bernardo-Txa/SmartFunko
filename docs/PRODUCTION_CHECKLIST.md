@@ -67,7 +67,15 @@ https://seu-dominio.com/api/v1/webhooks/infinitepay
 - Conta mostra pedidos, wishlist, rifas e clube quando flags ligadas.
 - BI nao inclui pedido recusado, cancelado ou em analise na receita.
 
-## 7. Build
+## 7. Responsividade
+
+- Executar o roteiro em `docs/RESPONSIVE_QA.md`.
+- Validar 360px, 390px/430px, 768px, 1024px e desktop.
+- Validar tema claro e escuro nas rotas publicas, conta e admin.
+- Confirmar que tabelas criticas do admin e BI usam scroll horizontal controlado.
+- Confirmar que botoes principais e acoes de icone possuem area de toque confortavel.
+
+## 8. Build
 
 Na pasta `web`:
 

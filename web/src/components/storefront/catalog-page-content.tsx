@@ -127,7 +127,7 @@ export async function CatalogPageContent({
           })}
           prefetch={false}
           aria-disabled={productPage.meta.page <= 1}
-          className="inline-flex h-10 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
+          className="inline-flex h-11 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
         >
           Anterior
         </Link>
@@ -145,7 +145,7 @@ export async function CatalogPageContent({
           })}
           prefetch={false}
           aria-disabled={productPage.meta.page >= productPage.meta.totalPages}
-          className="inline-flex h-10 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
+          className="inline-flex h-11 items-center rounded-full border border-[var(--border)] bg-slate-950/40 px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-cyan-400/10 aria-disabled:pointer-events-none aria-disabled:opacity-50"
         >
           Próxima
         </Link>

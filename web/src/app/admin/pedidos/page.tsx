@@ -81,7 +81,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               name="q"
               defaultValue={search}
               placeholder="Pedido ou cliente"
-              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             />
           </label>
           <label className="block">
@@ -89,7 +89,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             <select
               name="reviewStatus"
               defaultValue={reviewStatus}
-              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
               <option value="">Todas</option>
               {orderReviewStatusOptions.map(({ label, value }) => (
@@ -104,7 +104,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             <select
               name="status"
               defaultValue={status}
-              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
               <option value="">Todos</option>
               {orderStatusOptions.map(({ label, value }) => (
@@ -119,7 +119,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             <select
               name="channel"
               defaultValue={channel}
-              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
               <option value="">Todos</option>
               {Object.entries(channels).map(([value, label]) => (
@@ -134,7 +134,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             <select
               name="seller"
               defaultValue={seller}
-              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
               <option value="">Todos</option>
               {orderSellerOptions.map((option) => (
@@ -144,19 +144,19 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               ))}
             </select>
           </label>
-          <button className="h-10 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
+          <button className="h-11 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
             Filtrar
           </button>
         </form>
         <Link
           href="/admin/pedidos/novo"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
         >
           <Plus size={16} />
           Novo pedido
         </Link>
       </div>
-      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>

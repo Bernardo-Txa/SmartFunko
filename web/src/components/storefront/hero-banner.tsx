@@ -14,8 +14,8 @@ export function HeroBanner({ products }: { products: Product[] }) {
       <div className="smart-storefront-hero-bg absolute inset-0" />
       <div className="smart-storefront-hero-grid absolute inset-0" />
 
-      <div className="relative mx-auto grid min-h-[calc(100svh-5rem)] max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
-        <div className="flex flex-col justify-center pb-10">
+      <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:min-h-[calc(100svh-5rem)] lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
+        <div className="flex flex-col justify-center lg:pb-10">
           <Image
             src="/brand/SmartFunko.png"
             alt="Smart Funkos"
@@ -27,7 +27,7 @@ export function HeroBanner({ products }: { products: Product[] }) {
           <p className="text-sm font-black uppercase tracking-[0.22em] text-[var(--yellow)]">
             Loja e comunidade de colecionaveis
           </p>
-          <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-white sm:text-6xl">
+          <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">
             Sua colecao comeca aqui.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
@@ -55,9 +55,9 @@ export function HeroBanner({ products }: { products: Product[] }) {
           </div>
         </div>
 
-        <div className="relative min-h-[430px] pb-12 lg:pb-0">
+        <div className="relative min-h-[320px] pb-8 sm:min-h-[430px] sm:pb-12 lg:pb-0">
           {heroProduct ? (
-            <div className="absolute right-0 top-5 w-[68%] max-w-[430px] rotate-[2deg] rounded-2xl border border-yellow-300/42 bg-[#030816]/72 p-4 shadow-[0_34px_70px_rgba(2,6,23,0.56)] backdrop-blur">
+            <div className="absolute right-0 top-0 w-[86%] max-w-[430px] rotate-[2deg] rounded-2xl border border-yellow-300/42 bg-[#030816]/72 p-4 shadow-[0_34px_70px_rgba(2,6,23,0.56)] backdrop-blur sm:top-5 sm:w-[68%]">
               <ProductMedia
                 product={heroProduct}
                 priority
@@ -73,7 +73,7 @@ export function HeroBanner({ products }: { products: Product[] }) {
               </div>
             </div>
           ) : (
-            <div className="absolute right-0 top-8 flex h-72 w-64 rotate-[2deg] flex-col justify-between rounded-2xl border border-yellow-300/42 bg-[#030816]/72 p-5 shadow-[0_34px_70px_rgba(2,6,23,0.56)]">
+            <div className="absolute right-0 top-4 flex h-64 w-52 rotate-[2deg] flex-col justify-between rounded-2xl border border-yellow-300/42 bg-[#030816]/72 p-5 shadow-[0_34px_70px_rgba(2,6,23,0.56)] sm:top-8 sm:h-72 sm:w-64">
               <span className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-3xl font-black leading-none text-slate-950">
                 POP
               </span>
@@ -81,7 +81,7 @@ export function HeroBanner({ products }: { products: Product[] }) {
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">
                   Smart selecao
                 </p>
-                <strong className="mt-2 block text-6xl font-black leading-none text-white">
+                <strong className="mt-2 block text-5xl font-black leading-none text-white sm:text-6xl">
                   #1607
                 </strong>
               </div>

@@ -123,7 +123,7 @@ export default async function RafflesPage() {
                   </div>
                   <Link
                     href={`/rifas/${campaign.slug}`}
-                    className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+                    className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
                   >
                     Participar
                     <ArrowRight size={16} aria-hidden="true" />

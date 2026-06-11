@@ -135,7 +135,7 @@ export function AssistedCart({
         <Link
           href="/catalogo"
           prefetch={false}
-          className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+          className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
         >
           Ver catálogo
         </Link>
@@ -154,7 +154,7 @@ export function AssistedCart({
             <Link
               href={`/produto/${item.slug}`}
               prefetch={false}
-              className="relative h-24 w-24 overflow-hidden rounded-md border border-[var(--border)] bg-white"
+              className="relative h-24 w-24 overflow-hidden rounded-md border border-[var(--border)] bg-white sm:h-[88px] sm:w-[88px]"
             >
               {item.imageUrl ? (
                 <Image
@@ -184,10 +184,10 @@ export function AssistedCart({
               </p>
             </div>
             <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
-              <div className="flex h-10 items-center rounded-full border border-[var(--border)]">
+              <div className="flex h-11 items-center rounded-full border border-[var(--border)]">
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center text-[var(--foreground)] hover:text-[var(--accent)]"
+                  className="inline-flex h-11 w-11 items-center justify-center text-[var(--foreground)] hover:text-[var(--accent)]"
                   onClick={() => {
                     clearCoupon();
                     updateCartItemQuantity(item.id, item.quantity - 1);
@@ -201,7 +201,7 @@ export function AssistedCart({
                 </span>
                 <button
                   type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center text-[var(--foreground)] hover:text-[var(--accent)]"
+                  className="inline-flex h-11 w-11 items-center justify-center text-[var(--foreground)] hover:text-[var(--accent)]"
                   onClick={() => {
                     clearCoupon();
                     updateCartItemQuantity(item.id, item.quantity + 1);
@@ -232,7 +232,7 @@ export function AssistedCart({
         ))}
       </section>
 
-      <aside className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:self-start">
+      <aside className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:sticky lg:top-24 lg:self-start">
         <h2 className="text-lg font-black text-[var(--foreground)]">Resumo</h2>
         <div className="mt-4 grid gap-3 text-sm">
           <div className="flex items-center justify-between">
@@ -270,13 +270,13 @@ export function AssistedCart({
                   setCouponError("");
                 }}
                 placeholder="SMART10"
-                className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold uppercase text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                className="h-11 min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold uppercase text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
               />
               <button
                 type="button"
                 disabled={isApplyingCoupon || !canSubmitForReview}
                 onClick={applyCoupon}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-3 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-3 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <BadgePercent size={16} aria-hidden="true" />
                 {isApplyingCoupon ? "Validando..." : "Aplicar"}
@@ -318,14 +318,14 @@ export function AssistedCart({
         <Link
           href="/catalogo"
           prefetch={false}
-          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-full border border-[var(--border)] text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+          className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-[var(--border)] text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
         >
           Continuar comprando
         </Link>
         <button
           type="button"
           onClick={clearCart}
-          className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-full border border-[var(--border)] text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
+          className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-[var(--border)] text-sm font-bold text-[var(--foreground)] hover:bg-cyan-400/12"
         >
           Limpar carrinho
         </button>

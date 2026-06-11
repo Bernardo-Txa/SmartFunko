@@ -38,8 +38,8 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function truncate(value: string, max = 36) {
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+function truncate(value: string, max = 32) {
+  return value.length > max ? `${value.slice(0, max - 1)}...` : value;
 }
 
 function EmptyChart({ label }: { label: string }) {
@@ -60,7 +60,7 @@ function ChartCard({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+    <section className="min-w-0 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
       <div className="mb-4">
         <h2 className="text-lg font-bold text-[var(--foreground)]">{title}</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
@@ -83,7 +83,7 @@ export function RevenueChart({ data }: { data: BiPeriodBucket[] }) {
       {data.length === 0 ? (
         <EmptyChart label="Sem receita confirmada no periodo." />
       ) : (
-        <div className="h-[300px]">
+        <div className="h-[300px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
@@ -105,7 +105,7 @@ export function SalesBySellerChart({ data }: { data: BiSellerRow[] }) {
       {data.length === 0 ? (
         <EmptyChart label="Sem vendas por vendedor." />
       ) : (
-        <div className="h-[280px]">
+        <div className="h-[280px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -127,7 +127,7 @@ export function SalesByOriginChart({ data }: { data: BiOriginRow[] }) {
       {data.length === 0 ? (
         <EmptyChart label="Sem vendas por origem." />
       ) : (
-        <div className="h-[280px]">
+        <div className="h-[280px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -149,7 +149,7 @@ export function PaymentMethodChart({ data }: { data: BiPaymentMethodRow[] }) {
       {data.length === 0 ? (
         <EmptyChart label="Sem pagamentos confirmados." />
       ) : (
-        <div className="h-[280px]">
+        <div className="h-[280px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={data} dataKey="amount" nameKey="method" innerRadius={58} outerRadius={92} paddingAngle={3}>
@@ -178,12 +178,12 @@ export function TopProductsChart({ data }: { data: BiTopProductRow[] }) {
       {chartData.length === 0 ? (
         <EmptyChart label="Sem produtos vendidos." />
       ) : (
-        <div className="h-[340px]">
+        <div className="h-[340px] min-w-0 overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} layout="vertical" margin={{ bottom: 8, left: 12, right: 8, top: 8 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" tick={{ fill: "var(--muted)", fontSize: 12 }} tickFormatter={formatCurrency} tickLine={false} />
-              <YAxis dataKey="label" type="category" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} width={132} />
+              <YAxis dataKey="label" type="category" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} width={104} />
               <Tooltip formatter={(value) => formatCurrency(Number(value))} contentStyle={tooltipStyle} />
               <Bar dataKey="amount" name="Receita" fill="#a78bfa" radius={[0, 6, 6, 0]} />
             </BarChart>
@@ -200,7 +200,7 @@ export function RaffleRevenueChart({ data }: { data: BiRaffleRevenueRow[] }) {
       {data.length === 0 ? (
         <EmptyChart label="Sem receita de rifa no periodo." />
       ) : (
-        <div className="h-[300px]">
+        <div className="h-[300px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data.slice(0, 10).map((item) => ({
@@ -230,7 +230,7 @@ export function CashflowChart({ data }: { data: BiCashflowBucket[] }) {
       {data.length === 0 ? (
         <EmptyChart label="Sem lancamentos de caixa no periodo." />
       ) : (
-        <div className="h-[300px]">
+        <div className="h-[300px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ bottom: 8, left: 0, right: 8, top: 8 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />

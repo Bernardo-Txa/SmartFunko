@@ -100,6 +100,16 @@ Validação + Hardening de Produção 1.0 cobriu auditoria de rotas, RLS, featur
 - auditoria de logs para mascarar CPF/telefone em todas as telas futuras;
 - playbook de incidentes para segredo vazado, webhook invalido e pagamento conciliado incorretamente.
 
+## Responsividade futura
+
+Responsividade Final / Mobile Browser 1.0 priorizou navegacao, toque, cards, tabelas e fluxos criticos em navegador mobile. Permanecem pendentes para um ciclo futuro:
+
+- cobertura visual automatizada por viewport e tema;
+- transformar tabelas admin de maior uso em cards mobile quando houver uso operacional frequente em celular;
+- padrao reutilizavel para modais com rodape fixo e scroll interno;
+- refinamento fino de graficos BI com datasets muito grandes em telas de 360px;
+- auditoria manual periodica em dispositivos reais de WhatsApp/Instagram in-app browser.
+
 ## Produto rapido no pedido futuro
 
 O produto rapido cria produto ativo e variante `national/order_only`, sem estoque automatico. Pendencias:

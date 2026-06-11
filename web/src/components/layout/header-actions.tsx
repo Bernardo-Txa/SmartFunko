@@ -94,11 +94,11 @@ export function HeaderActions({ account, categories, franchises, links }: Header
       <ThemeToggle />
       <CartNavButton className="hidden sm:inline-flex" />
       {account ? (
-        <div ref={accountMenuRef} className="relative">
+        <div ref={accountMenuRef} className="relative hidden sm:block">
           <button
             type="button"
             aria-expanded={isAccountOpen}
-            className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+            className="inline-flex h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
             onClick={() => setIsAccountOpen((current) => !current)}
           >
             <User size={16} aria-hidden="true" />
@@ -166,7 +166,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
       ) : (
         <Link
           href="/login"
-          className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          className="hidden h-11 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)] sm:inline-flex"
         >
           <User size={16} aria-hidden="true" />
           Entrar
@@ -177,14 +177,14 @@ export function HeaderActions({ account, categories, franchises, links }: Header
         <button
           type="button"
           aria-expanded={isMobileOpen}
-          className="inline-flex h-10 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          className="inline-flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
           onClick={() => setIsMobileOpen((current) => !current)}
         >
           <Menu size={18} aria-hidden="true" />
           <span className="sr-only">Abrir menu</span>
         </button>
         {isMobileOpen ? (
-          <div className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.24)]">
+          <div className="absolute right-0 mt-2 max-h-[calc(100svh-6rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[0_24px_64px_rgba(2,6,23,0.24)]">
             <div className="grid gap-2">
               <MobileMegaMenu
                 categories={categories}
@@ -198,7 +198,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
                   prefetch={false}
                   onClick={closeMobileMenu}
                   className={clsx(
-                    "rounded-lg px-3 py-2 text-sm font-bold hover:bg-[var(--surface-strong)]",
+                    "flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-bold hover:bg-[var(--surface-strong)]",
                     isMobileLinkActive(link.href)
                       ? "bg-[var(--surface-strong)] text-[var(--foreground)]"
                       : "text-[var(--foreground)]",
@@ -207,6 +207,38 @@ export function HeaderActions({ account, categories, franchises, links }: Header
                   {link.label}
                 </Link>
               ))}
+              {account?.isOwner ? (
+                <Link
+                  href="/admin/dashboard"
+                  prefetch={false}
+                  onClick={closeMobileMenu}
+                  className="flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                >
+                  <LayoutDashboard size={16} aria-hidden="true" />
+                  Painel
+                </Link>
+              ) : null}
+              {!account ? (
+                <Link
+                  href="/login"
+                  prefetch={false}
+                  onClick={closeMobileMenu}
+                  className="flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                >
+                  <User size={16} aria-hidden="true" />
+                  Entrar
+                </Link>
+              ) : (
+                <form action="/api/v1/auth/logout" method="post">
+                  <button
+                    className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                    onClick={closeMobileMenu}
+                  >
+                    <LogOut size={16} aria-hidden="true" />
+                    Sair
+                  </button>
+                </form>
+              )}
               <CartNavButton className="mt-1 w-full justify-center" onClick={closeMobileMenu} />
             </div>
           </div>

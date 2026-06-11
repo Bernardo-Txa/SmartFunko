@@ -242,7 +242,7 @@ export function ProductCard({
               href={createProductWhatsAppUrl(product)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg border border-emerald-300/24 bg-emerald-500/16 px-3 text-[11px] font-black text-emerald-100 shadow-[0_8px_18px_rgba(16,185,129,0.10)] transition hover:border-emerald-200/36 hover:bg-emerald-500/24 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#030816]"
+              className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-1.5 rounded-lg border border-emerald-300/24 bg-emerald-500/16 px-3 text-[12px] font-black text-emerald-100 shadow-[0_8px_18px_rgba(16,185,129,0.10)] transition hover:border-emerald-200/36 hover:bg-emerald-500/24 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#030816]"
             >
               <MessageCircle size={14} aria-hidden="true" />
               Tenho interesse

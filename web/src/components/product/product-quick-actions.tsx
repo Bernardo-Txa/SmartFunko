@@ -14,7 +14,7 @@ export function ProductQuickActions({
   productName: string;
 }) {
   return (
-    <div className="absolute right-2.5 top-2.5 z-30 flex flex-col gap-1.5">
+    <div className="absolute right-2 top-2 z-30 flex flex-col gap-2">
       <WishlistButton
         productId={productId}
         productName={productName}

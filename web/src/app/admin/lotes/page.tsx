@@ -140,7 +140,7 @@ export default async function AdminPurchaseBatchesPage({ searchParams }: Props) 
         <MetricCard label="Custo em aberto" value={formatCurrency(estimatedOpenCost)} detail="Estimativa operacional" />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>
