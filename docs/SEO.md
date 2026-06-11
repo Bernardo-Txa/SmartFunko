@@ -80,10 +80,17 @@ Fornecedores:
 
 Depois do deploy:
 
-1. Envie um link de produto no WhatsApp.
-2. Envie um link de rifa no WhatsApp.
-3. Abra `/sitemap.xml` e confirme que nao ha admin, conta, API ou pedido privado.
-4. Abra `/robots.txt` e confira os bloqueios.
-5. Use Facebook Sharing Debugger, LinkedIn Post Inspector e Rich Results Test quando precisar revalidar cache externo.
+1. Abra `/sitemap.xml`.
+2. Abra `/robots.txt`.
+3. Abra `/og/smart-funkos-og.png`.
+4. Abra um produto e confira title/description/image no HTML.
+5. Abra uma rifa publica e confira title/description/image no HTML.
+6. Confirme que `/admin` e `/conta` retornam metadata `noindex`.
+7. Envie um link de produto no WhatsApp.
+8. Envie um link de rifa no WhatsApp.
+9. Use Facebook Sharing Debugger para limpar/validar cache.
+10. Use Rich Results Test para validar JSON-LD de produto.
+11. Confirme que o sitemap nao inclui admin, conta, API ou pedido privado.
+12. Confirme que canonical usa o dominio de `NEXT_PUBLIC_SITE_URL` no deploy.
 
 WhatsApp, Discord, Telegram e outras plataformas podem manter cache de OG por algum tempo. Alteracoes de title/image podem demorar ou exigir limpeza no inspetor da plataforma.

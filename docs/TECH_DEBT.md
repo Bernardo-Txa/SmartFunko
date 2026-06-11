@@ -27,6 +27,7 @@ Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e re
 - checkout completo.
 - BI de estoque, margem por linha e alertas configuraveis;
 - multi-moeda, rateio complexo e tracking automatico para lotes/importacao.
+- tela operacional para revisar `payment_provider_events.processing_status = manual_review`.
 
 ## Conta do cliente futuro
 
@@ -87,6 +88,17 @@ SEO/Open Graph 1.0 cobre metadata, fallback OG, sitemap controlado, robots e JSO
 - imagem OG dinamica por produto/rifa se o volume justificar;
 - schema mais rico para Organization, BreadcrumbList e colecoes;
 - testes automatizados de metadata renderizada por rota.
+
+## Hardening futuro
+
+Validação + Hardening de Produção 1.0 cobriu auditoria de rotas, RLS, feature flags, service role, webhook e BI. Permanecem pendentes:
+
+- testes automatizados de autorização para `/api/v1/admin/*` e `/api/v1/me/*`;
+- testes automatizados para webhook InfinitePay duplicado, valor divergente e rifa expirada;
+- rotina administrativa para tratar eventos `manual_review`;
+- rate limiting para endpoints sensiveis de cliente e webhook;
+- auditoria de logs para mascarar CPF/telefone em todas as telas futuras;
+- playbook de incidentes para segredo vazado, webhook invalido e pagamento conciliado incorretamente.
 
 ## Produto rapido no pedido futuro
 

@@ -10,6 +10,12 @@ npm run lint
 npm run build
 ```
 
+Na raiz do repositorio:
+
+```bash
+npm run supabase:push
+```
+
 ## Variaveis
 
 Copie `.env.example` para `.env.local` e preencha:
@@ -64,3 +70,10 @@ Não há Pix, reserva automática, frete, pedido automático, Flutter ou leilão
 - `/admin`, `/conta`, `/api` e `/pedido/*` ficam fora de indexacao.
 
 Detalhes operacionais em `../docs/SEO.md`.
+
+## Producao e hardening
+
+- checklist de producao: `../docs/PRODUCTION_CHECKLIST.md`;
+- checklist de seguranca: `../docs/SECURITY_CHECKLIST.md`;
+- variaveis e feature flags: `../docs/ENV_VARS.md`;
+- operacao de checkout, rifas, BI e clube: `../docs/OPERACAO_MVP.md`.

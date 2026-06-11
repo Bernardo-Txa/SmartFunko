@@ -65,6 +65,7 @@ Webhook:
 - salva payload bruto em `payment_provider_events`;
 - usa `order_nsu`, `invoice_slug` ou `transaction_nsu` para localizar o pedido;
 - eventos duplicados sao ignorados por `unique(provider, event_id)`;
+- pagamento aprovado sem valor ou com valor menor que o saldo pendente entra em `manual_review`, sem baixa automatica;
 - pagamento aprovado chama a RPC `record_manual_payment` com metodo `pix`, `credit_card`, `debit_card` ou `infinitepay`;
 - o financeiro/caixa continuam sendo atualizados pelo fluxo transacional existente.
 
@@ -245,6 +246,7 @@ Webhook InfinitePay para rifa:
 - confirmacao marca `raffle_orders.status = paid`, `payment_status = paid`, numeros como `sold`, cria `cash_entries.category = raffle`, grava auditoria e gera pontos do Clube em `source_type = raffle_order`;
 - `payments` nao e criado para rifa nesta versao porque o schema atual exige `payments.order_id` de pedido normal;
 - pagamento atrasado, valor menor ou numeros ja liberados entram em `manual_review`, sem vender numeros automaticamente.
+- eventos em `manual_review` devem ser revisados no painel/SQL antes de qualquer baixa manual; conferir pedido, valor, comprovante e status dos numeros.
 
 APIs de rifa:
 

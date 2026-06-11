@@ -523,8 +523,21 @@ export class AssistedCheckoutService {
       .filter((payment) => payment.status === "paid")
       .reduce((sum, payment) => sum + Number(payment.amount), 0);
     const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
-    const webhookAmount = centsToCurrency(normalized.amountCents ?? normalized.paidAmountCents);
-    const amount = Math.min(pendingAmount, webhookAmount ?? pendingAmount);
+    const receivedCents = normalized.paidAmountCents ?? normalized.amountCents;
+
+    if (receivedCents === null) {
+      await this.markProviderEvent(eventId, "manual_review", "Valor pago nao informado");
+      return { status: "manual_review", reason: "Valor pago nao informado" };
+    }
+
+    const webhookAmount = centsToCurrency(receivedCents);
+
+    if (webhookAmount === null || webhookAmount + 0.01 < pendingAmount) {
+      await this.markProviderEvent(eventId, "manual_review", "Valor pago menor que o saldo pendente");
+      return { status: "manual_review", reason: "Valor pago menor que o saldo pendente" };
+    }
+
+    const amount = pendingAmount;
 
     if (amount <= 0) {
       await this.markProviderEvent(eventId, "ignored", "Pedido sem saldo pendente");
@@ -657,7 +670,7 @@ export class AssistedCheckoutService {
 
   private async markProviderEvent(
     eventId: string,
-    status: "processed" | "ignored" | "failed",
+    status: "processed" | "ignored" | "failed" | "manual_review",
     errorMessage?: string,
     paymentId?: string | null,
   ) {
