@@ -11,6 +11,7 @@ import {
   getCatalogSupplierBySlug,
   type CatalogProductSort,
 } from "@/lib/catalog";
+import { cleanDescription, ogImages } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -46,24 +47,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!supplier) {
     return {
-      title: "Fornecedor",
+      title: {
+        absolute: "Fornecedor não encontrado — Smart Funkos",
+      },
+      description: "Fornecedor não encontrado na Smart Funkos.",
+      robots: {
+        follow: false,
+        index: false,
+      },
     };
   }
 
+  const title = `${supplier.name} na Smart Funkos`;
+  const description = cleanDescription(
+    supplier.description,
+    `Confira produtos e collabs de ${supplier.name} disponíveis na Smart Funkos.`,
+  );
+  const imageUrl = supplier.banner_url ?? supplier.logo_url;
+
   return {
-    title: supplier.name,
-    description: supplier.description ?? `Produtos vinculados a ${supplier.name}.`,
+    title: {
+      absolute: title,
+    },
+    description,
     alternates: {
       canonical: `/fornecedores/${supplier.slug}`,
     },
     openGraph: {
-      title: `${supplier.name} | Smart Funkos`,
-      description:
-        supplier.description ?? `Produtos vinculados a ${supplier.name} na Smart Funkos.`,
-      images:
-        supplier.banner_url || supplier.logo_url
-          ? [supplier.banner_url ?? supplier.logo_url ?? "/brand/SmartFunko.png"]
-          : ["/brand/SmartFunko.png"],
+      title,
+      description,
+      images: ogImages(imageUrl, supplier.name),
+      type: "website",
+      url: `/fornecedores/${supplier.slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      description,
+      images: [imageUrl || "/og/smart-funkos-og.png"],
+      title,
     },
   };
 }

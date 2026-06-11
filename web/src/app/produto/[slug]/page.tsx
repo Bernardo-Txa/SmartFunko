@@ -10,6 +10,11 @@ import { ProductGallery } from "@/components/storefront/product-gallery";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { WishlistButton } from "@/components/storefront/wishlist-button";
 import { getCatalogProductBySlug, getRelatedProducts } from "@/lib/catalog";
+import {
+  cleanDescription,
+  createProductJsonLd,
+  ogImages,
+} from "@/lib/seo";
 import { getProductVariantStatusMeta } from "@/lib/status-labels";
 import { createProductWhatsAppUrl } from "@/lib/whatsapp";
 
@@ -64,19 +69,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getCatalogProductBySlug(slug);
 
   if (!product) {
-    return { title: "Produto" };
+    return {
+      title: {
+        absolute: "Produto não encontrado — Smart Funkos",
+      },
+      description: "Produto não encontrado na Smart Funkos.",
+      robots: {
+        follow: false,
+        index: false,
+      },
+    };
   }
 
+  const title = `${product.name} — Smart Funkos`;
+  const description = cleanDescription(
+    product.description,
+    `Confira ${product.name} na Smart Funkos. Produto para colecionadores com atendimento personalizado.`,
+  );
+
   return {
-    title: product.name,
-    description: product.description,
+    title: {
+      absolute: title,
+    },
+    description,
     alternates: {
       canonical: `/produto/${product.slug}`,
     },
     openGraph: {
-      title: `${product.name} | Smart Funkos`,
-      description: product.description,
-      images: product.imageUrl ? [product.imageUrl] : ["/brand/SmartFunko.png"],
+      title,
+      description,
+      images: ogImages(product.imageUrl, product.name),
+      type: "website",
+      url: `/produto/${product.slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      description,
+      images: [product.imageUrl || "/og/smart-funkos-og.png"],
+      title,
     },
   };
 }
@@ -94,6 +124,7 @@ export default async function ProductPage({ params }: Props) {
   const howItWorks = getHowItWorks(product.source);
   const HowItWorksIcon = howItWorks.icon;
   const relatedProducts = await getRelatedProducts(product, 4);
+  const productJsonLd = createProductJsonLd(product);
   const cartProduct = {
     id: product.id,
     imageUrl: product.imageUrl,
@@ -106,6 +137,10 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
         <div className="max-w-xl lg:sticky lg:top-28 lg:self-start">
           {isSpecial ? (

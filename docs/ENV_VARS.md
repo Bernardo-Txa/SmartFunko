@@ -2,7 +2,7 @@
 
 ## Publicas
 
-- `NEXT_PUBLIC_SITE_URL`: URL base do app, usada em links publicos, redirect e webhook.
+- `NEXT_PUBLIC_SITE_URL`: URL base do app, usada em links publicos, canonical, Open Graph, sitemap, robots, redirect e webhook. Configure sem barra final.
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`: numero usado nos CTAs de WhatsApp.
 - `NEXT_PUBLIC_SUPABASE_URL`: URL publica do Supabase.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: anon key publica do Supabase.
@@ -67,6 +67,8 @@ Os links gerados pelo painel admin usam o dominio real da requisicao admin como 
 ```txt
 NEXT_PUBLIC_SITE_URL=https://dominio-valido.vercel.app
 ```
+
+Em desenvolvimento, `getSiteUrl()` usa `http://localhost:3000` para evitar canonical vazio ou instavel.
 
 ## Valores recomendados SmartFunko
 

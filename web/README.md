@@ -20,6 +20,8 @@ Copie `.env.example` para `.env.local` e preencha:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
+`NEXT_PUBLIC_SITE_URL` deve apontar para o dominio publico do ambiente em Vercel, sem barra final, por exemplo `https://seu-dominio.com`. Em desenvolvimento o app usa `http://localhost:3000` para canonical e compartilhamento.
+
 ## Rotas iniciais
 
 - `/`
@@ -30,6 +32,8 @@ Copie `.env.example` para `.env.local` e preencha:
 - `/novidades`
 - `/encomendas`
 - `/produto/[slug]`
+- `/rifas`
+- `/rifas/[slug]`
 - `/carrinho`
 - `/login`
 - `/cadastro`
@@ -51,3 +55,12 @@ O Premium Pack estabilizado mantém descoberta comercial sem checkout completo:
 - carrinho assistido persistido no navegador e finalizado por WhatsApp.
 
 Não há Pix, reserva automática, frete, pedido automático, Flutter ou leilão nesta etapa.
+
+## SEO & Open Graph
+
+- metadata global com fallback `/og/smart-funkos-og.png`;
+- metadata dinamica para produto, rifa e fornecedor;
+- `/sitemap.xml` e `/robots.txt` gerados pelo App Router;
+- `/admin`, `/conta`, `/api` e `/pedido/*` ficam fora de indexacao.
+
+Detalhes operacionais em `../docs/SEO.md`.

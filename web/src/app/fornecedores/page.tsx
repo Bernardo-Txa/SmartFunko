@@ -3,17 +3,28 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { getCatalogSuppliers } from "@/lib/catalog";
+import { ogImages } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Fornecedores",
-  description: "Fornecedores, collabs e colecoes especiais da Smart Funkos.",
+  title: {
+    absolute: "Collabs e Fornecedores — Smart Funkos",
+  },
+  description: "Conheça collabs, fornecedores e coleções especiais disponíveis na Smart Funkos.",
   alternates: {
     canonical: "/fornecedores",
   },
   openGraph: {
-    title: "Fornecedores | Smart Funkos",
-    description: "Fornecedores, collabs e coleções especiais da Smart Funkos.",
-    images: ["/brand/SmartFunko.png"],
+    title: "Collabs e Fornecedores — Smart Funkos",
+    description: "Conheça collabs, fornecedores e coleções especiais disponíveis na Smart Funkos.",
+    images: ogImages(),
+    type: "website",
+    url: "/fornecedores",
+  },
+  twitter: {
+    card: "summary_large_image",
+    description: "Conheça collabs, fornecedores e coleções especiais disponíveis na Smart Funkos.",
+    images: ["/og/smart-funkos-og.png"],
+    title: "Collabs e Fornecedores — Smart Funkos",
   },
 };
 

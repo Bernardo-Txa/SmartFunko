@@ -78,6 +78,16 @@ O Light Mode usa as variaveis globais e cobre a navegacao, base visual e formula
 - revisao fina de contraste de todos os badges/status em Light Mode;
 - cobertura visual automatizada de paginas publicas e admin nos dois temas.
 
+## SEO futuro
+
+SEO/Open Graph 1.0 cobre metadata, fallback OG, sitemap controlado, robots e JSON-LD basico. Permanecem pendentes:
+
+- sitemap paginado ou por fonte dedicada quando o catalogo ultrapassar o limite inicial de produtos recentes;
+- validacao automatizada de dimensoes e acessibilidade publica das imagens externas de produto/rifa/fornecedor;
+- imagem OG dinamica por produto/rifa se o volume justificar;
+- schema mais rico para Organization, BreadcrumbList e colecoes;
+- testes automatizados de metadata renderizada por rota.
+
 ## Produto rapido no pedido futuro
 
 O produto rapido cria produto ativo e variante `national/order_only`, sem estoque automatico. Pendencias:

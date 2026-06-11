@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { MessageCircle } from "lucide-react";
 import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import { RaffleNumberPicker } from "@/components/raffles/raffle-number-picker";
 import type { RaffleCampaign, RaffleNumber } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge, RaffleNumberStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
+import { cleanDescription, createRaffleWebPageJsonLd, ogImages } from "@/lib/seo";
+import { createRaffleWhatsAppUrl } from "@/lib/whatsapp";
 import { RaffleService } from "@/server/raffles/raffle-service";
 
 type Props = {
@@ -16,17 +19,70 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
 
   if (!isRafflesEnabled()) {
-    return { title: "Rifa" };
+    return {
+      title: {
+        absolute: "Rifa indisponível — Smart Funkos",
+      },
+      robots: {
+        follow: false,
+        index: false,
+      },
+    };
   }
 
   try {
     const raffle = (await new RaffleService().getPublicRaffleCampaignBySlug(slug)) as unknown as RaffleCampaign;
+    const title = `${raffle.title} — Rifa Smart Funkos`;
+    const description = cleanDescription(
+      raffle.description,
+      raffle.status === "open"
+        ? `Escolha seus números e participe da rifa ${raffle.title} na Smart Funkos. Pagamento por Pix ou cartão via InfinitePay.`
+        : `Confira os detalhes da rifa ${raffle.title} na Smart Funkos.`,
+    );
+
     return {
-      title: raffle.title,
-      description: raffle.description ?? raffle.prize_title,
+      title: {
+        absolute: title,
+      },
+      description,
+      alternates: {
+        canonical: `/rifas/${raffle.slug}`,
+      },
+      openGraph: {
+        title,
+        description,
+        images: ogImages(raffle.prize_image_url, raffle.title),
+        type: "website",
+        url: `/rifas/${raffle.slug}`,
+      },
+      robots:
+        raffle.status === "cancelled"
+          ? {
+              follow: false,
+              index: false,
+            }
+          : {
+              follow: true,
+              index: true,
+            },
+      twitter: {
+        card: "summary_large_image",
+        description,
+        images: [raffle.prize_image_url || "/og/smart-funkos-og.png"],
+        title,
+      },
     };
   } catch {
-    return { title: "Rifa" };
+    return {
+      title: {
+        absolute: "Rifa não encontrada — Smart Funkos",
+      },
+      description: "Rifa não encontrada na Smart Funkos.",
+      robots: {
+        follow: false,
+        index: false,
+      },
+    };
   }
 }
 
@@ -85,9 +141,25 @@ export default async function RaffleDetailPage({ params }: Props) {
   const numbers = (await service.listPublicRaffleNumbers(raffle.id)) as unknown as RaffleNumber[];
   const stats = getStats(raffle);
   const winnerNumber = numbers.find((number) => number.status === "winner");
+  const raffleDescription = cleanDescription(
+    raffle.description,
+    raffle.status === "open"
+      ? `Escolha seus números e participe da rifa ${raffle.title} na Smart Funkos. Pagamento por Pix ou cartão via InfinitePay.`
+      : `Confira os detalhes da rifa ${raffle.title} na Smart Funkos.`,
+  );
+  const raffleJsonLd = createRaffleWebPageJsonLd({
+    description: raffleDescription,
+    imageUrl: raffle.prize_image_url,
+    slug: raffle.slug,
+    title: raffle.title,
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(raffleJsonLd) }}
+      />
       <div className="grid gap-6">
         <RaffleExperimentalNotice />
         <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -110,6 +182,15 @@ export default async function RaffleDetailPage({ params }: Props) {
             </div>
             <h1 className="mt-5 text-3xl font-black text-[var(--foreground)]">{raffle.title}</h1>
             <p className="mt-2 text-lg font-semibold text-[var(--muted)]">{raffle.prize_title}</p>
+            <a
+              href={createRaffleWhatsAppUrl({ slug: raffle.slug, title: raffle.title })}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-200/30 bg-emerald-500/90 px-4 text-sm font-black text-[#042f1a] hover:bg-emerald-400"
+            >
+              <MessageCircle size={16} aria-hidden="true" />
+              Compartilhar rifa
+            </a>
             {raffle.prize_description ? (
               <p className="mt-4 text-sm leading-6 text-[var(--muted)]">{raffle.prize_description}</p>
             ) : null}

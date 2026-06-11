@@ -5,6 +5,7 @@ import { CommercialSection } from "@/components/storefront/commercial-section";
 import { HeroBanner } from "@/components/storefront/hero-banner";
 import { ProductCarousel } from "@/components/storefront/product-carousel";
 import { SupplierTile } from "@/components/storefront/supplier-tile";
+import { createWebsiteJsonLd, ogImages } from "@/lib/seo";
 import {
   getCatalogFranchises,
   getCatalogProducts,
@@ -12,17 +13,28 @@ import {
 } from "@/lib/catalog";
 
 export const metadata: Metadata = {
-  title: "Sua coleção começa aqui",
+  title: {
+    absolute: "Smart Funkos — Colecionáveis, Funkos e comunidade geek",
+  },
   description:
-    "Funkos, colecionáveis, pré-vendas e encomendas selecionadas pela Smart Funkos.",
+    "Compre, acompanhe pedidos, participe de rifas e descubra colecionáveis especiais na Smart Funkos.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Smart Funkos",
+    title: "Smart Funkos — Colecionáveis, Funkos e comunidade geek",
     description:
-      "Loja e comunidade de colecionáveis com catálogo, favoritos, pronta-entrega, pré-vendas e atendimento assistido.",
-    images: ["/brand/SmartFunko.png"],
+      "Compre, acompanhe pedidos, participe de rifas e descubra colecionáveis especiais na Smart Funkos.",
+    images: ogImages(),
+    type: "website",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    description:
+      "Compre, acompanhe pedidos, participe de rifas e descubra colecionáveis especiais na Smart Funkos.",
+    images: ["/og/smart-funkos-og.png"],
+    title: "Smart Funkos — Colecionáveis, Funkos e comunidade geek",
   },
 };
 
@@ -103,6 +115,10 @@ export default async function Home() {
 
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(createWebsiteJsonLd()) }}
+      />
       <HeroBanner products={featuredProducts.length > 0 ? featuredProducts : specialProducts.slice(0, 4)} />
 
       <CommercialSection

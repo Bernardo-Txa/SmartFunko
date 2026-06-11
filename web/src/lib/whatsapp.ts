@@ -1,5 +1,6 @@
 import type { Product } from "@/types/product";
 import { formatCurrency } from "@/lib/format";
+import { canonicalUrl } from "@/lib/seo";
 
 const fallbackPhone = "5511999999999";
 
@@ -12,8 +13,7 @@ export function createWhatsAppTextUrl(message: string) {
 }
 
 export function createProductWhatsAppUrl(product: Product) {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smartfunko.com.br";
-  const productUrl = `${baseUrl}/produto/${product.slug}`;
+  const productUrl = canonicalUrl(`/produto/${product.slug}`);
   const message = [
     `Olá! Tenho interesse no produto ${product.name} (${product.sku || product.slug}).`,
     "",
@@ -24,6 +24,11 @@ export function createProductWhatsAppUrl(product: Product) {
   ].join("\n");
 
   return createWhatsAppTextUrl(message);
+}
+
+export function createRaffleWhatsAppUrl(input: { slug: string; title: string }) {
+  const raffleUrl = canonicalUrl(`/rifas/${input.slug}`);
+  return createWhatsAppTextUrl(`Participe da rifa ${input.title} na Smart Funkos: ${raffleUrl}`);
 }
 
 export function createCartWhatsAppUrl({
@@ -41,7 +46,6 @@ export function createCartWhatsAppUrl({
     slug: string;
   }>;
 }) {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smartfunko.com.br";
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const message = [
     "Olá! Quero verificar disponibilidade dos produtos abaixo:",
@@ -51,7 +55,7 @@ export function createCartWhatsAppUrl({
     customerName || customerContact ? "" : undefined,
     ...items.flatMap((item) => [
       `${item.quantity}x ${item.name} — SKU: ${item.sku || item.slug} — ${formatCurrency(item.price)}`,
-      `Link: ${baseUrl}/produto/${item.slug}`,
+      `Link: ${canonicalUrl(`/produto/${item.slug}`)}`,
       "",
     ]),
     `Total estimado: ${formatCurrency(total)}`,

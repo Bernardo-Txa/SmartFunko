@@ -6,11 +6,39 @@ import type { RaffleCampaign } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { ogImages } from "@/lib/seo";
 import { RaffleService } from "@/server/raffles/raffle-service";
 
 export const metadata: Metadata = {
-  title: "Rifas Smart Funkos",
-  description: "Campanhas experimentais de rifa da Smart Funkos.",
+  title: {
+    absolute: "Rifas Smart Funkos — Campanhas e colecionáveis",
+  },
+  description: "Participe das rifas públicas da Smart Funkos e acompanhe campanhas de colecionáveis.",
+  alternates: {
+    canonical: "/rifas",
+  },
+  openGraph: {
+    description: "Participe das rifas públicas da Smart Funkos e acompanhe campanhas de colecionáveis.",
+    images: ogImages(),
+    title: "Rifas Smart Funkos — Campanhas e colecionáveis",
+    type: "website",
+    url: "/rifas",
+  },
+  robots: isRafflesEnabled()
+    ? {
+        follow: true,
+        index: true,
+      }
+    : {
+        follow: false,
+        index: false,
+      },
+  twitter: {
+    card: "summary_large_image",
+    description: "Participe das rifas públicas da Smart Funkos e acompanhe campanhas de colecionáveis.",
+    images: ["/og/smart-funkos-og.png"],
+    title: "Rifas Smart Funkos — Campanhas e colecionáveis",
+  },
 };
 
 function getStats(campaign: RaffleCampaign) {

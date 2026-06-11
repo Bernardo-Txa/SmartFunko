@@ -1,3 +1,19 @@
+function normalizeSiteUrl(value: string | undefined) {
+  const fallback = "http://localhost:3000";
+  const raw = process.env.NODE_ENV === "development" ? fallback : value || fallback;
+
+  try {
+    const url = new URL(raw);
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
+export function getSiteUrl() {
+  return normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+}
+
 export const env = {
   enableAssistedCheckout: process.env.NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT ?? "true",
   enableRaffles: process.env.NEXT_PUBLIC_ENABLE_RAFFLES ?? "",
@@ -7,7 +23,7 @@ export const env = {
   infinitePayHandle: process.env.INFINITEPAY_HANDLE ?? "",
   infinitePayWebhookEnabled: process.env.INFINITEPAY_WEBHOOK_ENABLED ?? "true",
   infinitePayWebhookSecret: process.env.INFINITEPAY_WEBHOOK_SECRET ?? "",
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  siteUrl: getSiteUrl(),
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",

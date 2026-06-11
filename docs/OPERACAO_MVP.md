@@ -19,6 +19,19 @@
 
 O tema escuro e o padrao. O toggle no header alterna para Light Mode, persiste a preferencia no navegador e aplica a classe `light`/`dark` no `html` antes da hidratacao. A troca usa as variaveis globais de design e nao altera regras operacionais.
 
+## SEO & Open Graph 1.0
+
+Links publicos possuem metadata e imagem de compartilhamento:
+
+- home, catalogo e fornecedores usam metadata estatica;
+- produto usa nome, descricao e imagem principal do produto;
+- rifa usa titulo, status publico e imagem do premio quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`;
+- fallback visual: `/og/smart-funkos-og.png`;
+- `/sitemap.xml` inclui paginas publicas e limita produtos para manter a geracao leve;
+- `/robots.txt` bloqueia admin, conta, API, pedido publico com token e parametros sensiveis.
+
+Para previews corretos, mantenha `NEXT_PUBLIC_SITE_URL` configurado na Vercel com o dominio publico do ambiente e redeploy apos alterar a env.
+
 ## Checkout Assistido 1.0 — Aprovacao Admin + InfinitePay
 
 Fluxo cliente:
