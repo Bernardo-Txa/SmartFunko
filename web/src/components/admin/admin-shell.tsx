@@ -31,7 +31,7 @@ function getNavItems() {
     { href: "/admin/estoque", label: "Estoque", icon: Boxes },
     { href: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
     { href: "/admin/caixa", label: "Caixa", icon: ChartNoAxesColumn },
-    { href: "/admin/relatorios", label: "Relatorios", icon: ChartNoAxesColumn },
+    { href: "/admin/bi", label: "BI / Relatorios", icon: ChartNoAxesColumn },
   ];
 }
 

@@ -137,6 +137,22 @@ Edicao de dados:
 - `profiles.name` tambem e atualizado para manter a exibicao consistente;
 - e-mail de login e somente leitura e deve ser alterado via atendimento/fluxo seguro futuro.
 
+## BI 1.1
+
+1. Abrir `/admin/relatorios` ou `/admin/bi` com perfil owner.
+2. Escolher periodo, vendedor, origem e metodo.
+3. Conferir cards de receita confirmada, pedidos pagos, ticket medio, receita pendente, rifas e caixa.
+4. Conferir graficos de receita, vendedor, origem, metodo, top produtos, rifas e caixa.
+5. Revisar tabelas de top clientes, top pedidos, cupons e ranking mensal.
+
+Regras principais:
+
+- receita confirmada vem de vendas pagas e validas;
+- pedidos `under_review`, `rejected`, `cancelled` e `refunded` ficam fora;
+- rifas usam `raffle_orders` pagas como fonte unica no BI;
+- caixa continua vindo de `cash_entries`;
+- o BI nao soma a mesma rifa duas vezes.
+
 ## Lotes / Importacao 1.0
 
 Lotes agrupam itens de pedidos para compra nacional, importacao, collab ou outro agrupamento operacional. O modulo fica em `/admin/lotes` e e restrito a owner.
@@ -486,6 +502,6 @@ Pedidos retornados em `/me` sao sanitizados: podem conter numero, status, client
 - Notificacoes automaticas.
 - Flutter mobile.
 - Leiloes.
-- BI avancado.
+- BI de estoque e evolucoes analiticas futuras.
 - Integracao fiscal/frete.
 - Gamificacao / Clube Smart Funkos.

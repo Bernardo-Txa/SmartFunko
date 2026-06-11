@@ -2,8 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
+import {
+  CashflowChart,
+  PaymentMethodChart,
+  RaffleRevenueChart,
+  RevenueChart,
+  SalesByOriginChart,
+  SalesBySellerChart,
+  TopProductsChart,
+} from "@/components/admin/bi-charts";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { getOrderSellerLabel, orderItemSourceOptions, orderSellerOptions } from "@/lib/order-labels";
+import { getOrderSellerLabel, orderSellerOptions } from "@/lib/order-labels";
 import { requireOwnerPage } from "@/server/auth/require-admin-page";
 import { BIService } from "@/server/bi/bi-service";
 
@@ -23,6 +32,8 @@ type Props = {
 };
 
 const periodOptions = [
+  { label: "Hoje", value: "today" },
+  { label: "Ultimos 7 dias", value: "last7" },
   { label: "Mes atual", value: "currentMonth" },
   { label: "Ultimos 30 dias", value: "last30" },
   { label: "Mes anterior", value: "previousMonth" },
@@ -31,12 +42,20 @@ const periodOptions = [
 ] as const;
 
 const paymentMethodOptions = [
-  { label: "Pix", value: "pix" },
-  { label: "Credito", value: "credit_card" },
-  { label: "Debito", value: "debit_card" },
-  { label: "Dinheiro", value: "cash" },
   { label: "Manual", value: "manual" },
+  { label: "Pix", value: "pix" },
+  { label: "Cartao", value: "card" },
   { label: "InfinitePay", value: "infinitepay" },
+  { label: "Rifa", value: "raffle" },
+] as const;
+
+const originOptions = [
+  { label: "Catalogo/site", value: "stock" },
+  { label: "WhatsApp", value: "whatsapp" },
+  { label: "Encomenda", value: "national_order" },
+  { label: "Leilao", value: "auction" },
+  { label: "Rifa", value: "raffle" },
+  { label: "Admin/manual", value: "manual" },
 ] as const;
 
 function getParam(value: string | undefined) {
@@ -71,6 +90,17 @@ function getPeriodRange(period: string, fromParam: string, toParam: string) {
     from.setDate(from.getDate() - 29);
   }
 
+  if (period === "today") {
+    from = startOfDay(now);
+    to = endOfDay(now);
+  }
+
+  if (period === "last7") {
+    from = startOfDay(now);
+    from.setDate(from.getDate() - 6);
+    to = endOfDay(now);
+  }
+
   if (period === "previousMonth") {
     from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     to = endOfDay(new Date(now.getFullYear(), now.getMonth(), 0));
@@ -101,7 +131,11 @@ function getPeriodRange(period: string, fromParam: string, toParam: string) {
 }
 
 function sellerLabel(value: string | null | undefined) {
-  return value === "unassigned" ? "Sem vendedor" : getOrderSellerLabel(value);
+  if (!value || value === "unassigned") {
+    return "Sem vendedor";
+  }
+
+  return orderSellerOptions.some((option) => option.value === value) ? getOrderSellerLabel(value) : "Outros";
 }
 
 function TableSection({
@@ -144,8 +178,9 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
     topCustomers,
     topProducts,
     topOrders,
-    raffleRevenue,
+    raffleByCampaign,
     cashflow,
+    cashflowByPeriod,
     couponUsage,
     ranking,
   ] = await Promise.all([
@@ -157,14 +192,21 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
     service.getTopCustomers(filters),
     service.getTopProducts(filters),
     service.getTopOrders(filters),
-    service.getRaffleRevenue(filters),
+    service.getRaffleRevenueByCampaign(filters),
     service.getCashflowSummary(filters),
+    service.getCashflowByPeriod(filters),
     service.getCouponUsage(filters),
     service.getMonthlyRankingSummary(filters),
   ]);
+  const topSeller = salesBySeller[0];
+  const topOrigin = salesByOrigin[0];
+  const salesBySellerChartData = salesBySeller.map((item) => ({
+    ...item,
+    seller: sellerLabel(item.seller),
+  }));
 
   return (
-    <AdminShell title="BI 1.0" description={`Relatorios gerenciais Smart Funkos: ${range.label}.`}>
+    <AdminShell title="BI Smart Funkos" description={`Relatorios gerenciais e validacao BI 1.1: ${range.label}.`}>
       <div className="grid gap-6">
         <div className="flex flex-wrap gap-2">
           <Link
@@ -243,7 +285,7 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
               className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
               <option value="">Todas</option>
-              {orderItemSourceOptions.map(({ label, value }) => (
+              {originOptions.map(({ label, value }) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
@@ -283,8 +325,22 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
           <MetricCard label="Receita pendente" value={formatCurrency(overview.pendingRevenue)} detail="Pedidos em aberto" />
           <MetricCard label="Em analise" value={`${overview.underReviewOrders}`} detail="Checkout assistido" />
           <MetricCard label="Aguardando pagamento" value={`${overview.awaitingPaymentOrders}`} detail="Aprovados ou parciais" />
-          <MetricCard label="Receita de rifas" value={formatCurrency(overview.raffleRevenue)} detail={raffleRevenue.source === "cash_entries" ? "Fonte caixa" : "Fonte rifa"} />
+          <MetricCard label="Receita de rifas" value={formatCurrency(overview.raffleRevenue)} detail="Fonte unica: raffle_orders" />
           <MetricCard label="Caixa liquido" value={formatCurrency(overview.cashflowNet)} detail="Entradas - saidas + ajustes" />
+          <MetricCard label="Top vendedor" value={topSeller ? sellerLabel(topSeller.seller) : "-"} detail={topSeller ? formatCurrency(topSeller.amount) : "Sem vendas"} />
+          <MetricCard label="Top origem" value={topOrigin?.origin ?? "-"} detail={topOrigin ? formatCurrency(topOrigin.amount) : "Sem origem"} />
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-2">
+          <RevenueChart data={salesByPeriod} />
+          <SalesBySellerChart data={salesBySellerChartData} />
+          <SalesByOriginChart data={salesByOrigin} />
+          <PaymentMethodChart data={salesByPaymentMethod} />
+          <TopProductsChart data={topProducts} />
+          <RaffleRevenueChart data={raffleByCampaign} />
+          <div className="xl:col-span-2">
+            <CashflowChart data={cashflowByPeriod} />
+          </div>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
@@ -377,19 +433,25 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
           </TableSection>
 
           <TableSection title="Top clientes">
-            <table className="w-full min-w-[500px] text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="text-[var(--muted)]">
                 <tr>
                   <th className="py-2 pr-3">Cliente</th>
-                  <th className="py-2 pr-3">Pedidos</th>
+                  <th className="py-2 pr-3">Pedidos pagos</th>
+                  <th className="py-2 pr-3">Ticket medio</th>
+                  <th className="py-2 pr-3">Ultimo pedido</th>
+                  <th className="py-2 pr-3">Clube</th>
                   <th className="py-2 text-right">Receita</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {topCustomers.slice(0, 8).map((item) => (
+                {topCustomers.slice(0, 10).map((item) => (
                   <tr key={item.customerId ?? item.name}>
                     <td className="py-3 pr-3 text-[var(--foreground)]">{item.name}</td>
                     <td className="py-3 pr-3 text-[var(--muted)]">{item.orders}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{formatCurrency(item.averageTicket)}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.lastOrderAt ? formatDate(item.lastOrderAt) : "-"}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.clubLevel ?? "-"}</td>
                     <td className="py-3 text-right font-semibold text-[var(--foreground)]">{formatCurrency(item.amount)}</td>
                   </tr>
                 ))}
@@ -399,22 +461,24 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
           </TableSection>
 
           <TableSection title="Top produtos">
-            <table className="w-full min-w-[540px] text-left text-sm">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="text-[var(--muted)]">
                 <tr>
                   <th className="py-2 pr-3">Produto</th>
                   <th className="py-2 pr-3">Qtd.</th>
+                  <th className="py-2 pr-3">Ticket item</th>
                   <th className="py-2 text-right">Receita</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {topProducts.slice(0, 8).map((item) => (
+                {topProducts.slice(0, 10).map((item) => (
                   <tr key={`${item.productId ?? item.productName}-${item.sku ?? ""}`}>
                     <td className="py-3 pr-3 text-[var(--foreground)]">
                       {item.productName}
                       {item.sku ? <span className="ml-2 text-xs text-[var(--muted)]">{item.sku}</span> : null}
                     </td>
                     <td className="py-3 pr-3 text-[var(--muted)]">{item.quantity}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{formatCurrency(item.averageItemTicket)}</td>
                     <td className="py-3 text-right font-semibold text-[var(--foreground)]">{formatCurrency(item.amount)}</td>
                   </tr>
                 ))}
@@ -424,17 +488,20 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
           </TableSection>
 
           <TableSection title="Top pedidos">
-            <table className="w-full min-w-[520px] text-left text-sm">
+            <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="text-[var(--muted)]">
                 <tr>
                   <th className="py-2 pr-3">Pedido</th>
                   <th className="py-2 pr-3">Cliente</th>
                   <th className="py-2 pr-3">Vendedor</th>
+                  <th className="py-2 pr-3">Origem</th>
+                  <th className="py-2 pr-3">Pagamento</th>
+                  <th className="py-2 pr-3">Pago em</th>
                   <th className="py-2 text-right">Receita</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {topOrders.slice(0, 8).map((item) => (
+                {topOrders.slice(0, 10).map((item) => (
                   <tr key={item.orderId}>
                     <td className="py-3 pr-3 font-semibold text-[var(--foreground)]">
                       <Link href={`/admin/pedidos/${item.orderId}`} className="hover:text-[var(--accent)]">
@@ -443,6 +510,9 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
                     </td>
                     <td className="py-3 pr-3 text-[var(--muted)]">{item.customerName}</td>
                     <td className="py-3 pr-3 text-[var(--muted)]">{sellerLabel(item.seller)}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.origin}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.method}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.paidAt ? formatDate(item.paidAt) : "-"}</td>
                     <td className="py-3 text-right font-semibold text-[var(--foreground)]">{formatCurrency(item.amount)}</td>
                   </tr>
                 ))}
@@ -473,6 +543,32 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
             {couponUsage.length === 0 ? <p className="text-sm text-[var(--muted)]">Sem cupons em vendas pagas.</p> : null}
           </TableSection>
 
+          <TableSection title="Rifas">
+            <table className="w-full min-w-[620px] text-left text-sm">
+              <thead className="text-[var(--muted)]">
+                <tr>
+                  <th className="py-2 pr-3">Campanha</th>
+                  <th className="py-2 pr-3">Numeros pagos</th>
+                  <th className="py-2 pr-3">Numeros pendentes</th>
+                  <th className="py-2 pr-3">Pedidos pagos</th>
+                  <th className="py-2 text-right">Receita paga</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {raffleByCampaign.slice(0, 10).map((item) => (
+                  <tr key={item.campaignId ?? item.campaignTitle}>
+                    <td className="py-3 pr-3 text-[var(--foreground)]">{item.campaignTitle}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.soldNumbers}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.pendingNumbers}</td>
+                    <td className="py-3 pr-3 text-[var(--muted)]">{item.paidOrders}</td>
+                    <td className="py-3 text-right font-semibold text-[var(--foreground)]">{formatCurrency(item.paidAmount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {raffleByCampaign.length === 0 ? <p className="text-sm text-[var(--muted)]">Sem rifas no periodo.</p> : null}
+          </TableSection>
+
           <TableSection title="Caixa no periodo">
             <div className="grid gap-3 text-sm">
               <div className="flex justify-between gap-4 border-b border-[var(--border)] pb-3">
@@ -500,6 +596,9 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
                 <div className="flex flex-col gap-1 text-sm text-[var(--muted)]">
                   <strong className="text-[var(--foreground)]">{ranking.title}</strong>
                   <span>Status: {ranking.status}</span>
+                  <Link href="/admin/clube/ranking" className="font-semibold text-[var(--accent)] hover:brightness-110">
+                    Abrir ranking do clube
+                  </Link>
                 </div>
                 <table className="w-full min-w-[520px] text-left text-sm">
                   <thead className="text-[var(--muted)]">
@@ -507,6 +606,7 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
                       <th className="py-2 pr-3">Pos.</th>
                       <th className="py-2 pr-3">Cliente</th>
                       <th className="py-2 pr-3">Pedido</th>
+                      <th className="py-2 pr-3">Brinde</th>
                       <th className="py-2 text-right">Total</th>
                     </tr>
                   </thead>
@@ -516,6 +616,7 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
                         <td className="py-3 pr-3 text-[var(--muted)]">{entry.position ?? "-"}</td>
                         <td className="py-3 pr-3 text-[var(--foreground)]">{entry.customerName}</td>
                         <td className="py-3 pr-3 text-[var(--muted)]">{entry.orderNumber}</td>
+                        <td className="py-3 pr-3 text-[var(--muted)]">{entry.rewardStatus}</td>
                         <td className="py-3 text-right font-semibold text-[var(--foreground)]">{formatCurrency(entry.orderTotal)}</td>
                       </tr>
                     ))}

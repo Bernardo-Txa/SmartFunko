@@ -20,6 +20,7 @@ Na V1, as vendas sao assistidas pelo site/admin, com WhatsApp preservado como su
 
 - [MVP Operacional V1](./MVP_OPERACIONAL_V1.md)
 - [Operacao do MVP](./docs/OPERACAO_MVP.md)
+- [BI SmartFunko](./docs/BI.md)
 - [Variaveis de ambiente](./docs/ENV_VARS.md)
 - [Divida tecnica](./docs/TECH_DEBT.md)
 - [Documento Tecnico Inicial](./Smart%20Funkos%20-%20Documento%20T%C3%A9cnico%20Inicial.pdf)
@@ -49,6 +50,7 @@ A camada publica agora organiza descoberta e intencao de compra por cima do core
 - carrinho assistido em `/carrinho`, persistido no navegador, com envio de pedido para análise, cupom de desconto e WhatsApp como atendimento;
 - admin de demanda em `/admin/demanda`, restrito a owner, com ranking real de wishlist.
 - Clube Smart Funkos em `/conta/clube` e `/admin/clube`, atras de `NEXT_PUBLIC_ENABLE_REWARDS`, com pontos, niveis longos e Ranking Mensal Top 3 Pedidos.
+- BI gerencial em `/admin/relatorios` e `/admin/bi`, com cards, graficos, filtros e tabelas de vendas, caixa, rifas, cupons e ranking mensal.
 - O ranking mensal aberto e calculado a partir dos pedidos pagos; ao fechar/awardar, passa a funcionar como snapshot salvo e so recalcula por acao explicita do admin.
 
 O carrinho assistido nao reserva estoque automaticamente, nao calcula frete e nao cobra pagamento antes da aprovacao humana. Quando o cliente envia o carrinho, o sistema cria um pedido `review_status = under_review`; o admin aprova/recusa e, se aprovar, gera o link InfinitePay. Cupons criados em `/admin/cupons` podem ser aplicados antes do envio.
@@ -120,6 +122,19 @@ O pagamento manual agora passa pela RPC Postgres `record_manual_payment`, chamad
 As telas principais sao `/admin/pagamentos`, `/admin/caixa` e `/admin/relatorios/financeiro`. O relatorio mostra recebido por periodo, a receber, reembolsos, taxas, liquido, pedidos por situacao financeira, vendas por metodo e caixa por categoria.
 
 Financeiro 2.0 preserva baixa manual e tambem recebe pagamentos confirmados pelo Checkout Assistido InfinitePay. Frete automatico, nota fiscal e checkout proprio interno seguem fora do escopo.
+
+## BI 1.1
+
+O BI gerencial fica em `/admin/relatorios` e tem alias em `/admin/bi`.
+
+Regras principais:
+
+- receita confirmada vem de `cash_entries` de venda ligados a pedidos validos e pagos;
+- pedidos `under_review`, `rejected`, `cancelled` e `refunded` ficam fora da receita confirmada;
+- receita de rifas usa `raffle_orders` pagos como fonte unica do BI;
+- caixa continua vindo de `cash_entries`;
+- filtros cobrem periodo, vendedor, origem e metodo;
+- graficos e tabelas usam agregados do servidor e Recharts no client.
 
 ## Lotes / Importacao 1.0
 
@@ -383,5 +398,4 @@ Na pagina de produto, a galeria usa todas as imagens disponiveis nessa ordem.
 
 ## Radar futuro
 
-Gamificacao / Clube Smart Funkos permanece no radar, mas nao foi implementado na
-sprint Imagens Profissionais 1.0.
+Evolucoes futuras continuam em BI de estoque, automacoes de lotes e refinamento visual de componentes muito customizados.

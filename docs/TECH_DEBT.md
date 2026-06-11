@@ -25,7 +25,7 @@ Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e re
 - assinatura de webhook dependente do header real disponibilizado pela conta InfinitePay;
 - nota fiscal;
 - checkout completo.
-- BI avancado;
+- BI de estoque, margem por linha e alertas configuraveis;
 - multi-moeda, rateio complexo e tracking automatico para lotes/importacao.
 
 ## Conta do cliente futuro

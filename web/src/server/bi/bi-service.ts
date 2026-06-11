@@ -17,6 +17,7 @@ type SaleCashEntryRow = {
   order_id: string | null;
   orders?: {
     coupon_code?: string | null;
+    channel?: string | null;
     created_at?: string;
     customer_id?: string | null;
     customers?: {
@@ -25,7 +26,12 @@ type SaleCashEntryRow = {
     } | null;
     discount?: number | string | null;
     id?: string;
+    order_items?: Array<{
+      source: string;
+      status: string;
+    }>;
     order_number?: string | null;
+    payment_provider?: string | null;
     review_status?: string | null;
     seller?: string | null;
     shipping_amount?: number | string | null;
@@ -45,6 +51,7 @@ type SaleCashEntryRow = {
 type OrderAggregateRow = {
   coupon_code: string | null;
   customer_id: string | null;
+  channel?: string;
   customers?: {
     email?: string | null;
     name?: string | null;
@@ -117,14 +124,18 @@ export type BiPaymentMethodRow = {
 
 export type BiTopCustomerRow = {
   amount: number;
+  averageTicket: number;
   email: string | null;
+  lastOrderAt: string | null;
   name: string;
   orders: number;
   customerId: string | null;
+  clubLevel: string | null;
 };
 
 export type BiTopProductRow = {
   amount: number;
+  averageItemTicket: number;
   quantity: number;
   productId: string | null;
   productName: string;
@@ -134,8 +145,11 @@ export type BiTopProductRow = {
 export type BiTopOrderRow = {
   amount: number;
   customerName: string;
+  method: string;
+  origin: string;
   orderNumber: string;
   orderId: string;
+  paidAt: string | null;
   seller: string | null;
 };
 
@@ -175,6 +189,25 @@ export type BiOverview = {
   underReviewOrders: number;
 };
 
+export type BiRaffleRevenueRow = {
+  campaignId: string | null;
+  campaignTitle: string;
+  paidAmount: number;
+  paidOrders: number;
+  pendingAmount: number;
+  pendingOrders: number;
+  soldNumbers: number;
+  pendingNumbers: number;
+};
+
+export type BiCashflowBucket = {
+  expense: number;
+  income: number;
+  label: string;
+  net: number;
+  period: string;
+};
+
 function endOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 }
@@ -211,6 +244,30 @@ function uniqueOrdersFromEntries(rows: SaleCashEntryRow[]) {
   return Array.from(new Set(rows.map((row) => row.order_id).filter((value): value is string => Boolean(value))));
 }
 
+function isExcludedOrderStatus(status: string | null | undefined) {
+  return ["cancelled", "refunded"].includes(String(status ?? "").toLowerCase());
+}
+
+function isExcludedReviewStatus(status: string | null | undefined) {
+  return ["under_review", "rejected", "cancelled"].includes(String(status ?? "").toLowerCase());
+}
+
+function isConfirmedSaleEntry(row: SaleCashEntryRow) {
+  if (!row.order_id || !row.orders) {
+    return false;
+  }
+
+  if (isExcludedOrderStatus(row.orders.status) || isExcludedReviewStatus(row.orders.review_status)) {
+    return false;
+  }
+
+  if (row.payments?.status && row.payments.status !== "paid") {
+    return false;
+  }
+
+  return money(row.amount) > 0;
+}
+
 function periodBucketKey(date: Date, daily: boolean) {
   if (daily) {
     return date.toISOString().slice(0, 10);
@@ -236,19 +293,11 @@ function paymentMethodLabel(method: string | null | undefined) {
     return "Pix";
   }
 
-  if (normalized === "credit_card") {
-    return "Cartao de credito";
+  if (normalized === "credit_card" || normalized === "debit_card" || normalized === "card") {
+    return "Cartao";
   }
 
-  if (normalized === "debit_card") {
-    return "Cartao de debito";
-  }
-
-  if (normalized === "cash") {
-    return "Dinheiro";
-  }
-
-  if (normalized === "manual") {
+  if (normalized === "cash" || normalized === "manual") {
     return "Manual";
   }
 
@@ -259,30 +308,126 @@ function paymentMethodLabel(method: string | null | undefined) {
   return normalized ? normalized : "InfinitePay";
 }
 
+function paymentMethodMatchesFilter(method: string | null | undefined, filter: string | undefined) {
+  if (!filter) {
+    return true;
+  }
+
+  const normalizedMethod = String(method ?? "").toLowerCase();
+  const normalizedFilter = filter.toLowerCase();
+
+  if (normalizedFilter === "card") {
+    return normalizedMethod === "credit_card" || normalizedMethod === "debit_card" || normalizedMethod === "card";
+  }
+
+  if (normalizedFilter === "manual") {
+    return normalizedMethod === "manual" || normalizedMethod === "cash";
+  }
+
+  return normalizedMethod === normalizedFilter;
+}
+
 function originLabel(origin: string | null | undefined) {
   const normalized = String(origin ?? "");
 
   if (normalized === "stock") {
-    return "Pronta-entrega";
+    return "Catalogo/site";
   }
 
-  if (normalized === "national_order") {
-    return "Encomenda nacional";
+  if (normalized === "website") {
+    return "Catalogo/site";
   }
 
-  if (normalized === "international_order") {
-    return "Importado";
+  if (normalized === "whatsapp") {
+    return "WhatsApp";
   }
 
-  if (normalized === "preorder") {
-    return "Pre-venda";
+  if (normalized === "admin") {
+    return "Admin/manual";
+  }
+
+  if (normalized === "national_order" || normalized === "international_order" || normalized === "preorder") {
+    return "Encomenda";
   }
 
   if (normalized === "auction") {
     return "Leilao";
   }
 
-  return normalized || "Sem origem";
+  if (normalized === "raffle") {
+    return "Rifa";
+  }
+
+  return normalized || "Outros";
+}
+
+function orderPrimaryOrigin(order: OrderAggregateRow) {
+  const channel = String(order.channel ?? "");
+
+  if (channel === "website") {
+    return "Catalogo/site";
+  }
+
+  if (channel === "whatsapp") {
+    return "WhatsApp";
+  }
+
+  if (channel === "admin") {
+    return "Admin/manual";
+  }
+
+  if (channel === "preorder") {
+    return "Encomenda";
+  }
+
+  const itemOrigins = (order.order_items ?? [])
+    .filter((item) => item.status !== "cancelled")
+    .map((item) => originLabel(item.source));
+
+  if (itemOrigins.includes("Leilao")) {
+    return "Leilao";
+  }
+
+  if (itemOrigins.includes("Encomenda")) {
+    return "Encomenda";
+  }
+
+  if (itemOrigins.includes("Catalogo/site")) {
+    return "Catalogo/site";
+  }
+
+  return "Outros";
+}
+
+function orderOriginMatchesFilter(order: OrderAggregateRow, filter: string) {
+  const normalizedFilter = filter.toLowerCase();
+  const primary = orderPrimaryOrigin(order).toLowerCase();
+
+  if (normalizedFilter === "stock" || normalizedFilter === "website") {
+    return primary === "catalogo/site";
+  }
+
+  if (normalizedFilter === "manual" || normalizedFilter === "admin") {
+    return primary === "admin/manual";
+  }
+
+  if (normalizedFilter === "whatsapp") {
+    return primary === "whatsapp";
+  }
+
+  if (normalizedFilter === "raffle") {
+    return primary === "rifa";
+  }
+
+  if (normalizedFilter === "national_order" || normalizedFilter === "international_order" || normalizedFilter === "preorder") {
+    return primary === "encomenda";
+  }
+
+  if (normalizedFilter === "auction") {
+    return primary === "leilao";
+  }
+
+  return primary === normalizedFilter;
 }
 
 export class BIService {
@@ -293,9 +438,9 @@ export class BIService {
       await Promise.all([
         this.listSaleCashEntries(filters),
         this.getCashflowSummary(filters),
-        this.countCurrentPendingOrders(),
-        this.countOrdersByReviewStatus("under_review"),
-        this.countAwaitingPaymentOrders(),
+        this.countCurrentPendingOrders(filters),
+        this.countOrdersByReviewStatus("under_review", filters),
+        this.countAwaitingPaymentOrders(filters),
         this.getRaffleRevenue(filters),
       ]);
 
@@ -369,20 +514,27 @@ export class BIService {
 
   async getSalesByOrigin(filters: BiFilters = {}): Promise<BiOriginRow[]> {
     const orders = await this.loadPaidOrders(filters);
+    const saleEntries = await this.listSaleCashEntries(filters);
+    const paidByOrder = new Map<string, number>();
+
+    for (const entry of saleEntries) {
+      if (!entry.order_id) {
+        continue;
+      }
+
+      paidByOrder.set(entry.order_id, (paidByOrder.get(entry.order_id) ?? 0) + money(entry.amount));
+    }
+
     const totals = new Map<string, { amount: number; items: number }>();
 
     for (const order of orders) {
-      for (const item of order.order_items ?? []) {
-        if (item.status === "cancelled") {
-          continue;
-        }
-
-        const key = originLabel(item.source);
-        const bucket = totals.get(key) ?? { amount: 0, items: 0 };
-        bucket.amount += money(item.total_price);
-        bucket.items += Number(item.quantity ?? 0);
-        totals.set(key, bucket);
-      }
+      const key = orderPrimaryOrigin(order);
+      const bucket = totals.get(key) ?? { amount: 0, items: 0 };
+      bucket.amount += paidByOrder.get(order.id) ?? money(order.total);
+      bucket.items += (order.order_items ?? [])
+        .filter((item) => item.status !== "cancelled")
+        .reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+      totals.set(key, bucket);
     }
 
     return Array.from(totals.entries())
@@ -419,7 +571,10 @@ export class BIService {
     const orders = await this.loadPaidOrders(filters);
     const salesEntries = await this.listSaleCashEntries(filters);
     const orderById = new Map(orders.map((order) => [order.id, order]));
-    const totals = new Map<string, { amount: number; email: string | null; name: string; orders: Set<string> }>();
+    const totals = new Map<
+      string,
+      { amount: number; email: string | null; lastOrderAt: string | null; name: string; orders: Set<string> }
+    >();
 
     for (const entry of salesEntries) {
       if (!entry.order_id) {
@@ -431,18 +586,27 @@ export class BIService {
       const bucket = totals.get(customerId) ?? {
         amount: 0,
         email: order?.customers?.email ?? null,
+        lastOrderAt: null,
         name: order?.customers?.name ?? "Cliente",
         orders: new Set<string>(),
       };
       bucket.amount += money(entry.amount);
       bucket.orders.add(entry.order_id);
+      if (!bucket.lastOrderAt || entry.occurred_at > bucket.lastOrderAt) {
+        bucket.lastOrderAt = entry.occurred_at;
+      }
       totals.set(customerId, bucket);
     }
+
+    const rewardLevels = await this.loadRewardLevels(Array.from(totals.keys()));
 
     return Array.from(totals.entries())
       .map(([customerId, bucket]) => ({
         amount: bucket.amount,
+        averageTicket: bucket.orders.size > 0 ? bucket.amount / bucket.orders.size : 0,
+        clubLevel: rewardLevels.get(customerId) ?? null,
         email: bucket.email,
+        lastOrderAt: bucket.lastOrderAt,
         name: bucket.name,
         orders: bucket.orders.size,
         customerId,
@@ -452,7 +616,10 @@ export class BIService {
 
   async getTopProducts(filters: BiFilters = {}): Promise<BiTopProductRow[]> {
     const orders = await this.loadPaidOrders(filters);
-    const totals = new Map<string, { amount: number; quantity: number; productId: string | null; productName: string; sku: string | null }>();
+    const totals = new Map<
+      string,
+      { amount: number; averageItemTicket: number; quantity: number; productId: string | null; productName: string; sku: string | null }
+    >();
 
     for (const order of orders) {
       for (const item of order.order_items ?? []) {
@@ -464,6 +631,7 @@ export class BIService {
         const key = item.product_variants?.sku ?? product?.id ?? `${item.source}:${item.total_price}`;
         const bucket = totals.get(key) ?? {
           amount: 0,
+          averageItemTicket: 0,
           quantity: 0,
           productId: product?.id ?? null,
           productName: product?.name ?? item.product_variants?.sku ?? "Produto sem nome",
@@ -471,6 +639,7 @@ export class BIService {
         };
         bucket.amount += money(item.total_price);
         bucket.quantity += Number(item.quantity ?? 0);
+        bucket.averageItemTicket = bucket.quantity > 0 ? bucket.amount / bucket.quantity : 0;
         totals.set(key, bucket);
       }
     }
@@ -481,57 +650,46 @@ export class BIService {
   async getTopOrders(filters: BiFilters = {}): Promise<BiTopOrderRow[]> {
     const orders = await this.loadPaidOrders(filters);
     const salesEntries = await this.listSaleCashEntries(filters);
-    const paidByOrder = new Map<string, number>();
+    const paidByOrder = new Map<string, { amount: number; method: string; paidAt: string | null }>();
 
     for (const entry of salesEntries) {
       if (!entry.order_id) {
         continue;
       }
 
-      paidByOrder.set(entry.order_id, (paidByOrder.get(entry.order_id) ?? 0) + money(entry.amount));
+      const current = paidByOrder.get(entry.order_id) ?? { amount: 0, method: "Outros", paidAt: null };
+      current.amount += money(entry.amount);
+      current.method = paymentMethodLabel(entry.payments?.method);
+      if (!current.paidAt || entry.occurred_at > current.paidAt) {
+        current.paidAt = entry.occurred_at;
+      }
+      paidByOrder.set(entry.order_id, current);
     }
 
     return orders
-      .map((order) => ({
-        amount: paidByOrder.get(order.id) ?? money(order.total),
-        customerName: order.customers?.name ?? "Cliente",
-        orderId: order.id,
-        orderNumber: order.order_number,
-        seller: order.seller,
-      }))
+      .map((order) => {
+        const paid = paidByOrder.get(order.id);
+        return {
+          amount: paid?.amount ?? money(order.total),
+          customerName: order.customers?.name ?? "Cliente",
+          method: paid?.method ?? "Outros",
+          origin: orderPrimaryOrigin(order),
+          orderId: order.id,
+          orderNumber: order.order_number,
+          paidAt: paid?.paidAt ?? null,
+          seller: order.seller,
+        };
+      })
       .filter((order) => order.amount > 0)
       .sort((left, right) => right.amount - left.amount);
   }
 
   async getRaffleRevenue(filters: BiFilters = {}) {
     const range = resolveRange(filters);
-    const { data: cashEntries, error: cashError } = await this.supabase
-      .from("cash_entries")
-      .select("amount,occurred_at,order_id,category,type")
-      .eq("category", "raffle")
-      .eq("type", "income")
-      .gte("occurred_at", range.from)
-      .lte("occurred_at", range.to)
-      .limit(1500);
-
-    if (cashError) {
-      throwQueryError(cashError, "Falha ao carregar receita de rifas");
-    }
-
-    const cashRevenue = (cashEntries ?? []).reduce((sum, entry) => sum + money(entry.amount), 0);
-
-    if ((cashEntries ?? []).length > 0) {
-      return {
-        amount: cashRevenue,
-        orders: new Set((cashEntries ?? []).map((entry) => entry.order_id).filter((value): value is string => Boolean(value))).size,
-        source: "cash_entries" as const,
-      };
-    }
-
     const { data: raffleOrders, error: raffleError } = await this.supabase
       .from("raffle_orders")
-      .select("id,total_amount,status,paid_at,payment_status,customers(name)")
-      .eq("status", "paid")
+      .select("id,total_amount,status,paid_at,payment_status")
+      .or("status.eq.paid,payment_status.eq.paid")
       .gte("paid_at", range.from)
       .lte("paid_at", range.to)
       .limit(1500);
@@ -545,6 +703,117 @@ export class BIService {
       orders: (raffleOrders ?? []).length,
       source: "raffle_orders" as const,
     };
+  }
+
+  async getRaffleRevenueByCampaign(filters: BiFilters = {}): Promise<BiRaffleRevenueRow[]> {
+    const range = resolveRange(filters);
+    const { data, error } = await this.supabase
+      .from("raffle_orders")
+      .select("id,raffle_campaign_id,total_amount,quantity,status,payment_status,paid_at,created_at,raffle_campaigns(id,title)")
+      .lte("created_at", range.to)
+      .limit(1500);
+
+    if (error) {
+      throwQueryError(error, "Falha ao carregar rifas por campanha");
+    }
+
+    const totals = new Map<string, BiRaffleRevenueRow>();
+
+    for (const order of (data ?? []) as unknown as Array<{
+      created_at: string;
+      paid_at: string | null;
+      payment_status?: string | null;
+      quantity: number;
+      raffle_campaign_id: string | null;
+      raffle_campaigns?: { id?: string | null; title?: string | null } | null;
+      status: string;
+      total_amount: number | string;
+    }>) {
+      const isPaid = order.status === "paid" || order.payment_status === "paid";
+      const isPending = ["reserved", "pending_payment"].includes(order.status) && order.payment_status !== "paid";
+      const paidInRange = isPaid && inRange(order.paid_at, range);
+      const pendingInRange = isPending && inRange(order.created_at, range);
+
+      if (!paidInRange && !pendingInRange) {
+        continue;
+      }
+
+      const campaignId = order.raffle_campaign_id ?? order.raffle_campaigns?.id ?? "unknown";
+      const current =
+        totals.get(campaignId) ??
+        {
+          campaignId: order.raffle_campaign_id,
+          campaignTitle: order.raffle_campaigns?.title ?? "Rifa",
+          paidAmount: 0,
+          paidOrders: 0,
+          pendingAmount: 0,
+          pendingOrders: 0,
+          pendingNumbers: 0,
+          soldNumbers: 0,
+        };
+
+      if (paidInRange) {
+        current.paidAmount += money(order.total_amount);
+        current.paidOrders += 1;
+        current.soldNumbers += Number(order.quantity ?? 0);
+      }
+
+      if (pendingInRange) {
+        current.pendingAmount += money(order.total_amount);
+        current.pendingOrders += 1;
+        current.pendingNumbers += Number(order.quantity ?? 0);
+      }
+
+      totals.set(campaignId, current);
+    }
+
+    return Array.from(totals.values()).sort((left, right) => right.paidAmount - left.paidAmount);
+  }
+
+  async getCashflowByPeriod(filters: BiFilters = {}): Promise<BiCashflowBucket[]> {
+    const range = resolveRange(filters);
+    const from = new Date(range.from);
+    const to = new Date(range.to);
+    const diffDays = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
+    const daily = diffDays <= 35;
+    const { data, error } = await this.supabase
+      .from("cash_entries")
+      .select("type,amount,occurred_at")
+      .gte("occurred_at", range.from)
+      .lte("occurred_at", range.to)
+      .order("occurred_at", { ascending: true })
+      .limit(1500);
+
+    if (error) {
+      throwQueryError(error, "Falha ao carregar caixa por periodo");
+    }
+
+    const totals = new Map<string, { expense: number; income: number }>();
+
+    for (const entry of (data ?? []) as Array<{ amount: number | string; occurred_at: string; type: string }>) {
+      const key = periodBucketKey(new Date(entry.occurred_at), daily);
+      const bucket = totals.get(key) ?? { expense: 0, income: 0 };
+
+      if (entry.type === "income") {
+        bucket.income += money(entry.amount);
+      } else if (entry.type === "expense") {
+        bucket.expense += money(entry.amount);
+      } else if (entry.type === "adjustment") {
+        bucket.income += money(entry.amount);
+      }
+
+      totals.set(key, bucket);
+    }
+
+    return Array.from(totals.entries())
+      .sort(([left], [right]) => (left < right ? -1 : 1))
+      .map(([period, bucket]) => ({
+        expense: bucket.expense,
+        income: bucket.income,
+        label: periodBucketLabel(period, daily),
+        net: bucket.income - bucket.expense,
+        period,
+      }));
   }
 
   async getCashflowSummary(filters: BiFilters = {}) {
@@ -639,8 +908,9 @@ export class BIService {
         `
           amount,occurred_at,order_id,
           orders(
-            id,order_number,total,status,review_status,seller,discount,shipping_amount,coupon_code,created_at,
-            customers(id,name,email)
+            id,order_number,total,status,review_status,seller,discount,shipping_amount,coupon_code,created_at,payment_provider,
+            customers(id,name,email),
+            order_items(source,status)
           ),
           payments(id,method,status,paid_at,amount,fee_amount,net_amount)
         `,
@@ -661,11 +931,25 @@ export class BIService {
         return false;
       }
 
+      if (!isConfirmedSaleEntry(row)) {
+        return false;
+      }
+
       if (filters.seller && row.orders?.seller !== filters.seller) {
         return false;
       }
 
-      if (filters.paymentMethod && String(row.payments?.method ?? "").toLowerCase() !== filters.paymentMethod.toLowerCase()) {
+      if (!paymentMethodMatchesFilter(row.payments?.method, filters.paymentMethod)) {
+        return false;
+      }
+
+      if (filters.origin) {
+        if (!row.orders || !orderOriginMatchesFilter(row.orders as OrderAggregateRow, filters.origin)) {
+          return false;
+        }
+      }
+
+      if (filters.origin === "raffle" || filters.paymentMethod === "raffle") {
         return false;
       }
 
@@ -687,7 +971,7 @@ export class BIService {
       .from("orders")
       .select(
         `
-          id,customer_id,order_number,total,status,review_status,seller,discount,coupon_code,
+          id,customer_id,order_number,total,status,review_status,seller,discount,coupon_code,channel,
           customers(id,name,email),
           order_items(
             id,quantity,total_price,source,status,
@@ -708,13 +992,16 @@ export class BIService {
     }
 
     return ((data ?? []) as unknown as OrderAggregateRow[]).filter((order) => {
+      if (isExcludedReviewStatus(order.review_status)) {
+        return false;
+      }
+
       if (filters.seller && order.seller !== filters.seller) {
         return false;
       }
 
       if (filters.origin) {
-        const originMatch = (order.order_items ?? []).some((item) => item.source === filters.origin);
-        if (!originMatch) {
+        if (!orderOriginMatchesFilter(order, filters.origin)) {
           return false;
         }
       }
@@ -723,37 +1010,74 @@ export class BIService {
     });
   }
 
-  private async countOrdersByReviewStatus(status: string) {
-    const { count, error } = await this.supabase
+  private async countOrdersByReviewStatus(status: string, filters: BiFilters = {}) {
+    const range = resolveRange(filters);
+    const { data, error } = await this.supabase
       .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("review_status", status);
+      .select("id,seller,channel,order_items(source,status),review_status,status,created_at")
+      .eq("review_status", status)
+      .gte("created_at", range.from)
+      .lte("created_at", range.to)
+      .limit(1500);
 
     if (error) {
       throwQueryError(error, "Falha ao contar pedidos por status de analise");
     }
 
-    return count ?? 0;
+    return ((data ?? []) as unknown as OrderAggregateRow[])
+      .filter((order) => {
+        if (filters.seller && order.seller !== filters.seller) {
+          return false;
+        }
+
+        if (filters.origin && !orderOriginMatchesFilter(order, filters.origin)) {
+          return false;
+        }
+
+        return true;
+      })
+      .length;
   }
 
-  private async countAwaitingPaymentOrders() {
-    const { count, error } = await this.supabase
+  private async countAwaitingPaymentOrders(filters: BiFilters = {}) {
+    const range = resolveRange(filters);
+    const { data, error } = await this.supabase
       .from("orders")
-      .select("id", { count: "exact", head: true })
-      .or("review_status.eq.awaiting_payment,status.in.(pending_payment,partially_paid)");
+      .select("id,seller,channel,order_items(source,status),review_status,status,created_at,payments(amount,status)")
+      .or("review_status.eq.awaiting_payment,status.in.(pending_payment,partially_paid)")
+      .not("review_status", "in", "(under_review,rejected,cancelled)")
+      .not("status", "in", "(cancelled,refunded)")
+      .gte("created_at", range.from)
+      .lte("created_at", range.to)
+      .limit(1500);
 
     if (error) {
       throwQueryError(error, "Falha ao contar pedidos aguardando pagamento");
     }
 
-    return count ?? 0;
+    return ((data ?? []) as unknown as OrderAggregateRow[])
+      .filter((order) => {
+        if (filters.seller && order.seller !== filters.seller) {
+          return false;
+        }
+
+        if (filters.origin && !orderOriginMatchesFilter(order, filters.origin)) {
+          return false;
+        }
+
+        return true;
+      })
+      .length;
   }
 
-  private async countCurrentPendingOrders() {
+  private async countCurrentPendingOrders(filters: BiFilters = {}) {
+    const range = resolveRange(filters);
     const { data, error } = await this.supabase
       .from("orders")
-      .select("total,status,review_status,payments(amount,status)")
-      .not("status", "in", "(cancelled,refunded)");
+      .select("total,status,review_status,seller,channel,created_at,payments(amount,status),order_items(source,status)")
+      .not("status", "in", "(cancelled,refunded)")
+      .gte("created_at", range.from)
+      .lte("created_at", range.to);
 
     if (error) {
       throwQueryError(error, "Falha ao calcular pendencias atuais");
@@ -761,13 +1085,54 @@ export class BIService {
 
     return ((data ?? []) as Array<{
       payments?: Array<{ amount: number | string; status: string }>;
+      review_status?: string | null;
+      seller?: string | null;
       status: string;
       total: number | string;
-    }>).reduce((sum, order) => {
-      const paid = (order.payments ?? [])
-        .filter((payment) => payment.status === "paid")
-        .reduce((paymentSum, payment) => paymentSum + money(payment.amount), 0);
-      return sum + Math.max(0, money(order.total) - paid);
-    }, 0);
+    }>)
+      .filter((order) => {
+        if (isExcludedReviewStatus(order.review_status)) {
+          return false;
+        }
+
+        if (filters.seller && order.seller !== filters.seller) {
+          return false;
+        }
+
+        if (filters.origin && !orderOriginMatchesFilter(order as OrderAggregateRow, filters.origin)) {
+          return false;
+        }
+
+        const reviewStatus = String(order.review_status ?? "");
+        return (
+          ["approved_for_payment", "awaiting_payment", "paid"].includes(reviewStatus) ||
+          ["pending_payment", "partially_paid"].includes(order.status)
+        );
+      })
+      .reduce((sum, order) => {
+        const paid = (order.payments ?? [])
+          .filter((payment) => payment.status === "paid")
+          .reduce((paymentSum, payment) => paymentSum + money(payment.amount), 0);
+        return sum + Math.max(0, money(order.total) - paid);
+      }, 0);
+  }
+
+  private async loadRewardLevels(customerIds: string[]) {
+    const ids = customerIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+
+    if (ids.length === 0) {
+      return new Map<string, string>();
+    }
+
+    const { data, error } = await this.supabase
+      .from("reward_profiles")
+      .select("customer_id,level")
+      .in("customer_id", ids);
+
+    if (error) {
+      return new Map<string, string>();
+    }
+
+    return new Map((data ?? []).map((profile) => [profile.customer_id as string, profile.level as string]));
   }
 }
