@@ -3,7 +3,7 @@ import {
   type CatalogProductFilter,
   type CatalogProductSort,
 } from "@/lib/catalog";
-import { publicCorsPreflight, withPublicCors } from "@/server/http/cors";
+import { corsPreflightResponse, withCors } from "@/server/http/cors";
 
 const filters: CatalogProductFilter[] = ["all", "new", "ready", "order", "preorder", "specials"];
 const sorts: CatalogProductSort[] = [
@@ -37,19 +37,19 @@ export async function GET(request: Request) {
     supplier: searchParams.get("supplier") ?? undefined,
   });
 
-  return Response.json(
+  return withCors(request, Response.json(
     {
       data: products.data,
       meta: products.meta,
     },
     {
-      headers: withPublicCors({
+      headers: {
         "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-      }),
+      },
     },
-  );
+  ));
 }
 
-export function OPTIONS() {
-  return publicCorsPreflight();
+export function OPTIONS(request: Request) {
+  return corsPreflightResponse(request);
 }

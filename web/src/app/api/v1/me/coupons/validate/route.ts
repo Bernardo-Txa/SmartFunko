@@ -1,5 +1,6 @@
 import { forbidden } from "@/server/http/errors";
 import { requireUser } from "@/server/auth/require-user";
+import { corsPreflightResponse, withCors } from "@/server/http/cors";
 import {
   DiscountCouponService,
   validateCartCouponSchema,
@@ -8,7 +9,7 @@ import { handleApi, jsonOk } from "@/server/http/responses";
 import { parseJsonBody } from "@/server/validation/parse-json";
 
 export async function POST(request: Request) {
-  return handleApi(async () => {
+  return withCors(request, await handleApi(async () => {
     const { customer } = await requireUser();
 
     if (!customer) {
@@ -18,5 +19,9 @@ export async function POST(request: Request) {
     const input = await parseJsonBody(request, validateCartCouponSchema);
     const coupon = await new DiscountCouponService().validateCartCoupon(input);
     return jsonOk(coupon);
-  });
+  }));
+}
+
+export function OPTIONS(request: Request) {
+  return corsPreflightResponse(request);
 }

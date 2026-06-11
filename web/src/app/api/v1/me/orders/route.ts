@@ -1,5 +1,6 @@
 import { forbidden } from "@/server/http/errors";
 import { requireUser } from "@/server/auth/require-user";
+import { corsPreflightResponse, withCors } from "@/server/http/cors";
 import { handleApi, jsonCreated, jsonOk } from "@/server/http/responses";
 import {
   AssistedCheckoutService,
@@ -8,8 +9,8 @@ import {
 import { OrderService } from "@/server/orders/order-service";
 import { parseJsonBody } from "@/server/validation/parse-json";
 
-export async function GET() {
-  return handleApi(async () => {
+export async function GET(request: Request) {
+  return withCors(request, await handleApi(async () => {
     const { customer } = await requireUser();
 
     if (!customer) {
@@ -18,11 +19,11 @@ export async function GET() {
 
     const orders = await new OrderService().getCustomerOrdersForApi(customer.id);
     return jsonOk(orders);
-  });
+  }));
 }
 
 export async function POST(request: Request) {
-  return handleApi(async () => {
+  return withCors(request, await handleApi(async () => {
     const { customer, profile } = await requireUser();
 
     if (!customer) {
@@ -37,5 +38,9 @@ export async function POST(request: Request) {
     );
 
     return jsonCreated(order);
-  });
+  }));
+}
+
+export function OPTIONS(request: Request) {
+  return corsPreflightResponse(request);
 }

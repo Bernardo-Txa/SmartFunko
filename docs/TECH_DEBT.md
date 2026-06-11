@@ -133,6 +133,15 @@ Mobile MVP Cliente 0.2 conectou home, catalogo, produto e carrinho local aos end
 - revisar acessibilidade visual em dispositivos reais de 360px;
 - preparar builds release Android/iOS somente depois da integracao de dados.
 
+## CORS mobile futuro
+
+Mobile 0.2.1 adicionou allowlist de CORS para APIs publicas e `/api/v1/me/*`, preservando admin fora do escopo mobile. Permanecem pendentes:
+
+- revisar origens finais quando houver dominio proprio fora da Vercel;
+- decidir se apps nativos usarao somente HTTPS direto sem depender de CORS, mantendo Flutter Web como principal consumidor CORS;
+- adicionar testes automatizados de OPTIONS/headers para rotas publicas e de cliente;
+- revisar allowlist quando existir admin mobile explicito.
+
 ## Proxima sprint
 
 - Remover tambem o arquivo fisico do Supabase Storage quando uma imagem for removida da galeria. Hoje a remocao apaga o registro de `product_images` e preserva o objeto no bucket para evitar inconsistencias fora de transacao.

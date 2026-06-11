@@ -1,9 +1,10 @@
 import { getCatalogSuppliers } from "@/lib/catalog";
+import { corsPreflightResponse, withCors } from "@/server/http/cors";
 
-export async function GET() {
+export async function GET(request: Request) {
   const suppliers = await getCatalogSuppliers();
 
-  return Response.json(
+  return withCors(request, Response.json(
     {
       data: suppliers,
     },
@@ -12,5 +13,9 @@ export async function GET() {
         "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
       },
     },
-  );
+  ));
+}
+
+export function OPTIONS(request: Request) {
+  return corsPreflightResponse(request);
 }

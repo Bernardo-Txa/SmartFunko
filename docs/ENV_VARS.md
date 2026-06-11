@@ -13,6 +13,7 @@
 ## Server-only
 
 - `SUPABASE_SERVICE_ROLE_KEY`: service role usada somente no backend.
+- `CORS_ALLOWED_ORIGINS`: origens extras autorizadas para APIs publicas e `/api/v1/me/*`, separadas por virgula. Exemplo: `http://localhost:3000,http://localhost:33539,https://smart-funko.vercel.app`.
 - `INFINITEPAY_API_BASE_URL`: base da API InfinitePay. Use `https://api.checkout.infinitepay.io`.
 - `INFINITEPAY_API_KEY`: chave privada da InfinitePay, se a conta exigir autenticacao por header.
 - `INFINITEPAY_HANDLE`: InfiniteTag da conta. Para a SmartFunko use `smartfunko`. Se for preenchido como `@smartfunko`, o backend remove o `@` antes de enviar para a InfinitePay.
@@ -53,6 +54,9 @@ Variaveis `NEXT_PUBLIC_*` sao embutidas no bundle no build. Alterar essas variav
 - Client/browser usa somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - Helpers de InfinitePay validam `INFINITEPAY_HANDLE` antes de chamar o gateway e retornam erro amigavel quando a configuracao esta faltando.
 - Nao registrar secrets em logs.
+- CORS permite Flutter Web local em `http://localhost:*` e `http://127.0.0.1:*`, `NEXT_PUBLIC_SITE_URL`, `https://smart-funko.vercel.app` e origens extras em `CORS_ALLOWED_ORIGINS`.
+- CORS nao substitui autenticacao: endpoints `/api/v1/me/*` continuam exigindo Bearer token/sessao valida.
+- `/api/v1/admin/*` nao e liberado para mobile nesta sprint.
 
 ## Webhook InfinitePay
 

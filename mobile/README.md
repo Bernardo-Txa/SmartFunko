@@ -71,6 +71,8 @@ flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 \
 
 Depois abra `http://127.0.0.1:8080` no Brave ou Chrome.
 
+O backend permite CORS para Flutter Web local em `http://localhost:*` e `http://127.0.0.1:*`. Em ambientes remotos, mantenha `NEXT_PUBLIC_SITE_URL` correto e use `CORS_ALLOWED_ORIGINS` no web se precisar autorizar origens adicionais. CORS nao substitui login: chamadas futuras para `/api/v1/me/*` continuam usando Bearer token.
+
 Android:
 
 ```bash
@@ -104,6 +106,15 @@ O app consome endpoints públicos do backend web em `API_BASE_URL`:
 
 - `GET /api/v1/public/products`
 - `GET /api/v1/public/products/[slug]`
+
+Validacao CORS de preflight:
+
+```bash
+curl -i -X OPTIONS \
+  "https://smart-funko.vercel.app/api/v1/public/products?page=1&pageSize=24&sort=specials_first" \
+  -H "Origin: http://localhost:33539" \
+  -H "Access-Control-Request-Method: GET"
+```
 
 Fluxos para testar:
 

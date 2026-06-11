@@ -5,6 +5,8 @@ class AppConfig {
     'API_BASE_URL',
     defaultValue: '',
   );
+  static String get normalizedApiBaseUrl =>
+      apiBaseUrl.replaceFirst(RegExp(r'/+$'), '');
   static const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: '',

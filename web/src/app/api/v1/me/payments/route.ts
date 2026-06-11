@@ -1,5 +1,6 @@
 import { forbidden } from "@/server/http/errors";
 import { requireUser } from "@/server/auth/require-user";
+import { corsPreflightResponse, withCors } from "@/server/http/cors";
 import { handleApi, jsonOk } from "@/server/http/responses";
 import { createSupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -25,8 +26,8 @@ function firstRelation<T>(relation: T | T[] | null | undefined) {
   return relation ?? null;
 }
 
-export async function GET() {
-  return handleApi(async () => {
+export async function GET(request: Request) {
+  return withCors(request, await handleApi(async () => {
     const { customer } = await requireUser();
 
     if (!customer) {
@@ -53,5 +54,9 @@ export async function GET() {
     }));
 
     return jsonOk(payments);
-  });
+  }));
+}
+
+export function OPTIONS(request: Request) {
+  return corsPreflightResponse(request);
 }

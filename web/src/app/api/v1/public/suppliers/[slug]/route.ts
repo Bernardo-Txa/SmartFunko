@@ -1,18 +1,22 @@
 import { getCatalogSupplierBySlug } from "@/lib/catalog";
+import { corsPreflightResponse, withCors } from "@/server/http/cors";
 
 type Params = {
   params: Promise<{ slug: string }>;
 };
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const { slug } = await params;
   const supplier = await getCatalogSupplierBySlug(slug);
 
   if (!supplier) {
-    return Response.json({ error: "Supplier not found" }, { status: 404 });
+    return withCors(
+      request,
+      Response.json({ error: "Supplier not found" }, { status: 404 }),
+    );
   }
 
-  return Response.json(
+  return withCors(request, Response.json(
     {
       data: supplier,
     },
@@ -21,5 +25,9 @@ export async function GET(_request: Request, { params }: Params) {
         "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
       },
     },
-  );
+  ));
+}
+
+export function OPTIONS(request: Request) {
+  return corsPreflightResponse(request);
 }

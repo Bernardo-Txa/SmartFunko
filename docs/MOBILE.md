@@ -45,6 +45,26 @@ Contrato consumido pelo app:
 
 O app aceita campos nulos e variações simples de shape (`data`, `products`, `items`) para manter a UI resiliente. O compartilhamento de produto usa `${API_BASE_URL}/produto/[slug]`.
 
+## CORS Mobile 0.2.1
+
+Flutter Web local consome o backend remoto a partir de origens como `http://localhost:*` e `http://127.0.0.1:*`. As APIs publicas e de cliente respondem preflight `OPTIONS` com allowlist de origem.
+
+Origens permitidas no backend:
+
+- `http://localhost:*`.
+- `http://127.0.0.1:*`.
+- `https://smart-funko.vercel.app`.
+- `NEXT_PUBLIC_SITE_URL`, quando configurado.
+- `CORS_ALLOWED_ORIGINS`, lista opcional separada por virgula.
+
+Exemplo:
+
+```txt
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:33539,https://smart-funko.vercel.app
+```
+
+CORS nao libera acesso anonimo a APIs autenticadas: `/api/v1/me/*` segue exigindo Bearer token. `/api/v1/admin/*` nao foi liberado para mobile.
+
 ## Fora do MVP
 
 - Admin mobile.

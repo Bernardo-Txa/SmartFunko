@@ -18,7 +18,6 @@ class AuthInterceptor extends Interceptor {
     }
 
     options.headers['Accept'] = 'application/json';
-    options.headers['X-Client-Name'] = 'Smart Funkos Mobile';
 
     handler.next(options);
   }
