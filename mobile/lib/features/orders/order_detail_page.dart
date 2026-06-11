@@ -1,43 +1,245 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/utils/date_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/loading_state.dart';
+import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
+import 'data/order_models.dart';
+import 'data/orders_repository.dart';
+import 'domain/order_status_mapper.dart';
 
-class OrderDetailPage extends StatelessWidget {
+class OrderDetailPage extends ConsumerWidget {
   const OrderDetailPage({required this.orderNumber, super.key});
 
   final String orderNumber;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final order = ref.watch(orderDetailProvider(orderNumber));
 
     return AppScaffold(
       title: 'Pedido $orderNumber',
       showBackButton: true,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: order.when(
+        data: (item) => _OrderDetailContent(order: item),
+        loading: () => const LoadingState(message: 'Carregando pedido...'),
+        error: (error, stackTrace) => ErrorState(
+          message: 'Não foi possível carregar este pedido.',
+          onRetry: () => ref.invalidate(orderDetailProvider(orderNumber)),
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderDetailContent extends StatelessWidget {
+  const _OrderDetailContent({required this.order});
+
+  final OrderDetail order;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final status = mapOrderStatus(
+      context,
+      status: order.status,
+      reviewStatus: order.reviewStatus,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SmartCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(status.icon, color: status.color, size: 32),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      status.label,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                status.description,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (order.rejectedReason != null ||
+                  order.reviewNotes != null) ...[
+                const SizedBox(height: 10),
+                Text(order.rejectedReason ?? order.reviewNotes!),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SmartCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _DetailRow(label: 'Número', value: order.orderNumber),
+              _DetailRow(
+                label: 'Criado em',
+                value: DateFormatter.dayMonthYearHour(order.createdAt),
+              ),
+              if (order.customerName != null)
+                _DetailRow(label: 'Cliente', value: order.customerName!),
+              if (order.notes != null)
+                _DetailRow(label: 'Observações', value: order.notes!),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Itens',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 10),
+        for (final item in order.items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _OrderItemTile(item: item),
+          ),
+        const SizedBox(height: 8),
+        SmartCard(
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Total',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                order.total.formatted,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.secondary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (order.paymentUrl != null) ...[
+          const SizedBox(height: 16),
+          PrimaryButton(
+            label: 'Abrir pagamento',
+            icon: Icons.open_in_new_rounded,
+            onPressed: () => launchUrl(
+              Uri.parse(order.paymentUrl!),
+              mode: LaunchMode.externalApplication,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _OrderItemTile extends StatelessWidget {
+  const _OrderItemTile({required this.item});
+
+  final OrderItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SmartCard(
+      padding: const EdgeInsets.all(12),
+      child: Row(
         children: [
-          SmartCard(
+          Container(
+            height: 54,
+            width: 54,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.toys_rounded, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Status',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Em preparação',
-                  style: theme.textTheme.titleLarge?.copyWith(
+                  item.name,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text('Detalhe placeholder para o pedido $orderNumber.'),
+                const SizedBox(height: 4),
+                Text(
+                  '${item.quantity} x ${item.unitPrice.formatted}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
+            ),
+          ),
+          Text(
+            item.totalPrice.formatted,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.secondary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 104,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

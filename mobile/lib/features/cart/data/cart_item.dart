@@ -7,6 +7,7 @@ class CartItem {
     required this.name,
     required this.price,
     required this.quantity,
+    this.variantId,
     this.imageUrl,
     this.status,
     this.category,
@@ -17,6 +18,7 @@ class CartItem {
   final String name;
   final ProductPrice price;
   final int quantity;
+  final String? variantId;
   final String? imageUrl;
   final ProductStatus? status;
   final String? category;
@@ -30,6 +32,7 @@ class CartItem {
       name: name,
       price: price,
       quantity: quantity ?? this.quantity,
+      variantId: variantId,
       imageUrl: imageUrl,
       status: status,
       category: category,
@@ -43,6 +46,7 @@ class CartItem {
       name: product.name,
       price: product.price,
       quantity: quantity,
+      variantId: product.variantId,
       imageUrl: product.imageUrl,
       status: product.status,
       category: product.category,

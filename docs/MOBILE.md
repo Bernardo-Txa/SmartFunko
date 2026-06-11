@@ -88,6 +88,63 @@ Bloqueios importantes:
 
 No mobile, a URL e resolvida em `mobile/lib/core/network/image_url_resolver.dart`. Supabase Storage e imagens do proprio backend continuam diretas; imagens externas no Flutter Web usam o proxy. Futuro recomendado: migrar imagens externas para Supabase Storage/CDN proprio, padronizando o bucket `product-images`.
 
+## Pedido Real 0.3
+
+O carrinho local agora pode ser enviado como pedido real quando o cliente esta logado.
+
+Endpoints reutilizados:
+
+- `POST /api/v1/me/orders`
+- `GET /api/v1/me/orders`
+- `GET /api/v1/me/orders/[orderNumber]`
+
+Fluxo:
+
+1. Cliente adiciona produtos ao carrinho.
+2. `Finalizar pedido` exige login.
+3. `/checkout` mostra revisao, total estimado e observacoes opcionais.
+4. O app envia apenas `variantId` e `quantity`; o backend recalcula precos e totais.
+5. Pedido entra em analise (`under_review`) e o carrinho e limpo apos sucesso.
+6. `/pedidos` lista pedidos reais do cliente e `/pedidos/[orderNumber]` mostra o detalhe.
+
+Status suportados no mobile:
+
+- `under_review`: Em analise.
+- `approved_for_payment` / `awaiting_payment` / `pending_payment`: Aguardando pagamento.
+- `paid`: Pago.
+- `rejected`: Recusado.
+- `cancelled`: Cancelado.
+- `refunded`: Estornado.
+
+Limitacoes:
+
+- pagamento nativo InfinitePay fica para etapa futura;
+- pedido ainda passa por aprovacao/admin;
+- rifas reais entram na 0.4.
+
+## Rifas Reais 0.4
+
+O mobile consome o fluxo experimental de rifas ja existente no backend.
+
+Endpoints usados:
+
+- `GET /api/v1/public/raffles`
+- `GET /api/v1/public/raffles/[slug]`
+- `GET /api/v1/public/raffles/[slug]/numbers`
+- `POST /api/v1/me/raffles/[slug]/reserve`
+- `GET /api/v1/me/raffles/orders`
+
+Fluxo:
+
+1. `/rifas` lista campanhas abertas.
+2. `/rifas/[slug]` mostra detalhe, progresso e grade de numeros.
+3. Somente numeros disponiveis podem ser selecionados.
+4. Reserva exige login e envia apenas a lista de numeros.
+5. Backend valida disponibilidade, cliente, total e evita dupla reserva.
+6. `/minhas-rifas` lista reservas/participacoes do cliente.
+
+O modulo segue experimental/dev. Manter `NEXT_PUBLIC_ENABLE_RAFFLES=true` somente quando o ambiente estiver preparado. O app nao confirma pagamento por conta propria; se houver link seguro retornado pelo backend, ele apenas abre o link externo.
+
 ## Fora do MVP
 
 - Admin mobile.

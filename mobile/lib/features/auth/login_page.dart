@@ -31,7 +31,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (next.isAuthenticated) {
-        context.go('/');
+        final from = GoRouterState.of(context).uri.queryParameters['from'];
+        context.go(from?.startsWith('/') == true ? from! : '/');
       }
     });
 

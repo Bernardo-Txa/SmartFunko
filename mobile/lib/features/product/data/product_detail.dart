@@ -13,6 +13,7 @@ class ProductDetail {
     this.subcategory,
     this.special = false,
     this.supplierName,
+    this.variantId,
     this.badges = const [],
     this.source,
   });
@@ -28,6 +29,7 @@ class ProductDetail {
   final String? subcategory;
   final bool special;
   final String? supplierName;
+  final String? variantId;
   final List<String> badges;
   final String? source;
 
@@ -54,6 +56,7 @@ class ProductDetail {
       subcategory: subcategory,
       special: summary.special,
       supplierName: summary.supplierName,
+      variantId: summary.variantId,
       badges: summary.badges,
       source: summary.source,
     );
@@ -70,6 +73,7 @@ class ProductDetail {
       category: category,
       special: special,
       supplierName: supplierName,
+      variantId: variantId,
       isAvailable: status.isAvailable,
       source: source,
       badges: badges,

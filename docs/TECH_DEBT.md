@@ -123,15 +123,29 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 
 Mobile MVP Cliente 0.2 conectou home, catalogo, produto e carrinho local aos endpoints publicos de produto do backend web. Permanecem pendentes:
 
-- criar pedido real a partir do carrinho na sprint 0.3;
 - persistir carrinho local, se a experiencia exigir retomada apos fechar o app;
-- conectar pedidos, rifas, clube e perfil a APIs reais;
+- conectar rifas, clube e perfil a APIs reais;
 - revisar fluxo de reset/cadastro de senha no Supabase Auth;
 - adicionar testes de widget para rotas autenticadas com mocks;
 - configurar Android SDK, Chrome/Chromium e Xcode nos ambientes de build;
 - criar icone, splash, screenshots, privacy policy e termos para lojas;
 - revisar acessibilidade visual em dispositivos reais de 360px;
 - preparar builds release Android/iOS somente depois da integracao de dados.
+
+Mobile MVP Cliente 0.3 criou pedido real pelo carrinho e conectou Meus Pedidos. Permanecem pendentes:
+
+- persistir carrinho entre sessoes;
+- tratar renovacao/expiracao de sessao com fluxo dedicado;
+- criar testes widget/integracao com repositorios mockados para checkout e pedidos;
+- evoluir pagamento/link InfinitePay no app em etapa futura.
+
+Mobile MVP Cliente 0.4 conectou rifas reais experimentais. Permanecem pendentes:
+
+- revisar compliance/legal antes de qualquer uso produtivo;
+- melhorar detalhe de minhas rifas com tela dedicada por reserva;
+- testar concorrencia de reserva com casos automatizados;
+- evoluir pagamento de rifa no app somente via backend/webhook;
+- Clube real entra na 0.5.
 
 ## CORS mobile futuro
 

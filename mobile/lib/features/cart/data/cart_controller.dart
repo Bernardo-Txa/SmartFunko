@@ -20,6 +20,11 @@ class CartState {
   }
 
   bool get isEmpty => items.isEmpty;
+  bool get canCheckout =>
+      items.isNotEmpty &&
+      items.every(
+        (item) => item.quantity > 0 && (item.variantId?.isNotEmpty ?? false),
+      );
 
   CartState copyWith({List<CartItem>? items}) {
     return CartState(items: items ?? this.items);
@@ -82,7 +87,13 @@ class CartController extends StateNotifier<CartState> {
   }
 
   Future<void> startCheckout() async {
-    // Sprint 0.3: connect this stub to the assisted order endpoint.
+    if (!state.canCheckout) {
+      throw StateError('Carrinho inválido para checkout.');
+    }
+  }
+
+  void clearAfterOrderCreated() {
+    clear();
   }
 
   void _changeQuantity(String productId, int delta) {

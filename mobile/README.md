@@ -145,6 +145,30 @@ Limitações assumidas:
 - Clube real entra na sprint `0.5`.
 - O carrinho `0.2` é local em memória e não persiste ao reiniciar o app.
 
+## Mobile MVP Cliente 0.3
+
+Fluxo de pedido real:
+
+- Carrinho usa produtos reais do catalogo e guarda `variantId`.
+- `Finalizar pedido` exige login.
+- `/checkout` revisa itens, total estimado e observacoes.
+- `POST /api/v1/me/orders` cria o pedido em analise.
+- `/pedidos` lista pedidos reais.
+- `/pedidos/[orderNumber]` mostra status, itens, total e link de pagamento se o backend liberar.
+
+O app nao envia preco como fonte da verdade. O backend recalcula totais e valida produtos pelo token do usuario.
+
+## Mobile MVP Cliente 0.4
+
+Rifas reais experimentais:
+
+- `/rifas` lista campanhas abertas via `GET /api/v1/public/raffles`.
+- `/rifas/:slug` carrega detalhe e numeros via endpoints publicos.
+- Cliente seleciona numeros disponiveis e reserva com `POST /api/v1/me/raffles/[slug]/reserve`.
+- `/minhas-rifas` lista reservas pelo endpoint `GET /api/v1/me/raffles/orders`.
+
+O backend continua definindo cliente pelo Bearer token e validando disponibilidade/total. Pagamento nativo nao e confirmado pelo app.
+
 ## Estrutura
 
 - `lib/app`: app, router e tema.

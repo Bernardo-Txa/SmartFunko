@@ -86,6 +86,7 @@ class ProductSummary {
     this.supplierName,
     this.isAvailable = true,
     this.source,
+    this.variantId,
     this.badges = const [],
   });
 
@@ -100,6 +101,7 @@ class ProductSummary {
   final String? supplierName;
   final bool isAvailable;
   final String? source;
+  final String? variantId;
   final List<String> badges;
 
   factory ProductSummary.fromJson(Map<String, dynamic> json) {
@@ -119,6 +121,7 @@ class ProductSummary {
       'supplier_name',
     ]);
     final source = _readNullableString(json, ['source']);
+    final variantId = _readNullableString(json, ['variantId', 'variant_id']);
     final badges = [
       status.label,
       if (specialLabel != null) specialLabel,
@@ -146,6 +149,7 @@ class ProductSummary {
           _readNullableBool(json, ['isAvailable', 'available']) ??
           status.isAvailable,
       source: source,
+      variantId: variantId,
       badges: badges.toSet().where((badge) => badge.trim().isNotEmpty).toList(),
     );
   }

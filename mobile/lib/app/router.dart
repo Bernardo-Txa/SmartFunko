@@ -6,12 +6,14 @@ import '../core/auth/auth_state.dart';
 import '../features/auth/login_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/catalog/catalog_page.dart';
+import '../features/checkout/checkout_review_page.dart';
 import '../features/club/club_page.dart';
 import '../features/home/home_page.dart';
 import '../features/orders/order_detail_page.dart';
 import '../features/orders/orders_page.dart';
 import '../features/product/product_detail_page.dart';
 import '../features/profile/profile_page.dart';
+import '../features/raffles/my_raffles_page.dart';
 import '../features/raffles/raffle_detail_page.dart';
 import '../features/raffles/raffles_page.dart';
 import '../features/splash/splash_page.dart';
@@ -35,7 +37,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth.isAuthenticated && isLogin) {
-        return '/';
+        final from = state.uri.queryParameters['from'];
+        return from?.startsWith('/') == true ? from : '/';
       }
 
       return null;
@@ -55,6 +58,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/carrinho', builder: (context, state) => const CartPage()),
       GoRoute(
+        path: '/checkout',
+        builder: (context, state) => const CheckoutReviewPage(),
+      ),
+      GoRoute(
         path: '/pedidos',
         builder: (context, state) => const OrdersPage(),
       ),
@@ -65,6 +72,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/rifas', builder: (context, state) => const RafflesPage()),
+      GoRoute(
+        path: '/minhas-rifas',
+        builder: (context, state) => const MyRafflesPage(),
+      ),
       GoRoute(
         path: '/rifas/:slug',
         builder: (context, state) =>

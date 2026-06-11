@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_controller.dart';
 import '../../core/network/image_url_resolver.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
@@ -162,6 +163,8 @@ class _CartSummary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final controller = ref.read(cartControllerProvider.notifier);
+    final auth = ref.watch(authControllerProvider);
+    final cart = ref.watch(cartControllerProvider);
 
     return SmartCard(
       child: Column(
@@ -188,20 +191,22 @@ class _CartSummary extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           PrimaryButton(
-            label: 'Enviar pedido',
+            label: 'Finalizar pedido',
             icon: Icons.send_rounded,
-            onPressed: () async {
-              await controller.startCheckout();
-              if (!context.mounted) {
-                return;
-              }
+            onPressed: cart.canCheckout
+                ? () async {
+                    await controller.startCheckout();
+                    if (!context.mounted) {
+                      return;
+                    }
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Criação de pedido entra na próxima etapa.'),
-                ),
-              );
-            },
+                    context.go(
+                      auth.isAuthenticated
+                          ? '/checkout'
+                          : '/login?from=/checkout',
+                    );
+                  }
+                : null,
           ),
           const SizedBox(height: 10),
           PrimaryButton(

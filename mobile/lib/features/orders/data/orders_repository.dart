@@ -1,0 +1,73 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/network/api_client.dart';
+import 'order_models.dart';
+
+final ordersRepositoryProvider = Provider<OrdersRepository>(
+  (ref) => OrdersRepository(ref.watch(apiClientProvider)),
+);
+
+final ordersProvider = FutureProvider.autoDispose<List<OrderSummary>>((ref) {
+  return ref.watch(ordersRepositoryProvider).getOrders();
+});
+
+final orderDetailProvider = FutureProvider.autoDispose
+    .family<OrderDetail, String>((ref, orderNumber) {
+      return ref.watch(ordersRepositoryProvider).getOrderByNumber(orderNumber);
+    });
+
+class OrdersRepository {
+  const OrdersRepository(this._apiClient);
+
+  final ApiClient _apiClient;
+
+  Future<List<OrderSummary>> getOrders() async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/api/v1/me/orders',
+    );
+    final rawData = response.data?['data'] ?? response.data;
+
+    if (rawData is List) {
+      return rawData
+          .whereType<Map<String, dynamic>>()
+          .map(OrderSummary.fromJson)
+          .toList();
+    }
+
+    throw const OrdersShapeException();
+  }
+
+  Future<OrderDetail> getOrderByNumber(String orderNumber) async {
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/api/v1/me/orders/$orderNumber',
+    );
+    final rawData = response.data?['data'] ?? response.data;
+
+    if (rawData is Map<String, dynamic>) {
+      return OrderDetail.fromJson(rawData);
+    }
+
+    throw const OrdersShapeException();
+  }
+
+  Future<CreateOrderResponse> createOrder(CreateOrderRequest request) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/api/v1/me/orders',
+      data: request.toJson(),
+    );
+    final rawData = response.data?['data'] ?? response.data;
+
+    if (rawData is Map<String, dynamic>) {
+      return CreateOrderResponse.fromJson(rawData);
+    }
+
+    throw const OrdersShapeException();
+  }
+}
+
+class OrdersShapeException implements Exception {
+  const OrdersShapeException();
+
+  @override
+  String toString() => 'A API retornou um formato inesperado de pedidos.';
+}
