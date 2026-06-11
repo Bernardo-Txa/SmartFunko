@@ -119,6 +119,19 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 - testes automatizados do endpoint e do combobox;
 - UX de reaproveitamento de produto parecido antes de criar duplicado.
 
+## Mobile futuro
+
+Mobile MVP Cliente 0.1.1 iniciou a base Flutter compilavel, com Supabase Auth, ApiClient, router, tema e telas placeholder. Permanecem pendentes:
+
+- conectar catalogo, produto, pedidos, rifas, clube e perfil a APIs reais;
+- persistir carrinho local e definir contrato com checkout assistido;
+- revisar fluxo de reset/cadastro de senha no Supabase Auth;
+- adicionar testes de widget para rotas autenticadas com mocks;
+- configurar Android SDK, Chrome/Chromium e Xcode nos ambientes de build;
+- criar icone, splash, screenshots, privacy policy e termos para lojas;
+- revisar acessibilidade visual em dispositivos reais de 360px;
+- preparar builds release Android/iOS somente depois da integracao de dados.
+
 ## Proxima sprint
 
 - Remover tambem o arquivo fisico do Supabase Storage quando uma imagem for removida da galeria. Hoje a remocao apaga o registro de `product_images` e preserva o objeto no bucket para evitar inconsistencias fora de transacao.

@@ -1,4 +1,4 @@
-package br.com.smartfunkos.smart_funkos
+package br.com.smartfunkos.app
 
 import io.flutter.embedding.android.FlutterActivity
 

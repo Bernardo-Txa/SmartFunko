@@ -11,7 +11,8 @@ final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
 
 class AuthController extends StateNotifier<AuthState> {
   AuthController() : super(const AuthState.loading()) {
-    _subscription = supabase.Supabase.instance.client.auth.onAuthStateChange.listen(_handleAuthStateChange);
+    _subscription = supabase.Supabase.instance.client.auth.onAuthStateChange
+        .listen(_handleAuthStateChange);
     unawaited(restoreSession());
   }
 
@@ -23,10 +24,7 @@ class AuthController extends StateNotifier<AuthState> {
     _emitSession(_client.auth.currentSession);
   }
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     state = const AuthState.loading();
 
     try {
@@ -36,7 +34,9 @@ class AuthController extends StateNotifier<AuthState> {
       );
       final session = response.session;
       if (session == null) {
-        state = const AuthState.error('Nao foi possivel entrar com essas credenciais.');
+        state = const AuthState.error(
+          'Nao foi possivel entrar com essas credenciais.',
+        );
         return;
       }
 

@@ -1,11 +1,7 @@
 import 'package:dio/dio.dart';
 
 class ApiError implements Exception {
-  const ApiError({
-    required this.message,
-    this.raw,
-    this.statusCode,
-  });
+  const ApiError({required this.message, this.raw, this.statusCode});
 
   final String message;
   final int? statusCode;
@@ -19,7 +15,9 @@ class ApiError implements Exception {
     String message;
     if (data is Map<String, dynamic>) {
       final candidate = data['message'] ?? data['error'] ?? data['detail'];
-      message = candidate is String && candidate.trim().isNotEmpty ? candidate.trim() : _messageForStatus(statusCode);
+      message = candidate is String && candidate.trim().isNotEmpty
+          ? candidate.trim()
+          : _messageForStatus(statusCode);
     } else {
       message = _messageForStatus(statusCode, error.type);
     }

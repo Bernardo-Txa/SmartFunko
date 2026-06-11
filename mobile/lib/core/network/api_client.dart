@@ -9,16 +9,16 @@ final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref));
 
 class ApiClient {
   ApiClient(this.ref)
-      : _dio = Dio(
-          BaseOptions(
-            baseUrl: AppConfig.apiBaseUrl,
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 20),
-            sendTimeout: const Duration(seconds: 15),
-            responseType: ResponseType.json,
-            headers: const {'Content-Type': 'application/json'},
-          ),
-        ) {
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig.apiBaseUrl,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 20),
+          sendTimeout: const Duration(seconds: 15),
+          responseType: ResponseType.json,
+          headers: const {'Content-Type': 'application/json'},
+        ),
+      ) {
     _dio.interceptors.add(AuthInterceptor(ref));
   }
 
@@ -31,12 +31,14 @@ class ApiClient {
     Options? options,
     CancelToken? cancelToken,
   }) {
-    return _request(() => _dio.get<T>(
-          path,
-          queryParameters: queryParameters,
-          options: options,
-          cancelToken: cancelToken,
-        ));
+    return _request(
+      () => _dio.get<T>(
+        path,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      ),
+    );
   }
 
   Future<Response<T>> post<T>(
@@ -46,13 +48,15 @@ class ApiClient {
     Options? options,
     CancelToken? cancelToken,
   }) {
-    return _request(() => _dio.post<T>(
-          path,
-          data: data,
-          queryParameters: queryParameters,
-          options: options,
-          cancelToken: cancelToken,
-        ));
+    return _request(
+      () => _dio.post<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      ),
+    );
   }
 
   Future<Response<T>> patch<T>(
@@ -62,13 +66,15 @@ class ApiClient {
     Options? options,
     CancelToken? cancelToken,
   }) {
-    return _request(() => _dio.patch<T>(
-          path,
-          data: data,
-          queryParameters: queryParameters,
-          options: options,
-          cancelToken: cancelToken,
-        ));
+    return _request(
+      () => _dio.patch<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      ),
+    );
   }
 
   Future<Response<T>> delete<T>(
@@ -78,13 +84,15 @@ class ApiClient {
     Options? options,
     CancelToken? cancelToken,
   }) {
-    return _request(() => _dio.delete<T>(
-          path,
-          data: data,
-          queryParameters: queryParameters,
-          options: options,
-          cancelToken: cancelToken,
-        ));
+    return _request(
+      () => _dio.delete<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      ),
+    );
   }
 
   Future<Response<T>> _request<T>(Future<Response<T>> Function() action) async {

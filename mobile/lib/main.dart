@@ -11,7 +11,7 @@ Future<void> main() async {
   if (AppConfig.isComplete) {
     await Supabase.initialize(
       url: AppConfig.supabaseUrl,
-      anonKey: AppConfig.supabaseAnonKey,
+      publishableKey: AppConfig.supabaseAnonKey,
     );
   }
 
@@ -67,7 +67,9 @@ class _ConfigErrorCard extends StatelessWidget {
         color: colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.4)),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -75,11 +77,17 @@ class _ConfigErrorCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded, color: colorScheme.error, size: 32),
+              Icon(
+                Icons.warning_amber_rounded,
+                color: colorScheme.error,
+                size: 32,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Configurações obrigatórias ausentes',
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

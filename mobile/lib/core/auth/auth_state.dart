@@ -1,11 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
-enum AuthStatus {
-  loading,
-  authenticated,
-  unauthenticated,
-  error,
-}
+enum AuthStatus { loading, authenticated, unauthenticated, error }
 
 class AuthState {
   const AuthState._({
@@ -17,22 +12,16 @@ class AuthState {
 
   const AuthState.loading() : this._(status: AuthStatus.loading);
 
-  const AuthState.unauthenticated() : this._(status: AuthStatus.unauthenticated);
+  const AuthState.unauthenticated()
+    : this._(status: AuthStatus.unauthenticated);
 
   const AuthState.error(String message)
-      : this._(
-          status: AuthStatus.error,
-          errorMessage: message,
-        );
+    : this._(status: AuthStatus.error, errorMessage: message);
 
   const AuthState.authenticated({
     required supabase.Session session,
     required supabase.User user,
-  }) : this._(
-          status: AuthStatus.authenticated,
-          session: session,
-          user: user,
-        );
+  }) : this._(status: AuthStatus.authenticated, session: session, user: user);
 
   final AuthStatus status;
   final String? errorMessage;
