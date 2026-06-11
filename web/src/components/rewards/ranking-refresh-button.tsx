@@ -9,6 +9,10 @@ export function RankingRefreshButton({ month, year }: { month: number; year: num
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function refreshRanking() {
+    if (!window.confirm("Recalcular o ranking pode alterar o snapshot salvo deste mês. Deseja continuar?")) {
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await fetch(`/api/v1/admin/rewards/ranking?year=${year}&month=${month}`, { method: "POST" });

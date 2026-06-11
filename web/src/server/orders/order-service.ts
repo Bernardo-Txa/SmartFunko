@@ -5,6 +5,7 @@ import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { calculateOrderTotals } from "@/server/orders/order-calculator";
+import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
@@ -565,7 +566,9 @@ export class OrderService {
       }
     }
 
-    return this.updateOrderStatus(id, "cancelled", notes ?? "Pedido cancelado");
+    const cancelledOrder = await this.updateOrderStatus(id, "cancelled", notes ?? "Pedido cancelado");
+    await this.safeReverseOrderPaymentPoints(id);
+    return cancelledOrder;
   }
 
   async getPublicOrderByNumberAndToken(orderNumber: string, token: string) {
@@ -731,6 +734,14 @@ export class OrderService {
 
     if (error) {
       throwQueryError(error, "Falha ao registrar historico de status");
+    }
+  }
+
+  private async safeReverseOrderPaymentPoints(orderId: string) {
+    try {
+      await new RewardsService(this.supabase, this.actorId).reverseOrderPaymentPoints(orderId, "order_cancelled");
+    } catch (error) {
+      console.error("Falha ao reverter pontos do pedido cancelado", error);
     }
   }
 

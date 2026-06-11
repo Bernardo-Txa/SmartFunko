@@ -49,6 +49,7 @@ A camada publica agora organiza descoberta e intencao de compra por cima do core
 - carrinho assistido em `/carrinho`, persistido no navegador, com envio de pedido para análise, cupom de desconto e WhatsApp como atendimento;
 - admin de demanda em `/admin/demanda`, restrito a owner, com ranking real de wishlist.
 - Clube Smart Funkos em `/conta/clube` e `/admin/clube`, atras de `NEXT_PUBLIC_ENABLE_REWARDS`, com pontos, niveis longos e Ranking Mensal Top 3 Pedidos.
+- O ranking mensal aberto e calculado a partir dos pedidos pagos; ao fechar/awardar, passa a funcionar como snapshot salvo e so recalcula por acao explicita do admin.
 
 O carrinho assistido nao reserva estoque automaticamente, nao calcula frete e nao cobra pagamento antes da aprovacao humana. Quando o cliente envia o carrinho, o sistema cria um pedido `review_status = under_review`; o admin aprova/recusa e, se aprovar, gera o link InfinitePay. Cupons criados em `/admin/cupons` podem ser aplicados antes do envio.
 

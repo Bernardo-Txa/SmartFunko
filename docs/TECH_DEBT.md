@@ -92,6 +92,7 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 - Tornar o incremento de uso de cupom totalmente transacional via RPC se houver alto volume ou concorrencia real.
 - Criar rotina admin de backfill de pontos para pagamentos antigos antes de ativar o Clube em producao real.
 - Evoluir rewards para RPC transacional se pontos, badges e ranking virarem regra promocional sensivel.
+- Criar fluxo financeiro completo de reembolso/cancelamento de rifa paga antes de liberar cancelamento produtivo de rifa já paga; hoje pontos de rifa paga sao concedidos e a reversao existe no service para quando houver fluxo operacional de reembolso.
 - Preparar Flutter mobile depois da V1 web/admin.
 - Manter Gamificacao / Clube Smart Funkos no radar como modulo futuro.
 - Evoluir Rifas DEV 1.1 apenas depois de resolver compliance, pagamento automatico, notificacoes, sorteio auditavel e reembolso.

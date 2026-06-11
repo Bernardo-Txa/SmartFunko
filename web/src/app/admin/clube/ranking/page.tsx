@@ -27,8 +27,14 @@ type RankingEntry = {
   order_total: number;
   paid_at: string;
   rank_position: number | null;
+  reward_cancelled_at?: string | null;
+  reward_cancelled_by?: string | null;
+  reward_delivered_at?: string | null;
+  reward_delivered_by?: string | null;
   reward_notes: string | null;
   reward_status: string;
+  cancelled_by_profile?: { name?: string | null } | null;
+  delivered_by_profile?: { name?: string | null } | null;
 };
 
 function getRewardStatusLabel(status: string) {
@@ -62,6 +68,11 @@ export default async function AdminClubRankingPage({ searchParams }: Props) {
   const ranking = await new RewardsService(undefined, admin.profile.id).getRanking(year, month);
   const entries = ranking.entries as RankingEntry[];
   const winners = entries.filter((entry) => entry.is_winner).slice(0, 3);
+  const positionRewards = [
+    ranking.first_place_reward,
+    ranking.second_place_reward,
+    ranking.third_place_reward,
+  ];
 
   return (
     <AdminShell title="Ranking Mensal" description="Top 3 maiores pedidos pagos do mês, por pedido individual.">
@@ -94,6 +105,9 @@ export default async function AdminClubRankingPage({ searchParams }: Props) {
                     <p className="mt-2 text-sm text-[var(--muted)]">
                       Brinde: {getRewardStatusLabel(entry.reward_status)}
                     </p>
+                    {positionRewards[index] ? (
+                      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{positionRewards[index]}</p>
+                    ) : null}
                   </>
                 ) : (
                   <p className="mt-3 text-sm text-[var(--muted)]">Sem pedido classificado.</p>
@@ -129,11 +143,23 @@ export default async function AdminClubRankingPage({ searchParams }: Props) {
                     <td className="px-4 py-3 text-[var(--muted)]">{formatDate(entry.paid_at)}</td>
                     <td className="px-4 py-3">
                       {entry.is_winner ? (
-                        <RankingEntryActions
-                          entryId={entry.id}
-                          rewardNotes={entry.reward_notes}
-                          rewardStatus={entry.reward_status}
-                        />
+                        <div className="grid gap-2">
+                          <RankingEntryActions
+                            entryId={entry.id}
+                            rewardNotes={entry.reward_notes}
+                            rewardStatus={entry.reward_status}
+                          />
+                          {entry.reward_delivered_at ? (
+                            <p className="text-xs text-[var(--muted)]">
+                              Entregue por {entry.delivered_by_profile?.name ?? "admin"} em {formatDate(entry.reward_delivered_at)}
+                            </p>
+                          ) : null}
+                          {entry.reward_cancelled_at ? (
+                            <p className="text-xs text-[var(--muted)]">
+                              Cancelado por {entry.cancelled_by_profile?.name ?? "admin"} em {formatDate(entry.reward_cancelled_at)}
+                            </p>
+                          ) : null}
+                        </div>
                       ) : (
                         <span className="text-[var(--muted)]">Fora do Top 3</span>
                       )}

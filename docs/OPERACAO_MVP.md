@@ -301,12 +301,14 @@ Limites da DEV 1.1:
 - `POST /api/v1/me/coupons/validate` valida cupom do carrinho com precos recalculados no servidor.
 - `/admin/cupons` permite criar, ativar e desativar cupons; cupons aplicados gravam `orders.coupon_id`, `orders.coupon_code` e `orders.discount`.
 - Clube Smart Funkos 1.0 fica atras de `NEXT_PUBLIC_ENABLE_REWARDS`.
-- Pontos do clube sao registrados em `reward_point_ledger` quando um pagamento manual ou InfinitePay e confirmado; o calculo inicial e 1 ponto por R$ 1 pago.
-- Estorno de pagamento gera lancamento `reverse` no extrato de pontos e nao reduz `lifetime_points`, portanto nao rebaixa nivel.
+- Pontos do clube sao registrados em `reward_point_ledger` quando um pagamento manual, InfinitePay ou rifa e confirmado; o calculo inicial e 1 ponto por R$ 1 pago.
+- Estorno/cancelamento com reversao gera lancamento `reverse` no extrato de pontos. A regra atual reduz `current_points` e tambem reduz `lifetime_points`, pois o pagamento foi invalidado; ajustes promocionais futuros podem usar regra diferente.
+- Cancelamento de pedido com pagamentos pagos reverte os pontos dos pagamentos daquele pedido de forma idempotente com motivo `order_cancelled`.
 - Niveis longos usam `lifetime_points`: Visitante 0, Colecionador Iniciante 1.000, Caçador de Exclusivos 3.000, Mestre dos Funkos 7.500, Grail Hunter 15.000, Elite Smart 30.000, Lenda Smart 60.000 e Hall da Fama 100.000.
 - `/admin/clube` lista clientes do clube, pontos atuais, lifetime e nivel.
-- `/admin/clube/ranking` recalcula e acompanha o Ranking Mensal Top 3 Pedidos, baseado no valor de cada pedido individual pago no mes.
-- Ganhadores do ranking possuem controle de brinde por status `pending`, `delivered` ou `cancelled`.
+- `/admin/clube/ranking` acompanha o Ranking Mensal Top 3 Pedidos, baseado no valor de cada pedido individual pago no mes.
+- Ranking aberto pode ser recalculado automaticamente; ranking `closed`, `awarded` ou `cancelled` usa snapshot salvo em `monthly_order_ranking_entries` e so muda por recálculo explícito do admin.
+- Ganhadores do ranking possuem controle de brinde por status `pending`, `delivered` ou `cancelled`, com observacao, admin responsavel e data de entrega/cancelamento.
 - Cliente nao consegue pagar antes da aprovacao admin, porque o link InfinitePay so e gerado em `awaiting_payment`.
 - A consulta `payment_check` e server-side; se `paid = true`, gera pagamento e caixa pelo mesmo fluxo financeiro do webhook.
 - `payment_provider_events` guarda eventos de gateway para auditoria e idempotencia; segredos da InfinitePay nunca sao enviados ao client.

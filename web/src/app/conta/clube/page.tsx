@@ -27,6 +27,9 @@ type RankingEntry = {
   is_winner: boolean;
   order_total: number;
   rank_position: number | null;
+  reward_cancelled_at?: string | null;
+  reward_delivered_at?: string | null;
+  reward_notes?: string | null;
   reward_status: string;
 };
 
@@ -59,11 +62,24 @@ function DisabledState() {
 
 function reasonLabel(reason: string) {
   const labels: Record<string, string> = {
+    order_cancelled: "Pedido cancelado",
     payment_paid: "Pagamento confirmado",
     payment_refunded: "Pagamento estornado",
+    raffle_order_cancelled: "Rifa cancelada",
+    raffle_order_paid: "Rifa paga",
   };
 
   return labels[reason] ?? reason;
+}
+
+function rewardStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    cancelled: "Brinde cancelado",
+    delivered: "Brinde entregue",
+    pending: "Brinde pendente",
+  };
+
+  return labels[status] ?? "Sem brinde";
 }
 
 export default async function AccountClubPage() {
@@ -122,6 +138,23 @@ export default async function AccountClubPage() {
           <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             <h2 className="text-lg font-bold text-[var(--foreground)]">Ranking mensal Top 3 pedidos</h2>
             <p className="mt-2 text-sm text-[var(--muted)]">{club.ranking.title}</p>
+            {club.ranking.myEntries.length > 0 ? (
+              <div className="mt-4 rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
+                <strong className="text-sm text-[var(--foreground)]">Sua participação neste mês</strong>
+                <div className="mt-3 grid gap-2">
+                  {(club.ranking.myEntries as RankingEntry[]).map((entry) => (
+                    <div key={entry.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-[var(--muted)]">
+                        #{entry.rank_position} · {formatCurrency(Number(entry.order_total))}
+                      </span>
+                      <span className={entry.is_winner ? "font-bold text-[var(--foreground)]" : "text-[var(--muted)]"}>
+                        {entry.is_winner ? rewardStatusLabel(entry.reward_status) : "Fora do Top 3"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div className="mt-4 grid gap-3">
               {(club.ranking.entries as RankingEntry[]).slice(0, 10).map((entry) => (
                 <div key={entry.id} className="flex items-center justify-between rounded-md border border-[var(--border)] bg-[var(--background)] p-3 text-sm">

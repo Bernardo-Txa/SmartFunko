@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
+import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
 
@@ -726,6 +727,7 @@ export class RaffleService {
       { cashEntry, method: input.method, orderId },
       actorProfileId,
     );
+    await this.safeAwardRaffleOrderPoints(orderId, actorProfileId);
 
     return data;
   }
@@ -778,6 +780,14 @@ export class RaffleService {
 
     await this.createDrawAudit(order.raffle_campaign_id, "order.cancelled", { orderId }, actorProfileId);
     return data;
+  }
+
+  private async safeAwardRaffleOrderPoints(orderId: string, actorProfileId?: string | null) {
+    try {
+      await new RewardsService(this.supabase, actorProfileId).awardRaffleOrderPoints(orderId);
+    } catch (error) {
+      console.error("Falha ao registrar pontos da rifa", error);
+    }
   }
 
   async listPublicRaffleCampaigns() {

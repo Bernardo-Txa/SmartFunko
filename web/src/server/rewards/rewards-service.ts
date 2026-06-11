@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { isRewardsEnabled } from "@/lib/env";
+import { AuditLogService } from "@/server/audit/audit-log-service";
 import { forbidden, notFound } from "@/server/http/errors";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -82,6 +83,12 @@ type RankingEntryRow = {
   is_winner: boolean;
   reward_status: string;
   reward_notes: string | null;
+  reward_cancelled_at?: string | null;
+  reward_delivered_at?: string | null;
+  reward_cancelled_by?: string | null;
+  reward_delivered_by?: string | null;
+  cancelled_by_profile?: { name?: string | null } | null;
+  delivered_by_profile?: { name?: string | null } | null;
   customers?: {
     name?: string | null;
   } | null;
@@ -115,6 +122,15 @@ type PaymentRow = {
     order_number?: string | null;
     total?: number | string | null;
   } | null;
+};
+
+type RaffleOrderRewardRow = {
+  id: string;
+  customer_id: string;
+  order_number: string;
+  paid_at: string | null;
+  status: string;
+  total_amount: number | string;
 };
 
 function assertRewardsEnabled() {
@@ -171,10 +187,14 @@ function mapProfile(profile: RewardProfileRow) {
 }
 
 export class RewardsService {
+  private readonly audit: AuditLogService;
+
   constructor(
     private readonly supabase: SupabaseAdminClient = createSupabaseAdminClient(),
     private readonly actorId?: string | null,
-  ) {}
+  ) {
+    this.audit = new AuditLogService(this.supabase);
+  }
 
   async getCustomerClub(customerId: string) {
     assertRewardsEnabled();
@@ -386,6 +406,52 @@ export class RewardsService {
     return { customerId, points };
   }
 
+  async reverseOrderPaymentPoints(orderId: string, reason = "order_cancelled") {
+    if (!isRewardsEnabled()) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from("payments")
+      .select("id,amount,customer_id,order_id,paid_at,status,orders(customer_id,order_number,total)")
+      .eq("order_id", orderId)
+      .eq("status", "paid");
+
+    if (error) {
+      throwQueryError(error, "Falha ao buscar pagamentos do pedido para reversao de pontos");
+    }
+
+    const results = [];
+
+    for (const payment of (data ?? []) as unknown as PaymentRow[]) {
+      const customerId = payment.customer_id ?? payment.orders?.customer_id;
+      const points = pointsFromAmount(Number(payment.amount));
+
+      if (!customerId || points <= 0) {
+        continue;
+      }
+
+      const inserted = await this.addLedgerEntry({
+        customerId,
+        direction: "reverse",
+        metadata: {
+          amount: Number(payment.amount),
+          orderNumber: payment.orders?.order_number ?? null,
+        },
+        points,
+        reason,
+        sourceId: payment.id,
+        sourceType: "payment",
+      });
+
+      if (inserted) {
+        results.push({ customerId, paymentId: payment.id, points });
+      }
+    }
+
+    return results;
+  }
+
   async listLedger(customerId: string, limit = 100) {
     const { data, error } = await this.supabase
       .from("reward_point_ledger")
@@ -418,8 +484,15 @@ export class RewardsService {
   async getRanking(year: number, month: number) {
     assertRewardsEnabled();
     const ranking = await this.ensureMonthlyRanking(year, month);
-    await this.refreshMonthlyRanking(year, month);
+    if (ranking.status === "open") {
+      await this.refreshMonthlyRanking(year, month);
+    }
     return this.getRankingById(ranking.id);
+  }
+
+  async getCurrentLiveRanking(year: number, month: number) {
+    assertRewardsEnabled();
+    return this.refreshMonthlyRanking(year, month);
   }
 
   async getCurrentRankingForCustomer(customerId: string) {
@@ -456,16 +529,49 @@ export class RewardsService {
       throwQueryError(error, "Falha ao atualizar ranking mensal");
     }
 
+    await this.audit.createAdminActionLog({
+      action: "rewards.ranking.update",
+      adminId: this.actorId ?? undefined,
+      entityId: ranking.id,
+      entityType: "monthly_order_ranking",
+      newValue: data,
+      oldValue: ranking,
+    });
+
     return data;
   }
 
   async updateRankingEntry(entryId: string, input: z.infer<typeof updateRankingEntrySchema>) {
     assertRewardsEnabled();
+    const current = await this.getRankingEntry(entryId);
+    const now = new Date().toISOString();
+    const statusPatch =
+      input.rewardStatus === "delivered"
+        ? {
+            reward_cancelled_at: null,
+            reward_cancelled_by: null,
+            reward_delivered_at: now,
+            reward_delivered_by: this.actorId ?? null,
+          }
+        : input.rewardStatus === "cancelled"
+          ? {
+              reward_cancelled_at: now,
+              reward_cancelled_by: this.actorId ?? null,
+              reward_delivered_at: null,
+              reward_delivered_by: null,
+            }
+          : {
+              reward_cancelled_at: null,
+              reward_cancelled_by: null,
+              reward_delivered_at: null,
+              reward_delivered_by: null,
+            };
     const { data, error } = await this.supabase
       .from("monthly_order_ranking_entries")
       .update({
         reward_notes: input.rewardNotes,
         reward_status: input.rewardStatus,
+        ...statusPatch,
       })
       .eq("id", entryId)
       .select("*")
@@ -475,11 +581,43 @@ export class RewardsService {
       throwQueryError(error, "Falha ao atualizar brinde do ranking");
     }
 
+    await this.audit.createAdminActionLog({
+      action: "rewards.ranking_entry.reward_update",
+      adminId: this.actorId ?? undefined,
+      entityId: entryId,
+      entityType: "monthly_order_ranking_entry",
+      newValue: data,
+      oldValue: current,
+    });
+
     return data;
   }
 
-  async refreshMonthlyRanking(year: number, month: number) {
+  async closeMonthlyRanking(year: number, month: number) {
+    assertRewardsEnabled();
+    const ranking = await this.refreshMonthlyRanking(year, month, { force: true });
+    await this.updateRanking(year, month, { status: "closed" });
+    return ranking;
+  }
+
+  async recalculateMonthlyRanking(year: number, month: number) {
+    assertRewardsEnabled();
+    const ranking = await this.refreshMonthlyRanking(year, month, { force: true });
+    await this.audit.createAdminActionLog({
+      action: "rewards.ranking.recalculate",
+      adminId: this.actorId ?? undefined,
+      entityId: ranking.id,
+      entityType: "monthly_order_ranking",
+      newValue: ranking,
+    });
+    return ranking;
+  }
+
+  async refreshMonthlyRanking(year: number, month: number, options: { force?: boolean } = {}) {
     const ranking = await this.ensureMonthlyRanking(year, month);
+    if (ranking.status !== "open" && !options.force) {
+      return this.getRankingById(ranking.id);
+    }
     const { startsAt, endsAt } = monthBounds(year, month);
     const paidOrders = await this.listPaidOrdersInPeriod(startsAt.toISOString(), endsAt.toISOString());
     const paidOrderIds = new Set(paidOrders.map((order) => order.id));
@@ -543,6 +681,25 @@ export class RewardsService {
   }) {
     await this.ensureRewardProfile(input.customerId);
 
+    if (input.direction === "reverse" && input.sourceId) {
+      const { data: existingReverse, error: existingReverseError } = await this.supabase
+        .from("reward_point_ledger")
+        .select("id")
+        .eq("customer_id", input.customerId)
+        .eq("source_type", input.sourceType)
+        .eq("source_id", input.sourceId)
+        .eq("direction", "reverse")
+        .limit(1);
+
+      if (existingReverseError) {
+        throwQueryError(existingReverseError, "Falha ao validar reversao de pontos");
+      }
+
+      if ((existingReverse ?? []).length > 0) {
+        return null;
+      }
+    }
+
     const { error } = await this.supabase
       .from("reward_point_ledger")
       .insert({
@@ -566,9 +723,14 @@ export class RewardsService {
 
     const profile = await this.ensureRewardProfile(input.customerId);
     const currentDelta = input.direction === "earn" || input.direction === "adjust" ? input.points : -input.points;
-    const lifetimeDelta = input.direction === "earn" ? input.points : 0;
+    const lifetimeDelta =
+      input.direction === "earn"
+        ? input.points
+        : input.direction === "reverse"
+          ? -input.points
+          : 0;
     const currentPoints = Math.max(0, Number(profile.current_points) + currentDelta);
-    const lifetimePoints = Number(profile.lifetime_points) + lifetimeDelta;
+    const lifetimePoints = Math.max(0, Number(profile.lifetime_points) + lifetimeDelta);
     const level = getLevel(lifetimePoints);
 
     const { error: profileError } = await this.supabase
@@ -603,6 +765,89 @@ export class RewardsService {
     }
 
     return data as unknown as PaymentRow;
+  }
+
+  async awardRaffleOrderPoints(raffleOrderId: string) {
+    if (!isRewardsEnabled()) {
+      return null;
+    }
+
+    const order = await this.getRaffleOrderForRewards(raffleOrderId);
+
+    if (order.status !== "paid") {
+      return null;
+    }
+
+    const points = pointsFromAmount(Number(order.total_amount));
+
+    if (points <= 0) {
+      return null;
+    }
+
+    const inserted = await this.addLedgerEntry({
+      customerId: order.customer_id,
+      direction: "earn",
+      metadata: {
+        amount: Number(order.total_amount),
+        orderNumber: order.order_number,
+      },
+      points,
+      reason: "raffle_order_paid",
+      sourceId: order.id,
+      sourceType: "raffle_order",
+    });
+
+    if (inserted) {
+      await this.grantBadgeByCode(order.customer_id, "first_paid_order", { raffleOrderId: order.id });
+    }
+
+    return { customerId: order.customer_id, points };
+  }
+
+  async reverseRaffleOrderPoints(raffleOrderId: string, reason = "raffle_order_cancelled") {
+    if (!isRewardsEnabled()) {
+      return null;
+    }
+
+    const order = await this.getRaffleOrderForRewards(raffleOrderId);
+    const points = pointsFromAmount(Number(order.total_amount));
+
+    if (points <= 0) {
+      return null;
+    }
+
+    await this.addLedgerEntry({
+      customerId: order.customer_id,
+      direction: "reverse",
+      metadata: {
+        amount: Number(order.total_amount),
+        orderNumber: order.order_number,
+      },
+      points,
+      reason,
+      sourceId: order.id,
+      sourceType: "raffle_order",
+    });
+
+    return { customerId: order.customer_id, points };
+  }
+
+  private async getRaffleOrderForRewards(raffleOrderId: string) {
+    const { data, error } = await this.supabase
+      .from("raffle_orders")
+      .select("id,customer_id,order_number,status,total_amount,paid_at")
+      .eq("id", raffleOrderId)
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao buscar pedido de rifa para rewards");
+    }
+
+    if (!data) {
+      throw notFound("Pedido de rifa nao encontrado");
+    }
+
+    return data as RaffleOrderRewardRow;
   }
 
   private async ensureMonthlyRanking(year: number, month: number): Promise<RankingRow> {
@@ -658,7 +903,12 @@ export class RewardsService {
 
     const { data: entries, error: entriesError } = await this.supabase
       .from("monthly_order_ranking_entries")
-      .select("*,customers(name)")
+      .select(`
+        *,
+        customers(name),
+        delivered_by_profile:profiles!monthly_order_ranking_entries_reward_delivered_by_fkey(name),
+        cancelled_by_profile:profiles!monthly_order_ranking_entries_reward_cancelled_by_fkey(name)
+      `)
       .eq("ranking_id", rankingId)
       .order("rank_position", { ascending: true, nullsFirst: false })
       .order("order_total", { ascending: false });
@@ -781,6 +1031,24 @@ export class RewardsService {
     await Promise.all((data ?? []).slice(0, 3).map((entry) =>
       this.grantBadgeByCode(entry.customer_id, "top3_monthly_order", { rankingId }),
     ));
+  }
+
+  private async getRankingEntry(entryId: string) {
+    const { data, error } = await this.supabase
+      .from("monthly_order_ranking_entries")
+      .select("*")
+      .eq("id", entryId)
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao buscar entrada do ranking");
+    }
+
+    if (!data) {
+      throw notFound("Entrada do ranking nao encontrada");
+    }
+
+    return data;
   }
 
   private async grantBadgeByCode(customerId: string, code: string, metadata?: Record<string, unknown>) {

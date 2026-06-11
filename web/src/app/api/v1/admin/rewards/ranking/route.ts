@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   return handleApi(async () => {
     const admin = await requireAdmin();
     const { month, year } = getPeriod(request);
-    const ranking = await new RewardsService(undefined, admin.profile.id).refreshMonthlyRanking(year, month);
+    const ranking = await new RewardsService(undefined, admin.profile.id).recalculateMonthlyRanking(year, month);
     return jsonOk(ranking);
   });
 }
