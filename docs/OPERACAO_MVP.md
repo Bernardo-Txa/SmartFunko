@@ -30,7 +30,8 @@ Fluxo cliente:
 5. Enquanto estiver em analise, nao existe botao de pagamento.
 6. Se recusado, o cliente ve `review_status = rejected` e o motivo informado pelo admin.
 7. Se aprovado, o cliente ve `Pagar agora`, abrindo `payment_link_url` da InfinitePay.
-8. Se o webhook confirmar pagamento, o cliente ve pagamento confirmado.
+8. A InfinitePay redireciona para o link publico `/pedido/[orderNumber]?token=...`.
+9. Se o webhook ou a consulta server-side `payment_check` confirmar pagamento, o cliente ve pagamento confirmado.
 
 Fluxo admin:
 
@@ -40,10 +41,12 @@ Fluxo admin:
 4. `Aprovar e gerar link` chama `POST /api/v1/admin/orders/[id]/approve-payment`.
 5. `Recusar` chama `POST /api/v1/admin/orders/[id]/reject` e exige motivo.
 6. `Regenerar link` chama `POST /api/v1/admin/orders/[id]/regenerate-payment-link`.
+7. `Verificar pagamento` chama `POST /api/v1/admin/orders/[id]/check-payment` e consulta `payment_check` na InfinitePay.
 
 Webhook:
 
 - endpoint publico: `POST /api/v1/webhooks/infinitepay`;
+- aliases aceitos: `POST /webhook-infinitepay` e `POST /api/webhook-infinitepay`;
 - nao exige login;
 - valida HMAC SHA-256 se `INFINITEPAY_WEBHOOK_SECRET` estiver configurado e o provedor enviar assinatura em header compatível;
 - salva payload bruto em `payment_provider_events`;
@@ -64,7 +67,7 @@ Status de analise:
 Configuracao InfinitePay:
 
 - `INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io`;
-- `INFINITEPAY_HANDLE` e obrigatoria para gerar link;
+- `INFINITEPAY_HANDLE=smartfunko`; se preenchido como `@smartfunko`, o backend remove o `@` antes de chamar a InfinitePay;
 - `INFINITEPAY_API_KEY` fica somente server-side, se a conta exigir header de autenticacao;
 - `INFINITEPAY_WEBHOOK_SECRET` fica somente server-side;
 - `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT=true` controla o envio do carrinho;
@@ -90,9 +93,17 @@ Para testar webhook em dev, envie um POST JSON para o endpoint com payload semel
 }
 ```
 
+Para consulta manual, o backend usa:
+
+```txt
+POST https://api.checkout.infinitepay.io/payment_check
+```
+
+Com `handle = smartfunko`, `order_nsu = order_number` e `slug = payment_provider_reference` quando a fatura retornou `invoice_slug`.
+
 Limitacoes:
 
-- o redirect da InfinitePay nao confirma pagamento;
+- o redirect da InfinitePay nao confirma pagamento sozinho; ele apenas dispara consulta server-side se vier com `slug`, `transaction_nsu` ou `receipt_url`;
 - nao ha checkout interno, captura de cartao, nota fiscal, frete automatico, split ou antifraude avancado;
 - admin precisa aprovar antes de gerar cobranca;
 - pagamentos manuais existentes continuam funcionando.
@@ -197,6 +208,7 @@ Limites da DEV 1.1:
 - `POST /api/v1/admin/inventory/[id]/mark-damaged`
 - `POST /api/v1/admin/orders`
 - `POST /api/v1/admin/orders/[id]/approve-payment`
+- `POST /api/v1/admin/orders/[id]/check-payment`
 - `POST /api/v1/admin/orders/[id]/reject`
 - `POST /api/v1/admin/orders/[id]/regenerate-payment-link`
 - `POST /api/v1/admin/orders/[id]/items`
@@ -286,6 +298,7 @@ Limites da DEV 1.1:
 - `/api/v1/me/orders` e `/api/v1/me/orders/[orderNumber]` retornam pedidos sanitizados, sem `internal_notes`, custos, margem, logs ou token publico.
 - `POST /api/v1/me/orders` cria pedido em analise para o proprio cliente autenticado; precos e variantes sao revalidados no servidor.
 - Cliente nao consegue pagar antes da aprovacao admin, porque o link InfinitePay so e gerado em `awaiting_payment`.
+- A consulta `payment_check` e server-side; se `paid = true`, gera pagamento e caixa pelo mesmo fluxo financeiro do webhook.
 - `payment_provider_events` guarda eventos de gateway para auditoria e idempotencia; segredos da InfinitePay nunca sao enviados ao client.
 - Status internos continuam em ingles no banco, mas badges e textos de UI usam `web/src/lib/status-labels.ts`.
 - Fornecedores/collabs usam `suppliers`; publicos ativos aparecem em `/fornecedores` e `/fornecedores/[slug]`.

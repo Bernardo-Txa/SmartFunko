@@ -204,6 +204,11 @@ export function OrderDetailActions({
     showSuccess(data?.checkoutUrl ? "Novo link InfinitePay gerado." : "Link atualizado.");
   }
 
+  async function checkPaymentStatus() {
+    const data = await submitJson(`/api/v1/admin/orders/${orderId}/check-payment`, "POST");
+    showSuccess(data?.paid ? "Pagamento confirmado pela InfinitePay." : "Pagamento ainda nao confirmado.");
+  }
+
   async function rejectOrder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -320,6 +325,15 @@ export function OrderDetailActions({
                 >
                   <RefreshCw size={16} aria-hidden="true" />
                   {isSubmitting ? <SmartButtonLoading message="Gerando..." /> : "Regenerar link"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={checkPaymentStatus}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                  {isSubmitting ? <SmartButtonLoading message="Consultando..." /> : "Verificar pagamento"}
                 </button>
               </div>
             </div>

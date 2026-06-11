@@ -21,7 +21,6 @@ Financeiro 2.0 cobre baixa manual transacional, estorno manual total, caixa e re
 - estorno parcial manual;
 - idempotency key para pagamentos manuais duplicados;
 - conciliacao financeira;
-- conciliacao posterior por consulta `payment_check` da InfinitePay;
 - tratamento produtivo de todos os status/eventos reais da InfinitePay alem do webhook aprovado;
 - assinatura de webhook dependente do header real disponibilizado pela conta InfinitePay;
 - nota fiscal;
@@ -86,7 +85,7 @@ O produto rapido cria produto ativo e variante `national/order_only`, sem estoqu
 - Refinar Light Mode em componentes comerciais muito customizados.
 - Evoluir produto rapido no pedido com upload de imagem direto.
 - Transformar carrinho assistido em checkout real somente quando frete, pagamento, reserva temporaria e regras de estoque estiverem definidos.
-- Evoluir Checkout Assistido 1.0 com consulta de status InfinitePay (`payment_check`), expiracao de links, observabilidade e testes automatizados de webhook.
+- Evoluir Checkout Assistido 1.0 com expiracao de links, observabilidade, conciliacao periodica e testes automatizados de webhook/payment_check.
 - Evoluir `/admin/demanda` com notificacoes manuais/automaticas para interessados e criacao controlada de encomendas.
 - Automatizar Pix/cartao apenas pelo fluxo aprovado de gateway e webhook; manter redirect como informativo, nao confirmatorio.
 - Criar checkout proprio apenas depois do fluxo WhatsApp estabilizar.

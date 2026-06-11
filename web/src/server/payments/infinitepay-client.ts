@@ -26,6 +26,12 @@ export type CreateInfinitePayCheckoutResult = {
   raw: unknown;
 };
 
+export type CheckInfinitePayPaymentInput = {
+  orderNumber: string;
+  slug?: string | null;
+  transactionNsu?: string | null;
+};
+
 export type NormalizedInfinitePayWebhook = {
   amountCents: number | null;
   captureMethod: string | null;
@@ -61,6 +67,19 @@ type InfinitePayWebhookPayload = {
   transaction_nsu?: string;
   type?: string;
 };
+
+type InfinitePayPaymentCheckResponse = {
+  amount?: number | string;
+  capture_method?: string;
+  installments?: number;
+  paid?: boolean;
+  paid_amount?: number | string;
+  success?: boolean;
+};
+
+function infinitePayHandle() {
+  return env.infinitePayHandle.trim().replace(/^@/, "");
+}
 
 function toCents(value: number | string | undefined) {
   if (value === undefined || value === null || value === "") {
@@ -119,7 +138,7 @@ export async function createInfinitePayCheckout(
       name: input.customerName,
       phone_number: input.customerPhone ?? undefined,
     },
-    handle: env.infinitePayHandle,
+    handle: infinitePayHandle(),
     items: input.items.map((item) => ({
       description: item.name,
       price: item.unitAmountCents,
@@ -165,6 +184,59 @@ export async function createInfinitePayCheckout(
   return {
     checkoutUrl,
     providerReference: raw?.invoice_slug ?? input.orderNumber,
+    raw,
+  };
+}
+
+export async function checkInfinitePayPaymentStatus(input: CheckInfinitePayPaymentInput) {
+  if (!hasInfinitePayCheckoutEnv()) {
+    throw internalError("Configure INFINITEPAY_HANDLE antes de consultar pagamento");
+  }
+
+  const payload = {
+    handle: infinitePayHandle(),
+    order_nsu: input.orderNumber,
+    slug: input.slug ?? undefined,
+    transaction_nsu: input.transactionNsu ?? undefined,
+  };
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+
+  if (env.infinitePayApiKey) {
+    headers.authorization = `Bearer ${env.infinitePayApiKey}`;
+  }
+
+  const response = await fetch(`${env.infinitePayApiBaseUrl.replace(/\/$/, "")}/payment_check`, {
+    body: JSON.stringify(payload),
+    headers,
+    method: "POST",
+  });
+
+  let raw: InfinitePayPaymentCheckResponse | null = null;
+
+  try {
+    raw = (await response.json()) as InfinitePayPaymentCheckResponse;
+  } catch {
+    raw = null;
+  }
+
+  if (!response.ok || !raw?.success) {
+    throw internalError("InfinitePay nao retornou status do pagamento. Tente novamente em instantes.");
+  }
+
+  return {
+    normalized: normalizeInfinitePayWebhook({
+      amount: raw.amount,
+      capture_method: raw.capture_method,
+      event_id: `payment_check:${input.orderNumber}:${input.slug ?? input.transactionNsu ?? "status"}:${Date.now()}`,
+      event_type: raw.paid ? "paid" : "payment_check",
+      invoice_slug: input.slug ?? undefined,
+      order_nsu: input.orderNumber,
+      paid_amount: raw.paid_amount,
+      status: raw.paid ? "paid" : "pending",
+      transaction_nsu: input.transactionNsu ?? undefined,
+    }),
     raw,
   };
 }

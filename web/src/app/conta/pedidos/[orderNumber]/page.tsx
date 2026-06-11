@@ -2,10 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OrderDetail, type OrderDetailData } from "@/components/product/order-detail";
 import { requireUserPage } from "@/server/auth/require-user-page";
+import { AssistedCheckoutService } from "@/server/checkout/assisted-checkout-service";
 import { OrderService } from "@/server/orders/order-service";
 
 type Props = {
   params: Promise<{ orderNumber: string }>;
+  searchParams?: Promise<{
+    capture_method?: string;
+    order_nsu?: string;
+    receipt_url?: string;
+    slug?: string;
+    transaction_nsu?: string;
+  }>;
 };
 
 type AccountOrderItem = {
@@ -22,6 +30,7 @@ type AccountOrderItem = {
 };
 
 type AccountOrderDetail = {
+  id: string;
   customers?: {
     name?: string;
   } | null;
@@ -52,8 +61,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function AccountOrderPage({ params }: Props) {
+export default async function AccountOrderPage({ params, searchParams }: Props) {
   const { orderNumber } = await params;
+  const query = await searchParams;
   const { customer } = await requireUserPage(`/conta/pedidos/${orderNumber}`);
 
   if (!customer) {
@@ -69,6 +79,25 @@ export default async function AccountOrderPage({ params }: Props) {
     )) as unknown as AccountOrderDetail;
   } catch {
     notFound();
+  }
+
+  if (query?.slug || query?.transaction_nsu || query?.receipt_url) {
+    try {
+      await new AssistedCheckoutService().checkInfinitePayPaymentForOrder(
+        order.id,
+        null,
+        {
+          slug: query.slug ?? null,
+          transactionNsu: query.transaction_nsu ?? null,
+        },
+      );
+      order = (await new OrderService().getCustomerOrderByNumber(
+        customer.id,
+        orderNumber,
+      )) as unknown as AccountOrderDetail;
+    } catch (error) {
+      console.error("Falha ao consultar retorno InfinitePay autenticado", error);
+    }
   }
 
   const payments = order.payments ?? [];

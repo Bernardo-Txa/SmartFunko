@@ -12,9 +12,9 @@
 ## Server-only
 
 - `SUPABASE_SERVICE_ROLE_KEY`: service role usada somente no backend.
-- `INFINITEPAY_API_BASE_URL`: base da API InfinitePay. Padrao: `https://api.checkout.infinitepay.io`.
+- `INFINITEPAY_API_BASE_URL`: base da API InfinitePay. Use `https://api.checkout.infinitepay.io`.
 - `INFINITEPAY_API_KEY`: chave privada da InfinitePay, se a conta exigir autenticacao por header.
-- `INFINITEPAY_HANDLE`: InfiniteTag/handle da conta, sem `$`. Obrigatoria para gerar links.
+- `INFINITEPAY_HANDLE`: InfiniteTag da conta. Para a SmartFunko use `smartfunko`. Se for preenchido como `@smartfunko`, o backend remove o `@` antes de enviar para a InfinitePay.
 - `INFINITEPAY_WEBHOOK_SECRET`: segredo HMAC para validar webhook, se configurado no provedor/conta.
 - `INFINITEPAY_WEBHOOK_ENABLED`: flag operacional para webhook. Padrao esperado: `true`.
 
@@ -32,10 +32,50 @@ Configure na InfinitePay:
 https://seu-dominio.com/api/v1/webhooks/infinitepay
 ```
 
+Aliases aceitos para evitar 404 em configuracoes legadas:
+
+```txt
+https://seu-dominio.com/webhook-infinitepay
+https://seu-dominio.com/api/webhook-infinitepay
+```
+
 O redirect_url enviado no link aponta para:
 
 ```txt
-{NEXT_PUBLIC_SITE_URL}/conta/pedidos/{orderNumber}
+{NEXT_PUBLIC_SITE_URL}/pedido/{orderNumber}?token={publicToken}
 ```
 
-O redirect nao confirma pagamento. A baixa financeira depende do webhook ou de uma acao server-side futura de consulta de status.
+O redirect nao confirma pagamento por si so. Quando a InfinitePay devolve `slug`, `transaction_nsu` ou `receipt_url`, a pagina publica consulta `payment_check` no servidor e baixa o pedido se a InfinitePay responder `paid: true`. O webhook continua sendo o caminho principal.
+
+## Valores recomendados SmartFunko
+
+```txt
+NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT=true
+INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io
+INFINITEPAY_HANDLE=smartfunko
+INFINITEPAY_API_KEY=
+INFINITEPAY_WEBHOOK_SECRET=
+INFINITEPAY_WEBHOOK_ENABLED=true
+```
+
+`INFINITEPAY_API_KEY` e `INFINITEPAY_WEBHOOK_SECRET` ficam vazios se a conta/documentacao da InfinitePay nao fornecer chave ou assinatura. Caso a conta forneca, configure somente como variavel server-side.
+
+## Consulta manual de status
+
+O admin pode usar `Verificar pagamento` no detalhe do pedido. O backend chama:
+
+```txt
+POST https://api.checkout.infinitepay.io/payment_check
+```
+
+Com corpo:
+
+```json
+{
+  "handle": "smartfunko",
+  "order_nsu": "SF-...",
+  "slug": "codigo-da-fatura"
+}
+```
+
+Se a resposta vier com `success: true` e `paid: true`, o sistema registra pagamento e caixa pelo mesmo fluxo financeiro usado no webhook.

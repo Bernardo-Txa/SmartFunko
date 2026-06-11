@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OrderDetail } from "@/components/product/order-detail";
+import { AssistedCheckoutService } from "@/server/checkout/assisted-checkout-service";
 import { OrderService } from "@/server/orders/order-service";
 
 type Props = {
   params: Promise<{ orderNumber: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{
+    capture_method?: string;
+    order_nsu?: string;
+    receipt_url?: string;
+    slug?: string;
+    token?: string;
+    transaction_nsu?: string;
+  }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -17,13 +25,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicOrderPage({ params, searchParams }: Props) {
   const { orderNumber } = await params;
-  const { token } = await searchParams;
+  const query = await searchParams;
+  const { token } = query;
 
   if (!token) {
     notFound();
   }
 
   let order;
+
+  if (query.slug || query.transaction_nsu || query.receipt_url) {
+    try {
+      await new AssistedCheckoutService().checkInfinitePayPaymentForPublicOrder(
+        orderNumber,
+        token,
+        {
+          slug: query.slug ?? null,
+          transactionNsu: query.transaction_nsu ?? null,
+        },
+      );
+    } catch (error) {
+      console.error("Falha ao consultar retorno InfinitePay", error);
+    }
+  }
 
   try {
     order = await new OrderService().getPublicOrderByNumberAndToken(orderNumber, token);

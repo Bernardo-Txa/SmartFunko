@@ -61,7 +61,7 @@ O Checkout Assistido 1.0 permite que o cliente envie um carrinho para analise. O
 
 Ao aprovar, o pedido passa para `review_status = awaiting_payment`, `status = pending_payment`, salva `payment_provider = infinitepay`, `payment_link_url` e `payment_provider_reference`. O cliente ve o botao `Pagar agora` em `/conta/pedidos/[orderNumber]`.
 
-O webhook `POST /api/v1/webhooks/infinitepay` registra o payload bruto em `payment_provider_events`, processa de forma idempotente e, quando o pagamento e aprovado, chama a baixa financeira existente para criar `payments`, criar `cash_entries` e marcar o pedido como pago. Redirect do cliente nao confirma pagamento; somente webhook/server confirma.
+O webhook `POST /api/v1/webhooks/infinitepay` registra o payload bruto em `payment_provider_events`, processa de forma idempotente e, quando o pagamento e aprovado, chama a baixa financeira existente para criar `payments`, criar `cash_entries` e marcar o pedido como pago. O redirect da InfinitePay volta para o link publico `/pedido/[orderNumber]?token=...`, evitando depender da sessao do cliente, e tambem consulta `payment_check` quando recebe `slug`/`transaction_nsu`. O admin ainda pode consultar pelo botao `Verificar pagamento`.
 
 Limitacoes desta sprint:
 
@@ -176,6 +176,8 @@ Variaveis esperadas em `web/.env.local`:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+
+Para a conta SmartFunko, use `INFINITEPAY_HANDLE=smartfunko`. Se alguem configurar `@smartfunko`, o backend normaliza removendo `@` antes de chamar a InfinitePay.
 
 ## Supabase
 

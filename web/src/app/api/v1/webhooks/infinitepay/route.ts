@@ -1,10 +1,15 @@
 import { AssistedCheckoutService } from "@/server/checkout/assisted-checkout-service";
+import { env } from "@/lib/env";
 import { badRequest, forbidden } from "@/server/http/errors";
 import { handleApi, jsonOk } from "@/server/http/responses";
 import { verifyInfinitePayWebhook } from "@/server/payments/infinitepay-client";
 
 export async function POST(request: Request) {
   return handleApi(async () => {
+    if (env.infinitePayWebhookEnabled === "false") {
+      return jsonOk({ status: "ignored", reason: "Webhook InfinitePay desabilitado" });
+    }
+
     const rawBody = await request.text();
 
     if (!verifyInfinitePayWebhook(rawBody, request.headers)) {

@@ -5,6 +5,7 @@ import { AuditLogService } from "@/server/audit/audit-log-service";
 import { badRequest, conflict, forbidden, notFound } from "@/server/http/errors";
 import { calculateOrderTotals } from "@/server/orders/order-calculator";
 import {
+  checkInfinitePayPaymentStatus,
   createInfinitePayCheckout,
   normalizeInfinitePayWebhook,
   type NormalizedInfinitePayWebhook,
@@ -45,6 +46,7 @@ type AssistedOrderRow = {
   total: number | string;
   payment_link_url: string | null;
   payment_provider_reference: string | null;
+  public_token: string;
   customers?: {
     email?: string | null;
     name?: string | null;
@@ -113,7 +115,7 @@ function mapCaptureMethod(method: string | null) {
 
 function orderSelect() {
   return `
-    id,order_number,customer_id,review_status,status,total,payment_link_url,payment_provider_reference,
+    id,order_number,customer_id,review_status,status,total,payment_link_url,payment_provider_reference,public_token,
     customers(name,email,phone),
     order_items(quantity,unit_price,product_variants(products(name))),
     payments(amount,status)
@@ -299,7 +301,7 @@ export class AssistedCheckoutService {
         unitAmountCents: Math.round(Number(item.unit_price) * 100),
       })),
       orderNumber: order.order_number,
-      redirectUrl: `${env.siteUrl}/conta/pedidos/${order.order_number}`,
+      redirectUrl: `${env.siteUrl}/pedido/${order.order_number}?token=${order.public_token}`,
       webhookUrl: `${env.siteUrl}/api/v1/webhooks/infinitepay`,
     });
 
@@ -391,6 +393,92 @@ export class AssistedCheckoutService {
 
     await this.markProviderEvent(event.id, "ignored", "Status nao mapeado");
     return { status: "ignored", reason: "Status nao mapeado" };
+  }
+
+  async checkInfinitePayPaymentForOrder(
+    orderId: string,
+    actorProfileId: string | null,
+    options: { slug?: string | null; transactionNsu?: string | null } = {},
+  ) {
+    const order = await this.getAssistedOrder(orderId);
+
+    if (!order.payment_link_url) {
+      throw conflict("Pedido ainda nao tem link InfinitePay");
+    }
+
+    if (order.status === "paid" || order.review_status === "paid") {
+      return { paid: true, status: "ignored", reason: "Pedido ja pago" };
+    }
+
+    const check = await checkInfinitePayPaymentStatus({
+      orderNumber: order.order_number,
+      slug:
+        options.slug ??
+        (order.payment_provider_reference && order.payment_provider_reference !== order.order_number
+          ? order.payment_provider_reference
+          : null),
+      transactionNsu: options.transactionNsu ?? null,
+    });
+    const event = await this.createProviderEvent(check.normalized, check.raw);
+
+    await this.supabase
+      .from("payment_provider_events")
+      .update({ order_id: order.id })
+      .eq("id", event.id);
+
+    if (check.normalized.status === "paid") {
+      const result = await this.applyPaidWebhook(order, check.normalized, event.id);
+      await this.audit.createAdminActionLog({
+        action: "checkout.payment_check_paid",
+        adminId: actorProfileId ?? undefined,
+        entityId: order.id,
+        entityType: "order",
+        newValue: result,
+        oldValue: order,
+      });
+      return { ...result, paid: true };
+    }
+
+    await this.supabase
+      .from("orders")
+      .update({ review_notes: "Consulta InfinitePay: pagamento ainda nao confirmado" })
+      .eq("id", order.id);
+    await this.addOrderHistory(
+      order.id,
+      order.review_status,
+      order.review_status,
+      "Consulta InfinitePay: pagamento ainda nao confirmado",
+      actorProfileId,
+    );
+    await this.markProviderEvent(event.id, "ignored", "Pagamento ainda nao confirmado");
+
+    return {
+      paid: false,
+      status: "pending",
+    };
+  }
+
+  async checkInfinitePayPaymentForPublicOrder(
+    orderNumber: string,
+    token: string,
+    options: { slug?: string | null; transactionNsu?: string | null } = {},
+  ) {
+    const { data, error } = await this.supabase
+      .from("orders")
+      .select("id")
+      .eq("order_number", orderNumber)
+      .eq("public_token", token)
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao validar link publico para consulta InfinitePay");
+    }
+
+    if (!data) {
+      throw notFound("Pedido nao encontrado");
+    }
+
+    return this.checkInfinitePayPaymentForOrder(data.id, null, options);
   }
 
   private async applyPaidWebhook(order: AssistedOrderRow, normalized: NormalizedInfinitePayWebhook, eventId: string) {
