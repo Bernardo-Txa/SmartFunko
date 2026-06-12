@@ -49,7 +49,7 @@ class AppScaffold extends StatelessWidget {
                   AppSpacing.lg,
                   AppSpacing.md,
                   AppSpacing.lg,
-                  showBottomNavigation ? 96 : 24,
+                  showBottomNavigation ? 120 : 32,
                 );
             final scrollView = SingleChildScrollView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,

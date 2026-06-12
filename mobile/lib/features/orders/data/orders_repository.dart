@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_controller.dart';
@@ -65,10 +66,22 @@ class OrdersRepository {
   }
 
   Future<CreateOrderResponse> createOrder(CreateOrderRequest request) async {
+    if (kDebugMode) {
+      debugPrint('[OrdersRepository] POST /api/v1/me/orders');
+    }
+
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v1/me/orders',
       data: request.toJson(),
     );
+
+    if (kDebugMode) {
+      final data = response.data;
+      final keys = data == null ? '<null>' : data.keys.join(',');
+      debugPrint('[OrdersRepository] response status=${response.statusCode}');
+      debugPrint('[OrdersRepository] response data keys=$keys');
+    }
+
     final rawData = response.data?['data'] ?? response.data;
 
     if (rawData is Map<String, dynamic>) {

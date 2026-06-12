@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -229,6 +230,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
     });
 
     try {
+      _logDebug('[Checkout] building payload...');
       final orderItems = <CreateOrderItem>[];
 
       for (final item in cart.items) {
@@ -257,10 +259,12 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
         return;
       }
 
+      _logDebug('[Checkout] payload itemCount=${orderItems.length}');
       final request = CreateOrderRequest(
         notes: _notesController.text,
         items: orderItems,
       );
+      _logDebug('[Checkout] calling create order endpoint...');
       final response = await ref
           .read(ordersRepositoryProvider)
           .createOrder(request);
@@ -274,29 +278,44 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       );
 
       final orderNumber = response.orderNumber.trim();
+      _logDebug(
+        '[Checkout] order created orderNumber=${orderNumber.isEmpty ? 'null' : orderNumber}',
+      );
       ref.invalidate(ordersProvider);
-      context.go(orderNumber.isEmpty ? '/pedidos' : '/pedidos/$orderNumber');
+      final route = orderNumber.isEmpty ? '/pedidos' : '/pedidos/$orderNumber';
+      _logDebug('[Checkout] navigating to=$route');
+      context.go(route);
+      _logDebug('[Checkout] clearing cart...');
       ref.read(cartControllerProvider.notifier).clearAfterOrderCreated();
-
+      _logDebug('[Checkout] done');
+    } on DioException catch (error, stackTrace) {
+      _logDebug('[Checkout] DioException status=${error.response?.statusCode}');
+      _logDebug('[Checkout] DioException data=${error.response?.data}');
+      _logDebug('[Checkout] DioException message=${error.message}');
       if (kDebugMode) {
-        debugPrint(
-          '[Checkout] order created success orderNumber=${orderNumber.isEmpty ? 'null' : orderNumber}',
-        );
+        debugPrintStack(stackTrace: stackTrace);
       }
-    } catch (error) {
-      final sessionExpired = error is ApiError && error.statusCode == 401;
+      _setErrorForStatus(error.response?.statusCode, error.response?.data);
+    } on ApiError catch (error, stackTrace) {
+      final raw = error.raw;
+      if (raw is DioException) {
+        _logDebug('[Checkout] DioException status=${raw.response?.statusCode}');
+        _logDebug('[Checkout] DioException data=${raw.response?.data}');
+        _logDebug('[Checkout] DioException message=${raw.message}');
+      }
+      _logDebug(
+        '[Checkout] create order failed status=${error.statusCode} message=${error.message}',
+      );
       if (kDebugMode) {
-        final statusCode = error is ApiError ? error.statusCode : null;
-        debugPrint(
-          '[Checkout] create order failed status=$statusCode message=$error',
-        );
+        debugPrintStack(stackTrace: stackTrace);
       }
+      final sessionExpired = error.statusCode == 401;
       setState(() {
         if (sessionExpired) {
           _error = 'Sua sessão expirou. Entre novamente para continuar.';
-        } else if (error is ApiError && error.statusCode == 400) {
+        } else if (error.statusCode == 400) {
           _error = error.message;
-        } else if (error is ApiError && error.statusCode == 500) {
+        } else if (error.statusCode == 500) {
           _error = 'Não foi possível criar o pedido agora.';
         } else {
           _error = error.toString();
@@ -305,10 +324,45 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       if (sessionExpired) {
         await ref.read(authControllerProvider.notifier).signOut();
       }
+    } catch (error, stackTrace) {
+      _logDebug('[Checkout] Unexpected error=$error');
+      if (kDebugMode) {
+        debugPrintStack(stackTrace: stackTrace);
+      }
+      if (mounted) {
+        setState(() {
+          _error = 'Não foi possível criar o pedido agora.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
+    }
+  }
+
+  void _setErrorForStatus(int? statusCode, Object? data) {
+    if (!mounted) {
+      return;
+    }
+
+    final message = data is Map<String, dynamic>
+        ? (data['message'] ?? data['error'] ?? data['detail'])?.toString()
+        : null;
+
+    setState(() {
+      _error = switch (statusCode) {
+        401 => 'Sua sessão expirou. Entre novamente.',
+        400 when message != null && message.trim().isNotEmpty => message.trim(),
+        500 => 'Não foi possível criar o pedido agora.',
+        _ => 'Não foi possível criar o pedido agora.',
+      };
+    });
+  }
+
+  void _logDebug(String message) {
+    if (kDebugMode) {
+      debugPrint(message);
     }
   }
 }
