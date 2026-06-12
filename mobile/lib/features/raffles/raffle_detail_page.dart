@@ -3,21 +3,25 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/network/api_error.dart';
 import '../../core/network/image_url_resolver.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
+import '../../core/url/open_payment_url.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/price_tag.dart';
+import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/smart_card.dart';
+import '../../shared/widgets/status_badge.dart';
 import 'data/raffle_models.dart';
 import 'data/raffles_repository.dart';
 import 'domain/raffle_selection_controller.dart';
+import 'domain/raffle_status_mapper.dart';
 
 class RaffleDetailPage extends ConsumerWidget {
   const RaffleDetailPage({required this.slug, super.key});
@@ -67,6 +71,7 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
     final soldPercent = raffle.totalNumbers == 0
         ? 0.0
         : raffle.soldNumbers / raffle.totalNumbers;
+    final status = mapRaffleStatus(context, raffle.status);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,14 +103,19 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _Pill(label: raffle.status == 'open' ? 'Aberta' : raffle.status),
-            _Pill(
-              label: '${raffle.pricePerNumber.formatted} por número',
-              color: theme.colorScheme.secondary,
+            StatusBadge(
+              label: status.label,
+              icon: status.icon,
+              color: status.color,
+            ),
+            StatusBadge(
+              label: raffle.pricePerNumber.formatted,
+              icon: Icons.sell_rounded,
             ),
             if (raffle.drawDate != null)
-              _Pill(
+              StatusBadge(
                 label: 'Sorteio ${DateFormatter.dayMonthYear(raffle.drawDate)}',
+                icon: Icons.event_rounded,
               ),
           ],
         ),
@@ -130,57 +140,67 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
           SmartCard(
             child: Text(
               raffle.rules!,
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
             ),
           ),
         ],
         const SizedBox(height: 16),
-        Text(
-          'Escolha seus números',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+        const SectionHeader(
+          title: 'Escolha seus números',
+          subtitle: 'Selecione apenas os números disponíveis para reservar.',
         ),
         const SizedBox(height: 10),
         const _Legend(),
         const SizedBox(height: 10),
         _NumbersGrid(raffle: raffle, selected: selected),
         const SizedBox(height: 16),
-        SmartCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${selected.length} número(s) selecionado(s)',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${raffle.pricePerNumber.formatted} cada • Total ${CurrencyFormatter.brl(total)}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: SmartCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  _error!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                    fontWeight: FontWeight.w700,
+                  '${selected.length} número(s) selecionado(s)',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    PriceTag(
+                      label: raffle.pricePerNumber.formatted,
+                      subtitle: 'Cada número',
+                    ),
+                    PriceTag(
+                      label: CurrencyFormatter.brl(total),
+                      subtitle: 'Total',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (_error != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _error!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                PrimaryButton(
+                  label: 'Reservar números',
+                  icon: Icons.confirmation_number_rounded,
+                  isLoading: _isSubmitting,
+                  onPressed: selected.isEmpty ? null : _reserve,
+                ),
               ],
-              const SizedBox(height: 14),
-              PrimaryButton(
-                label: 'Reservar números',
-                icon: Icons.confirmation_number_rounded,
-                isLoading: _isSubmitting,
-                onPressed: selected.isEmpty ? null : _reserve,
-              ),
-            ],
+            ),
           ),
         ),
       ],
@@ -207,6 +227,36 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
         return;
       }
       context.go('/login?from=/rifas/${raffle.slug}');
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar reserva'),
+          content: Text(
+            'Você vai reservar ${selectedNumbers.length} número(s) por ${CurrencyFormatter.brl(selectedNumbers.length * raffle.pricePerNumber.value)}.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
       return;
     }
 
@@ -241,10 +291,7 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
       ).showSnackBar(SnackBar(content: Text(response.message)));
 
       if (response.paymentUrl != null) {
-        await launchUrl(
-          Uri.parse(response.paymentUrl!),
-          mode: LaunchMode.externalApplication,
-        );
+        await openPaymentUrl(context, response.paymentUrl!);
       } else if (mounted) {
         context.go('/minhas-rifas');
       }
@@ -401,42 +448,23 @@ class _Legend extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        _Pill(label: 'Disponível'),
-        _Pill(label: 'Selecionado', color: theme.colorScheme.primary),
-        _Pill(label: 'Reservado', color: theme.colorScheme.secondary),
-        _Pill(label: 'Vendido', color: theme.colorScheme.error),
-      ],
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, this.color});
-
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final effectiveColor = color ?? theme.colorScheme.primary;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: effectiveColor.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: effectiveColor,
-            fontWeight: FontWeight.w800,
-          ),
+        StatusBadge(label: 'Disponível'),
+        StatusBadge(
+          label: 'Selecionado',
+          color: theme.colorScheme.primary,
+          icon: Icons.check_circle_rounded,
         ),
-      ),
+        StatusBadge(
+          label: 'Reservado',
+          color: theme.colorScheme.secondary,
+          icon: Icons.lock_rounded,
+        ),
+        StatusBadge(
+          label: 'Vendido',
+          color: theme.colorScheme.error,
+          icon: Icons.block_rounded,
+        ),
+      ],
     );
   }
 }

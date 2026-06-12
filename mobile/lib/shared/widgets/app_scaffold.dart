@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../layout/responsive_content.dart';
+import '../theme/app_spacing.dart';
 import 'smart_app_bar.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -12,7 +14,7 @@ class AppScaffold extends StatelessWidget {
     this.showBottomNavigation = true,
     this.showCartAction = true,
     this.onRefresh,
-    this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 24),
+    this.padding,
     super.key,
   });
 
@@ -23,7 +25,7 @@ class AppScaffold extends StatelessWidget {
   final bool showBottomNavigation;
   final bool showCartAction;
   final Future<void> Function()? onRefresh;
-  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -41,12 +43,22 @@ class AppScaffold extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final resolvedPadding =
+                padding ??
+                EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  showBottomNavigation ? 96 : 24,
+                );
             final scrollView = SingleChildScrollView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               physics: const AlwaysScrollableScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Padding(padding: padding, child: body),
+                child: ResponsiveContent(
+                  child: Padding(padding: resolvedPadding, child: body),
+                ),
               ),
             );
 
@@ -105,6 +117,7 @@ class _SmartBottomNavigation extends StatelessWidget {
 
     return NavigationBar(
       selectedIndex: selectedIndex,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       onDestinationSelected: (index) => context.go(_items[index].path),
       destinations: [
         for (final item in _items)

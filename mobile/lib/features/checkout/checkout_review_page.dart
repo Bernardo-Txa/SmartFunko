@@ -8,6 +8,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_state.dart';
+import '../../shared/widgets/price_tag.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
 import '../cart/data/cart_controller.dart';
@@ -178,12 +179,9 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                     ),
                   ),
                 ),
-                Text(
-                  CurrencyFormatter.brl(cart.estimatedTotal),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontWeight: FontWeight.w900,
-                  ),
+                PriceTag(
+                  label: CurrencyFormatter.brl(cart.estimatedTotal),
+                  subtitle: 'A confirmar',
                 ),
               ],
             ),
@@ -238,10 +236,16 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      context.go('/pedidos/${response.orderNumber}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Pedido enviado para análise. Acompanhe o status em Meus pedidos.',
+          ),
+        ),
+      );
+
+      final orderNumber = response.orderNumber.trim();
+      context.go(orderNumber.isEmpty ? '/pedidos' : '/pedidos/$orderNumber');
     } catch (error) {
       final sessionExpired = error is ApiError && error.statusCode == 401;
       setState(() {

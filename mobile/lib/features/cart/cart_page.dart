@@ -8,6 +8,7 @@ import '../../core/network/image_url_resolver.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/price_tag.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
 import 'data/cart_controller.dart';
@@ -179,12 +180,9 @@ class _CartSummary extends ConsumerWidget {
                   ),
                 ),
               ),
-              Text(
-                CurrencyFormatter.brl(total),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.secondary,
-                  fontWeight: FontWeight.w900,
-                ),
+              PriceTag(
+                label: CurrencyFormatter.brl(total),
+                subtitle: 'A confirmar',
               ),
             ],
           ),

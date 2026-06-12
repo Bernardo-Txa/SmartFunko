@@ -44,10 +44,17 @@ class PrimaryButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 48,
-      child: variant == PrimaryButtonVariant.outlined
-          ? OutlinedButton(onPressed: effectiveOnPressed, child: child)
-          : ElevatedButton(onPressed: effectiveOnPressed, child: child),
+      height: 52,
+      child: switch (variant) {
+        PrimaryButtonVariant.outlined => OutlinedButton(
+          onPressed: effectiveOnPressed,
+          child: child,
+        ),
+        PrimaryButtonVariant.filled => FilledButton(
+          onPressed: effectiveOnPressed,
+          child: child,
+        ),
+      },
     );
   }
 }

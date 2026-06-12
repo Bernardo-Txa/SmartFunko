@@ -10,9 +10,12 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/price_tag.dart';
 import '../../shared/widgets/smart_card.dart';
+import '../../shared/widgets/status_badge.dart';
 import 'data/raffle_models.dart';
 import 'data/raffles_repository.dart';
+import 'domain/raffle_status_mapper.dart';
 
 class RafflesPage extends ConsumerWidget {
   const RafflesPage({super.key});
@@ -87,6 +90,7 @@ class _RaffleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final soldText = '${raffle.soldNumbers}/${raffle.totalNumbers} vendidos';
+    final status = mapRaffleStatus(context, raffle.status);
 
     return SmartCard(
       onTap: () => context.go('/rifas/${raffle.slug}'),
@@ -110,12 +114,14 @@ class _RaffleCard extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _Badge(
-                      label: raffle.status == 'open' ? 'Aberta' : raffle.status,
+                    StatusBadge(
+                      label: status.label,
+                      icon: status.icon,
+                      color: status.color,
                     ),
-                    _Badge(
+                    const StatusBadge(
                       label: 'Experimental',
-                      color: theme.colorScheme.secondary,
+                      icon: Icons.science_rounded,
                     ),
                   ],
                 ),
@@ -127,11 +133,9 @@ class _RaffleCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  '${raffle.pricePerNumber.formatted} por número • $soldText',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                PriceTag(
+                  label: raffle.pricePerNumber.formatted,
+                  subtitle: '$soldText • por número',
                 ),
                 if (raffle.drawDate != null) ...[
                   const SizedBox(height: 4),
@@ -200,37 +204,6 @@ class _ExperimentalNotice extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, this.color});
-
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final effectiveColor = color ?? theme.colorScheme.primary;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: effectiveColor.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: effectiveColor,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
       ),
     );
   }

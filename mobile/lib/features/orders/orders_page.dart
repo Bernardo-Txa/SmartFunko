@@ -9,7 +9,9 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/price_tag.dart';
 import '../../shared/widgets/smart_card.dart';
+import '../../shared/widgets/status_badge.dart';
 import 'data/order_models.dart';
 import 'data/orders_repository.dart';
 import 'domain/order_status_mapper.dart';
@@ -78,7 +80,7 @@ class _OrdersContent extends StatelessWidget {
       return EmptyState(
         icon: Icons.receipt_long_outlined,
         title: 'Nenhum pedido ainda',
-        message: 'Finalize um carrinho para acompanhar seu pedido por aqui.',
+        message: 'Você ainda não tem pedidos.',
         actionLabel: 'Ver catálogo',
         onAction: () => context.go('/catalogo'),
       );
@@ -135,51 +137,24 @@ class _OrderCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _Pill(label: status.label, color: status.color),
-              _Pill(label: DateFormatter.dayMonthYear(order.createdAt)),
-              _Pill(label: '${order.itemsCount} item(ns)'),
+              StatusBadge(
+                label: status.label,
+                icon: status.icon,
+                color: status.color,
+              ),
+              StatusBadge(
+                label: DateFormatter.dayMonthYear(order.createdAt),
+                icon: Icons.calendar_today_rounded,
+              ),
+              StatusBadge(
+                label: '${order.itemsCount} item(ns)',
+                icon: Icons.inventory_2_outlined,
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            order.total.formatted,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.colorScheme.secondary,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          PriceTag(label: order.total.formatted, subtitle: 'Total'),
         ],
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, this.color});
-
-  final String label;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final effectiveColor = color ?? theme.colorScheme.primary;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: effectiveColor.withValues(alpha: 0.24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        child: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: effectiveColor,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
       ),
     );
   }

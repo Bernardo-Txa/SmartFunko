@@ -212,6 +212,15 @@ class RaffleEntry {
   final String? paymentUrl;
   final DateTime? reservedUntil;
 
+  bool get isPendingPayment => status == 'pending_payment';
+  bool get isPaid => status == 'paid';
+  bool get isCancelled => status == 'cancelled';
+  bool get isReserved => status == 'reserved';
+  bool get isExpired => status == 'expired';
+  bool get canOpenPayment => isPendingPayment && paymentUrl != null;
+  String get numbersLabel =>
+      numbers.isNotEmpty ? numbers.join(', ') : 'não disponíveis';
+
   factory RaffleEntry.fromJson(Map<String, dynamic> json) {
     final rawNumbers = json['raffle_numbers'];
     final numbers = rawNumbers is List
@@ -276,6 +285,11 @@ class CreateRaffleEntryResponse {
   final RafflePrice total;
   final String message;
   final String? paymentUrl;
+
+  bool get isPendingPayment => status == 'pending_payment';
+  bool get isPaid => status == 'paid';
+  bool get isCancelled => status == 'cancelled';
+  bool get canOpenPayment => isPendingPayment && paymentUrl != null;
 
   factory CreateRaffleEntryResponse.fromJson(Map<String, dynamic> json) {
     final rawNumbers = json['numbers'];

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/url/open_payment_url.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/price_tag.dart';
 import '../../shared/widgets/smart_card.dart';
+import '../../shared/widgets/status_badge.dart';
 import 'data/order_models.dart';
 import 'data/orders_repository.dart';
 import 'domain/order_status_mapper.dart';
@@ -72,6 +74,12 @@ class _OrderDetailContent extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
+              StatusBadge(
+                label: status.label,
+                icon: status.icon,
+                color: status.color,
+              ),
+              const SizedBox(height: 10),
               Text(
                 status.description,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -118,22 +126,19 @@ class _OrderDetailContent extends StatelessWidget {
           ),
         const SizedBox(height: 8),
         SmartCard(
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  'Total',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
               Text(
-                order.total.formatted,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.secondary,
+                'Total',
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
+              ),
+              const SizedBox(height: 8),
+              PriceTag(
+                label: order.total.formatted,
+                subtitle: 'Valor do pedido',
               ),
             ],
           ),
@@ -143,10 +148,7 @@ class _OrderDetailContent extends StatelessWidget {
           PrimaryButton(
             label: 'Abrir pagamento',
             icon: Icons.open_in_new_rounded,
-            onPressed: () => launchUrl(
-              Uri.parse(order.paymentUrl!),
-              mode: LaunchMode.externalApplication,
-            ),
+            onPressed: () => openPaymentUrl(context, order.paymentUrl!),
           ),
         ],
       ],

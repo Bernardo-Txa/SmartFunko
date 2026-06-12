@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/image_url_resolver.dart';
 import '../../../shared/widgets/primary_button.dart';
+import '../../../shared/widgets/price_tag.dart';
+import '../../../shared/widgets/status_badge.dart';
 import '../data/product_models.dart';
 
 class ProductCard extends StatelessWidget {
@@ -65,9 +67,12 @@ class ProductCard extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          _Badge(label: product.status.label),
+                          StatusBadge(label: product.status.label),
                           if (product.special)
-                            const _Badge(label: 'Especial', highlighted: true),
+                            const StatusBadge(
+                              label: 'Especial',
+                              icon: Icons.star_rounded,
+                            ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -92,12 +97,9 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Text(
-                        product.price.formatted,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: colorScheme.secondary,
-                        ),
+                      PriceTag(
+                        label: product.price.formatted,
+                        subtitle: 'Preço',
                       ),
                       const SizedBox(height: 12),
                       PrimaryButton(
@@ -159,39 +161,6 @@ class _ProductImage extends StatelessWidget {
       fit: BoxFit.cover,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, this.highlighted = false});
-
-  final String label;
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = highlighted
-        ? theme.colorScheme.secondary
-        : theme.colorScheme.primary;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
     );
   }
 }
