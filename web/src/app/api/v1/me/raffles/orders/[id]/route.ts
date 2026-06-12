@@ -13,7 +13,7 @@ export async function GET(request: Request, { params }: Params) {
   return withCors(request, await handleApi(async () => {
     assertRafflesEnabled();
     const { id } = await params;
-    const { customer } = await requireUser();
+    const { customer } = await requireUser(request);
 
     if (!customer) {
       throw forbidden("Cliente nao vinculado ao usuario");

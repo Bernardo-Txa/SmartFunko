@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../core/network/api_error.dart';
 import '../../core/network/image_url_resolver.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
@@ -186,10 +188,24 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
   }
 
   Future<void> _reserve() async {
-    final auth = ref.read(authControllerProvider);
+    final auth = await ref.read(authControllerProvider.notifier).syncSession();
     final raffle = widget.raffle;
+    final selectedNumbers =
+        ref.read(raffleSelectionControllerProvider(raffle.slug)).toList()
+          ..sort();
+
+    if (kDebugMode) {
+      debugPrint(
+        '[Raffle] userPresent=${auth.effectiveUser != null} '
+        'sessionPresent=${auth.effectiveSession != null} '
+        'selectedNumbers=${selectedNumbers.length}',
+      );
+    }
 
     if (!auth.isAuthenticated) {
+      if (!mounted) {
+        return;
+      }
       context.go('/login?from=/rifas/${raffle.slug}');
       return;
     }
@@ -200,14 +216,18 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
     });
 
     try {
-      final selected =
-          ref.read(raffleSelectionControllerProvider(raffle.slug)).toList()
-            ..sort();
+      if (kDebugMode) {
+        final token = auth.effectiveSession?.accessToken.trim();
+        debugPrint(
+          '[Raffle] submitting tokenPresent=${token != null && token.isNotEmpty}',
+        );
+      }
+
       final response = await ref
           .read(rafflesRepositoryProvider)
           .reserveNumbers(
             slug: raffle.slug,
-            request: CreateRaffleEntryRequest(numbers: selected),
+            request: CreateRaffleEntryRequest(numbers: selectedNumbers),
           );
 
       ref.read(raffleSelectionControllerProvider(raffle.slug).notifier).clear();
@@ -229,9 +249,17 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
         context.go('/minhas-rifas');
       }
     } catch (error) {
+      final sessionExpired = error is ApiError && error.statusCode == 401;
       setState(() {
-        _error = error.toString();
+        if (sessionExpired) {
+          _error = 'Sua sessão expirou. Entre novamente para continuar.';
+        } else {
+          _error = error.toString();
+        }
       });
+      if (sessionExpired) {
+        await ref.read(authControllerProvider.notifier).signOut();
+      }
       ref.invalidate(raffleDetailProvider(raffle.slug));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

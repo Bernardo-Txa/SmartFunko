@@ -6,17 +6,20 @@ import { assertRafflesEnabled } from "@/server/raffles/raffle-feature";
 import { RaffleService } from "@/server/raffles/raffle-service";
 
 export async function GET(request: Request) {
-  return withCors(request, await handleApi(async () => {
-    assertRafflesEnabled();
-    const { customer } = await requireUser(request);
+  return withCors(
+    request,
+    await handleApi(async () => {
+      assertRafflesEnabled();
+      const { customer } = await requireUser(request);
 
-    if (!customer) {
-      throw forbidden("Cliente nao vinculado ao usuario");
-    }
+      if (!customer) {
+        throw forbidden("Cliente nao vinculado ao usuario");
+      }
 
-    const orders = await new RaffleService().getMyRaffleOrders(customer.id);
-    return jsonOk(orders);
-  }));
+      const orders = await new RaffleService().getMyRaffleOrders(customer.id);
+      return jsonOk(orders);
+    }),
+  );
 }
 
 export function OPTIONS(request: Request) {

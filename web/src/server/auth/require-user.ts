@@ -1,10 +1,8 @@
 import "server-only";
-import type { User } from "@supabase/supabase-js";
-import { forbidden, internalError, unauthorized } from "@/server/http/errors";
-import {
-  createSupabaseServerClient,
-  type SupabaseServerClient,
-} from "@/server/supabase/server-client";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { getAuthenticatedUser } from "@/server/auth/get-authenticated-user";
+import { forbidden, internalError } from "@/server/http/errors";
+import { createSupabaseAdminClient } from "@/server/supabase/admin-client";
 
 export type ProfileRole = "customer" | "admin" | "owner";
 
@@ -28,27 +26,20 @@ export type AuthCustomer = {
 };
 
 export type AuthContext = {
-  supabase: SupabaseServerClient;
+  supabase: SupabaseClient;
   authUser: User;
   profile: AuthProfile;
   customer: AuthCustomer | null;
 };
 
-export async function requireUser(): Promise<AuthContext> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+export async function requireUser(request?: Request): Promise<AuthContext> {
+  const { authUser, supabase } = await getAuthenticatedUser(request);
+  const dataClient = createSupabaseAdminClient();
 
-  if (userError || !user) {
-    throw unauthorized();
-  }
-
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await dataClient
     .from("profiles")
     .select("id,auth_user_id,name,email,role")
-    .eq("auth_user_id", user.id)
+    .eq("auth_user_id", authUser.id)
     .maybeSingle<AuthProfile>();
 
   if (profileError) {
@@ -59,7 +50,7 @@ export async function requireUser(): Promise<AuthContext> {
     throw forbidden("Perfil nao encontrado");
   }
 
-  const { data: customer, error: customerError } = await supabase
+  const { data: customer, error: customerError } = await dataClient
     .from("customers")
     .select("id,profile_id,name,email,phone,cpf,instagram,status")
     .eq("profile_id", profile.id)
@@ -75,7 +66,7 @@ export async function requireUser(): Promise<AuthContext> {
 
   return {
     supabase,
-    authUser: user,
+    authUser,
     profile,
     customer,
   };

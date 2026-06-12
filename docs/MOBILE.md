@@ -17,6 +17,28 @@ O mobile autentica o usuário diretamente no Supabase Auth com `SUPABASE_URL` e 
 
 Pagamentos, rifas produtivas, pedidos e operações sensíveis continuam centralizados no backend web.
 
+## Mobile 0.4.1: autenticação e locale
+
+Endpoints `/api/v1/me/*` exigem `Authorization: Bearer <access_token>`. O token vem de `Supabase.instance.client.auth.currentSession?.accessToken`; o interceptor tenta renovar sessão expirada antes da chamada e nunca envia `Bearer null` ou token vazio.
+
+Telas autenticadas não devem chamar `/api/v1/me/*` sem sessão. `/pedidos`, `/minhas-rifas` e `/checkout` exibem CTA de login quando o usuário está deslogado, e o checkout volta para `/checkout` após login via `from=/checkout`.
+
+Para testar um token real:
+
+```bash
+curl -i "https://smart-funko.vercel.app/api/v1/me/orders" \
+  -H "Origin: http://localhost:36883" \
+  -H "Authorization: Bearer TOKEN_VALIDO"
+```
+
+O app inicializa `initializeDateFormatting('pt_BR', null)` antes de `runApp` e configura `MaterialApp` com locale `pt_BR`, delegates e `flutter_localizations`.
+
+## Mobile 0.4.2: estado unico de auth
+
+A fonte de verdade de login no app e a sessao atual do Supabase. `AuthController.syncSession()` consulta `Supabase.instance.client.auth.currentSession`, tenta renovar token expirado e atualiza o provider antes de guards de checkout e rifa bloquearem o fluxo.
+
+Fluxos protegidos usam a sessao efetiva do Supabase para evitar falso bloqueio quando o provider ainda esta defasado apos login, hot restart ou retomada do app. Enquanto o estado ainda carrega, as telas mostram `Verificando sua sessão...`.
+
 ## Escopo MVP cliente
 
 - Login Supabase Auth.
@@ -132,7 +154,9 @@ Endpoints usados:
 - `GET /api/v1/public/raffles/[slug]`
 - `GET /api/v1/public/raffles/[slug]/numbers`
 - `POST /api/v1/me/raffles/[slug]/reserve`
-- `GET /api/v1/me/raffles/orders`
+- `GET /api/v1/me/raffles`
+
+`GET /api/v1/me/raffles/orders` continua existindo como compatibilidade do backend, mas o mobile usa o path claro `/api/v1/me/raffles`.
 
 Fluxo:
 

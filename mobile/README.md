@@ -169,6 +169,30 @@ Rifas reais experimentais:
 
 O backend continua definindo cliente pelo Bearer token e validando disponibilidade/total. Pagamento nativo nao e confirmado pelo app.
 
+## Mobile 0.4.1
+
+- `/api/v1/me/*` usa `Authorization: Bearer <access_token>` obtido da sessão atual do Supabase.
+- O interceptor tenta renovar sessão expirada antes de enviar endpoints autenticados e não loga o token completo.
+- Telas autenticadas mostram CTA de login e não disparam `/me` sem sessão.
+- `/minhas-rifas` usa `GET /api/v1/me/raffles`; `/api/v1/me/raffles/orders` fica como compatibilidade no backend.
+- Datas em `pt_BR` são inicializadas com `initializeDateFormatting('pt_BR', null)` antes de `runApp`.
+
+Teste rápido de CORS/autenticação:
+
+```bash
+curl -i -X OPTIONS "https://smart-funko.vercel.app/api/v1/me/orders" \
+  -H "Origin: http://localhost:36883" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: Authorization, Content-Type"
+```
+
+## Mobile 0.4.2
+
+- `AuthController` sincroniza o estado com `Supabase.instance.client.auth.currentSession`.
+- Checkout e rifa chamam `syncSession()` antes de decidir se enviam o usuário para login.
+- `/login` aceita `from` e `redirect` para voltar ao checkout, rifa, pedidos ou minhas rifas.
+- O interceptor lança erro controlado antes de chamar `/api/v1/me/*` quando não há token.
+
 ## Estrutura
 
 - `lib/app`: app, router e tema.

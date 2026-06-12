@@ -28,17 +28,25 @@ class AuthState {
   final supabase.Session? session;
   final supabase.User? user;
 
+  supabase.Session? get effectiveSession =>
+      session ?? supabase.Supabase.instance.client.auth.currentSession;
+
+  supabase.User? get effectiveUser =>
+      user ??
+      effectiveSession?.user ??
+      supabase.Supabase.instance.client.auth.currentUser;
+
   bool get isLoading => status == AuthStatus.loading;
-  bool get isAuthenticated => status == AuthStatus.authenticated;
+  bool get isAuthenticated => effectiveSession != null && effectiveUser != null;
   bool get isError => status == AuthStatus.error;
 
   String get displayName {
-    final metadataName = user?.userMetadata?['name'];
+    final metadataName = effectiveUser?.userMetadata?['name'];
     if (metadataName is String && metadataName.trim().isNotEmpty) {
       return metadataName.trim();
     }
 
-    final email = user?.email?.trim();
+    final email = effectiveUser?.email?.trim();
     if (email != null && email.isNotEmpty) {
       return email;
     }

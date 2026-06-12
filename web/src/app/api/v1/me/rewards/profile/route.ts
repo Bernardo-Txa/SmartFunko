@@ -7,7 +7,7 @@ import { parseJsonBody } from "@/server/validation/parse-json";
 
 export async function PATCH(request: Request) {
   return withCors(request, await handleApi(async () => {
-    const { customer } = await requireUser();
+    const { customer } = await requireUser(request);
 
     if (!customer) {
       throw forbidden("Cliente nao vinculado ao usuario");

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/settings/theme_mode_controller.dart';
@@ -19,6 +20,9 @@ class SmartFunkosApp extends ConsumerWidget {
       theme: SmartFunkosTheme.light,
       darkTheme: SmartFunkosTheme.dark,
       themeMode: themeMode,
+      locale: const Locale('pt', 'BR'),
+      supportedLocales: const [Locale('pt', 'BR')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: router,
     );
   }

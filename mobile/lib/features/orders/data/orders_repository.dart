@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/auth_controller.dart';
 import '../../../core/network/api_client.dart';
 import 'order_models.dart';
 
@@ -8,11 +9,24 @@ final ordersRepositoryProvider = Provider<OrdersRepository>(
 );
 
 final ordersProvider = FutureProvider.autoDispose<List<OrderSummary>>((ref) {
+  final auth = ref.watch(authControllerProvider);
+  if (auth.isLoading && !auth.isAuthenticated) {
+    return const <OrderSummary>[];
+  }
+  if (!auth.isAuthenticated) {
+    return const <OrderSummary>[];
+  }
+
   return ref.watch(ordersRepositoryProvider).getOrders();
 });
 
 final orderDetailProvider = FutureProvider.autoDispose
     .family<OrderDetail, String>((ref, orderNumber) {
+      final auth = ref.watch(authControllerProvider);
+      if (!auth.isAuthenticated) {
+        throw const OrdersUnauthenticatedException();
+      }
+
       return ref.watch(ordersRepositoryProvider).getOrderByNumber(orderNumber);
     });
 
@@ -70,4 +84,11 @@ class OrdersShapeException implements Exception {
 
   @override
   String toString() => 'A API retornou um formato inesperado de pedidos.';
+}
+
+class OrdersUnauthenticatedException implements Exception {
+  const OrdersUnauthenticatedException();
+
+  @override
+  String toString() => 'Entre para ver seus pedidos.';
 }

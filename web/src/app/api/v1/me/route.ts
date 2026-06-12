@@ -50,7 +50,7 @@ function normalizeInstagram(value: string | null | undefined) {
 
 export async function GET(request: Request) {
   return withCors(request, await handleApi(async () => {
-    const { authUser, customer, profile } = await requireUser();
+    const { authUser, customer, profile } = await requireUser(request);
     return jsonOk({
       customer,
       profile,
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   return withCors(request, await handleApi(async () => {
-    const { authUser, customer, profile } = await requireUser();
+    const { authUser, customer, profile } = await requireUser(request);
 
     if (!customer) {
       throw forbidden("Cliente nao vinculado ao usuario");

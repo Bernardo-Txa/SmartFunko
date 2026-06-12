@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
 
@@ -14,11 +15,13 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
-    final user = auth.user;
+    final user = auth.effectiveUser;
 
     return AppScaffold(
       title: 'Perfil',
-      body: auth.isAuthenticated && user != null
+      body: auth.isLoading
+          ? const LoadingState(message: 'Verificando sua sessão...')
+          : auth.isAuthenticated && user != null
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -75,7 +78,7 @@ class ProfilePage extends ConsumerWidget {
                 PrimaryButton(
                   label: 'Entrar',
                   icon: Icons.login_rounded,
-                  onPressed: () => context.go('/login'),
+                  onPressed: () => context.go('/login?from=/perfil'),
                 ),
               ],
             ),

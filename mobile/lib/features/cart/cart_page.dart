@@ -163,7 +163,6 @@ class _CartSummary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final controller = ref.read(cartControllerProvider.notifier);
-    final auth = ref.watch(authControllerProvider);
     final cart = ref.watch(cartControllerProvider);
 
     return SmartCard(
@@ -196,12 +195,15 @@ class _CartSummary extends ConsumerWidget {
             onPressed: cart.canCheckout
                 ? () async {
                     await controller.startCheckout();
+                    final authState = await ref
+                        .read(authControllerProvider.notifier)
+                        .syncSession();
                     if (!context.mounted) {
                       return;
                     }
 
                     context.go(
-                      auth.isAuthenticated
+                      authState.isAuthenticated
                           ? '/checkout'
                           : '/login?from=/checkout',
                     );

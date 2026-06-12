@@ -8,6 +8,11 @@ class ApiError implements Exception {
   final Object? raw;
 
   factory ApiError.fromDio(DioException error) {
+    final rawError = error.error;
+    if (rawError is UnauthenticatedException) {
+      return ApiError(message: rawError.message, statusCode: 401, raw: error);
+    }
+
     final response = error.response;
     final statusCode = response?.statusCode;
     final data = response?.data;
@@ -46,6 +51,15 @@ class ApiError implements Exception {
       _ => 'Nao foi possivel concluir a operacao.',
     };
   }
+
+  @override
+  String toString() => message;
+}
+
+class UnauthenticatedException implements Exception {
+  const UnauthenticatedException([this.message = 'Entre para continuar.']);
+
+  final String message;
 
   @override
   String toString() => message;

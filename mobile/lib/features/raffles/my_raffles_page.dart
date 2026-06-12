@@ -21,15 +21,22 @@ class MyRafflesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
 
+    if (auth.isLoading) {
+      return const AppScaffold(
+        title: 'Minhas rifas',
+        showBackButton: true,
+        body: LoadingState(message: 'Verificando sua sessão...'),
+      );
+    }
+
     if (!auth.isAuthenticated) {
       return AppScaffold(
         title: 'Minhas rifas',
         showBackButton: true,
         body: EmptyState(
           icon: Icons.lock_outline_rounded,
-          title: 'Entre para ver suas rifas',
-          message:
-              'Use sua conta Smart Funkos para acompanhar reservas e números.',
+          title: 'Entre para continuar.',
+          message: 'Entre para ver suas rifas.',
           actionLabel: 'Entrar',
           onAction: () => context.go('/login?from=/minhas-rifas'),
         ),

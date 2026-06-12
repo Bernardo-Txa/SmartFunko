@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../core/network/api_error.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
 import '../cart/data/cart_controller.dart';
@@ -36,15 +38,22 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
     final cart = ref.watch(cartControllerProvider);
     final theme = Theme.of(context);
 
+    if (auth.isLoading) {
+      return const AppScaffold(
+        title: 'Revisar pedido',
+        showBackButton: true,
+        body: LoadingState(message: 'Verificando sua sessão...'),
+      );
+    }
+
     if (!auth.isAuthenticated) {
       return AppScaffold(
         title: 'Revisar pedido',
         showBackButton: true,
         body: EmptyState(
           icon: Icons.lock_outline_rounded,
-          title: 'Entre para finalizar',
-          message:
-              'Use sua conta Smart Funkos para enviar o pedido para análise.',
+          title: 'Entre para continuar.',
+          message: 'Entre para finalizar seu pedido.',
           actionLabel: 'Entrar',
           onAction: () => context.go('/login?from=/checkout'),
         ),
@@ -192,6 +201,15 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
   }
 
   Future<void> _submit() async {
+    final auth = await ref.read(authControllerProvider.notifier).syncSession();
+    if (!auth.isAuthenticated) {
+      if (!mounted) {
+        return;
+      }
+      context.go('/login?from=/checkout');
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _error = null;
@@ -225,9 +243,17 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       ).showSnackBar(SnackBar(content: Text(response.message)));
       context.go('/pedidos/${response.orderNumber}');
     } catch (error) {
+      final sessionExpired = error is ApiError && error.statusCode == 401;
       setState(() {
-        _error = error.toString();
+        if (sessionExpired) {
+          _error = 'Sua sessão expirou. Entre novamente para continuar.';
+        } else {
+          _error = error.toString();
+        }
       });
+      if (sessionExpired) {
+        await ref.read(authControllerProvider.notifier).signOut();
+      }
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

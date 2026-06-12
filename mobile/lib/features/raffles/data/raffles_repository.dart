@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/auth_controller.dart';
 import '../../../core/network/api_client.dart';
 import 'raffle_models.dart';
 
@@ -19,6 +20,14 @@ final raffleDetailProvider = FutureProvider.autoDispose
     });
 
 final myRafflesProvider = FutureProvider.autoDispose<List<RaffleEntry>>((ref) {
+  final auth = ref.watch(authControllerProvider);
+  if (auth.isLoading && !auth.isAuthenticated) {
+    return const <RaffleEntry>[];
+  }
+  if (!auth.isAuthenticated) {
+    return const <RaffleEntry>[];
+  }
+
   return ref.watch(rafflesRepositoryProvider).getMyRaffles();
 });
 
@@ -82,7 +91,7 @@ class RafflesRepository {
 
   Future<List<RaffleEntry>> getMyRaffles() async {
     final response = await _apiClient.get<Map<String, dynamic>>(
-      '/api/v1/me/raffles/orders',
+      '/api/v1/me/raffles',
     );
     final rawData = response.data?['data'] ?? response.data;
 

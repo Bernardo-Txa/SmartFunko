@@ -12,7 +12,7 @@ type Params = {
 export async function DELETE(request: Request, { params }: Params) {
   return withCors(request, await handleApi(async () => {
     const { id } = await params;
-    const { customer } = await requireUser();
+    const { customer } = await requireUser(request);
 
     if (!customer) {
       throw forbidden("Cliente nao vinculado ao usuario");
@@ -26,7 +26,7 @@ export async function DELETE(request: Request, { params }: Params) {
 export async function PATCH(request: Request, { params }: Params) {
   return withCors(request, await handleApi(async () => {
     const { id } = await params;
-    const { customer } = await requireUser();
+    const { customer } = await requireUser(request);
 
     if (!customer) {
       throw forbidden("Cliente nao vinculado ao usuario");

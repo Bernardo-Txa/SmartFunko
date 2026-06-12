@@ -5,10 +5,10 @@ import '../config/app_config.dart';
 import 'api_error.dart';
 import 'auth_interceptor.dart';
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref));
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
 class ApiClient {
-  ApiClient(this.ref)
+  ApiClient()
     : _dio = Dio(
         BaseOptions(
           baseUrl: AppConfig.normalizedApiBaseUrl,
@@ -19,10 +19,9 @@ class ApiClient {
           headers: const {'Content-Type': 'application/json'},
         ),
       ) {
-    _dio.interceptors.add(AuthInterceptor(ref));
+    _dio.interceptors.add(AuthInterceptor());
   }
 
-  final Ref ref;
   final Dio _dio;
 
   Future<Response<T>> get<T>(

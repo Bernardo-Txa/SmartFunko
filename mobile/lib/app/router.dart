@@ -37,8 +37,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (auth.isAuthenticated && isLogin) {
-        final from = state.uri.queryParameters['from'];
-        return from?.startsWith('/') == true ? from : '/';
+        final redirect =
+            state.uri.queryParameters['redirect'] ??
+            state.uri.queryParameters['from'];
+        return redirect?.startsWith('/') == true ? redirect : '/';
       }
 
       return null;

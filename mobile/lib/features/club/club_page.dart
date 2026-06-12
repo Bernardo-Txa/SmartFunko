@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
 
@@ -18,7 +19,9 @@ class ClubPage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Clube',
-      body: auth.isAuthenticated
+      body: auth.isLoading
+          ? const LoadingState(message: 'Verificando sua sessão...')
+          : auth.isAuthenticated
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

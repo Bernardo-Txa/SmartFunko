@@ -21,6 +21,13 @@ class OrdersPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
 
+    if (auth.isLoading) {
+      return const AppScaffold(
+        title: 'Pedidos',
+        body: LoadingState(message: 'Verificando sua sessão...'),
+      );
+    }
+
     if (!auth.isAuthenticated) {
       return AppScaffold(
         title: 'Pedidos',
@@ -28,9 +35,8 @@ class OrdersPage extends ConsumerWidget {
           children: [
             const EmptyState(
               icon: Icons.lock_outline_rounded,
-              title: 'Entre para ver pedidos',
-              message:
-                  'Use sua conta Smart Funkos para acompanhar pedidos e pagamentos.',
+              title: 'Entre para continuar.',
+              message: 'Entre para ver seus pedidos.',
             ),
             const SizedBox(height: 18),
             PrimaryButton(

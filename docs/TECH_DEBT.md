@@ -147,6 +147,18 @@ Mobile MVP Cliente 0.4 conectou rifas reais experimentais. Permanecem pendentes:
 - evoluir pagamento de rifa no app somente via backend/webhook;
 - Clube real entra na 0.5.
 
+Mobile 0.4.1 corrigiu autenticação Bearer para `/api/v1/me/*`, bloqueio de chamadas autenticadas sem sessão e locale `pt_BR` no Flutter. Permanecem pendentes:
+
+- adicionar testes widget/integracao para garantir que `/pedidos`, `/minhas-rifas` e checkout nao chamem repositorios autenticados quando deslogados;
+- testar automaticamente `/api/v1/me/*` com token Supabase real ou fixture controlada em ambiente de CI;
+- revisar fluxo dedicado de re-login quando refresh token expirar definitivamente.
+
+Mobile 0.4.2 unificou guards de auth na sessao Supabase efetiva. Permanecem pendentes:
+
+- cobrir `syncSession()` com testes unitarios usando Supabase mockado;
+- adicionar teste de widget para retorno pos-login em rifa e checkout;
+- validar retomada de app em Android fisico com sessao persistida.
+
 ## CORS mobile futuro
 
 Mobile 0.2.1 adicionou allowlist de CORS para APIs publicas e `/api/v1/me/*`, preservando admin fora do escopo mobile. Permanecem pendentes:

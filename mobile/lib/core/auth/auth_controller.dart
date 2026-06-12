@@ -21,7 +21,29 @@ class AuthController extends StateNotifier<AuthState> {
   supabase.SupabaseClient get _client => supabase.Supabase.instance.client;
 
   Future<void> restoreSession() async {
-    _emitSession(_client.auth.currentSession);
+    await syncSession(refreshExpired: false);
+  }
+
+  Future<AuthState> syncSession({bool refreshExpired = true}) async {
+    var session = _client.auth.currentSession;
+
+    if (refreshExpired && session?.isExpired == true) {
+      try {
+        final response = await _client.auth.refreshSession();
+        session = response.session ?? _client.auth.currentSession;
+      } on supabase.AuthException catch (error) {
+        await _clearSupabaseSession();
+        state = AuthState.error(error.message);
+        return state;
+      } catch (_) {
+        await _clearSupabaseSession();
+        state = const AuthState.unauthenticated();
+        return state;
+      }
+    }
+
+    _emitSession(session);
+    return state;
   }
 
   Future<void> signIn({required String email, required String password}) async {
@@ -56,17 +78,27 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> _clearSupabaseSession() async {
+    try {
+      await _client.auth.signOut();
+    } catch (_) {
+      // Best effort: the local state below still stops protected app flows.
+    }
+  }
+
   void _handleAuthStateChange(supabase.AuthState data) {
     _emitSession(data.session);
   }
 
   void _emitSession(supabase.Session? session) {
-    if (session == null) {
+    final user = session?.user ?? _client.auth.currentUser;
+
+    if (session == null || user == null) {
       state = const AuthState.unauthenticated();
       return;
     }
 
-    state = AuthState.authenticated(session: session, user: session.user);
+    state = AuthState.authenticated(session: session, user: user);
   }
 
   @override
