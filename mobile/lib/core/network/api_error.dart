@@ -34,21 +34,21 @@ class ApiError implements Exception {
     if (type == DioExceptionType.connectionTimeout ||
         type == DioExceptionType.sendTimeout ||
         type == DioExceptionType.receiveTimeout) {
-      return 'A conexao com a API expirou.';
+      return 'A conexão com a API expirou.';
     }
 
     if (type == DioExceptionType.connectionError) {
-      return 'Nao foi possivel conectar ao servidor.';
+      return 'Não foi possível conectar ao servidor.';
     }
 
     return switch (statusCode) {
-      400 => 'A requisicao foi rejeitada.',
-      401 => 'Voce precisa entrar novamente.',
-      403 => 'Voce nao tem acesso a essa acao.',
-      404 => 'O recurso solicitado nao foi encontrado.',
-      422 => 'Os dados informados sao invalidos.',
-      500 => 'O servidor encontrou um erro interno.',
-      _ => 'Nao foi possivel concluir a operacao.',
+      400 => 'A requisição foi rejeitada.',
+      401 => 'Sua sessão expirou. Entre novamente.',
+      403 => 'Você não tem acesso a essa ação.',
+      404 => 'O recurso solicitado não foi encontrado.',
+      422 => 'Os dados informados são inválidos.',
+      500 => 'Não foi possível concluir a operação.',
+      _ => 'Não foi possível concluir a operação.',
     };
   }
 

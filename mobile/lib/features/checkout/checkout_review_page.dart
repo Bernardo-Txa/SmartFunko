@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +58,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
           title: 'Entre para continuar.',
           message: 'Entre para finalizar seu pedido.',
           actionLabel: 'Entrar',
-          onAction: () => context.go('/login?from=/checkout'),
+          onAction: () => context.go('/login?redirect=/checkout'),
         ),
       );
     }
@@ -193,7 +194,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
             icon: Icons.send_rounded,
             isLoading: _isSubmitting,
             fullWidth: true,
-            onPressed: cart.canCheckout ? _submit : null,
+            onPressed: cart.isEmpty ? null : _submit,
           ),
         ],
       ),
@@ -201,12 +202,24 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
   }
 
   Future<void> _submit() async {
+    final cart = ref.read(cartControllerProvider);
     final auth = await ref.read(authControllerProvider.notifier).syncSession();
-    if (!auth.isAuthenticated) {
+    final session = auth.effectiveSession;
+    final token = session?.accessToken.trim();
+    final tokenPresent = token != null && token.isNotEmpty;
+
+    if (kDebugMode) {
+      debugPrint('[Checkout] button pressed');
+      debugPrint('[Checkout] cartItemsCount=${cart.items.length}');
+      debugPrint('[Checkout] authSessionPresent=${session != null}');
+      debugPrint('[Checkout] tokenPresent=$tokenPresent');
+    }
+
+    if (!auth.isAuthenticated || !tokenPresent) {
       if (!mounted) {
         return;
       }
-      context.go('/login?from=/checkout');
+      context.go('/login?redirect=/checkout');
       return;
     }
 
@@ -216,7 +229,6 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
     });
 
     try {
-      final cart = ref.read(cartControllerProvider);
       final orderItems = <CreateOrderItem>[];
 
       for (final item in cart.items) {
@@ -258,22 +270,34 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Pedido enviado para análise. Acompanhe o status em Meus pedidos.',
-          ),
-        ),
+        const SnackBar(content: Text('Pedido enviado para análise.')),
       );
 
       final orderNumber = response.orderNumber.trim();
       ref.invalidate(ordersProvider);
       context.go(orderNumber.isEmpty ? '/pedidos' : '/pedidos/$orderNumber');
       ref.read(cartControllerProvider.notifier).clearAfterOrderCreated();
+
+      if (kDebugMode) {
+        debugPrint(
+          '[Checkout] order created success orderNumber=${orderNumber.isEmpty ? 'null' : orderNumber}',
+        );
+      }
     } catch (error) {
       final sessionExpired = error is ApiError && error.statusCode == 401;
+      if (kDebugMode) {
+        final statusCode = error is ApiError ? error.statusCode : null;
+        debugPrint(
+          '[Checkout] create order failed status=$statusCode message=$error',
+        );
+      }
       setState(() {
         if (sessionExpired) {
           _error = 'Sua sessão expirou. Entre novamente para continuar.';
+        } else if (error is ApiError && error.statusCode == 400) {
+          _error = error.message;
+        } else if (error is ApiError && error.statusCode == 500) {
+          _error = 'Não foi possível criar o pedido agora.';
         } else {
           _error = error.toString();
         }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -191,23 +192,38 @@ class _CartSummary extends ConsumerWidget {
             label: 'Finalizar pedido',
             icon: Icons.send_rounded,
             fullWidth: true,
-            onPressed: cart.canCheckout
-                ? () async {
-                    await controller.startCheckout();
+            onPressed: cart.isEmpty
+                ? null
+                : () async {
                     final authState = await ref
                         .read(authControllerProvider.notifier)
                         .syncSession();
+                    final session = authState.effectiveSession;
+                    final token = session?.accessToken.trim();
+                    final tokenPresent = token != null && token.isNotEmpty;
+
+                    if (kDebugMode) {
+                      debugPrint('[Checkout] button pressed');
+                      debugPrint(
+                        '[Checkout] cartItemsCount=${cart.items.length}',
+                      );
+                      debugPrint(
+                        '[Checkout] authSessionPresent=${session != null}',
+                      );
+                      debugPrint('[Checkout] tokenPresent=$tokenPresent');
+                    }
+
                     if (!context.mounted) {
                       return;
                     }
 
-                    context.go(
-                      authState.isAuthenticated
-                          ? '/checkout'
-                          : '/login?from=/checkout',
-                    );
-                  }
-                : null,
+                    if (!authState.isAuthenticated || !tokenPresent) {
+                      context.go('/login?redirect=/checkout');
+                      return;
+                    }
+
+                    context.go('/checkout');
+                  },
           ),
           const SizedBox(height: 10),
           PrimaryButton(
