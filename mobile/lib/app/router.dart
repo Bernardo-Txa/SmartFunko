@@ -69,6 +69,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/pedidos/:orderNumber',
+        redirect: (context, state) {
+          final orderNumber = state.pathParameters['orderNumber']?.trim();
+          return orderNumber == null || orderNumber.isEmpty ? '/pedidos' : null;
+        },
         builder: (context, state) => OrderDetailPage(
           orderNumber: state.pathParameters['orderNumber'] ?? '',
         ),

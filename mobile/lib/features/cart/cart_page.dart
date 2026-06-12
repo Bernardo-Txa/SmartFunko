@@ -243,6 +243,10 @@ class _CartSummaryState extends ConsumerState<_CartSummary> {
     }
 
     final cart = ref.read(cartControllerProvider);
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final cartNotifier = ref.read(cartControllerProvider.notifier);
+    final ordersRepository = ref.read(ordersRepositoryProvider);
 
     if (cart.isEmpty) {
       _showMessage('Seu carrinho está vazio.');
@@ -268,7 +272,7 @@ class _CartSummaryState extends ConsumerState<_CartSummary> {
     }
 
     if (!authState.isAuthenticated || !tokenPresent) {
-      context.go('/login?redirect=/carrinho');
+      router.go('/login?redirect=/carrinho');
       return;
     }
 
@@ -307,29 +311,29 @@ class _CartSummaryState extends ConsumerState<_CartSummary> {
       _logDebug('[Checkout] payload itemCount=${orderItems.length}');
       _logDebug('[Checkout] calling create order endpoint...');
 
-      final response = await ref
-          .read(ordersRepositoryProvider)
-          .createOrder(CreateOrderRequest(items: orderItems));
+      final response = await ordersRepository.createOrder(
+        CreateOrderRequest(items: orderItems),
+      );
 
       final orderNumber = response.orderNumber.trim();
       _logDebug(
         '[Checkout] order created orderNumber=${orderNumber.isEmpty ? 'null' : orderNumber}',
       );
 
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Pedido enviado para análise.')),
       );
 
-      final route = orderNumber.isEmpty ? '/pedidos' : '/pedidos/$orderNumber';
-      _logDebug('[Checkout] navigating to=$route');
-      context.go(route);
       _logDebug('[Checkout] clearing cart...');
-      ref.read(cartControllerProvider.notifier).clearAfterOrderCreated();
+      cartNotifier.clearAfterOrderCreated();
       ref.invalidate(ordersProvider);
+
+      final encodedOrderNumber = Uri.encodeComponent(orderNumber);
+      final route = encodedOrderNumber.isEmpty
+          ? '/pedidos'
+          : '/pedidos/$encodedOrderNumber';
+      _logDebug('[Checkout] navigating to=$route');
+      router.go(route);
       _logDebug('[Checkout] done');
     } on DioException catch (error, stackTrace) {
       _logDebug('[Checkout] DioException status=${error.response?.statusCode}');
