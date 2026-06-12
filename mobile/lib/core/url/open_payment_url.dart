@@ -37,6 +37,7 @@ Future<void> openPaymentUrl(BuildContext context, String url) async {
             PrimaryButton(
               label: 'Continuar para pagamento',
               icon: Icons.open_in_new_rounded,
+              fullWidth: true,
               onPressed: () => Navigator.of(context).pop(true),
             ),
             const SizedBox(height: 10),

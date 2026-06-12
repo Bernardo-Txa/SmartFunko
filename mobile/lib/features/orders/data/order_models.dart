@@ -185,10 +185,15 @@ class CreateOrderRequest {
   final List<CreateOrderItem> items;
   final String? notes;
 
-  Map<String, dynamic> toJson() => {
-    'items': items.map((item) => item.toJson()).toList(),
-    if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
-  };
+  Map<String, dynamic> toJson() {
+    final trimmedNotes = notes?.trim();
+
+    return {
+      'items': items.map((item) => item.toJson()).toList(),
+      if (trimmedNotes != null && trimmedNotes.isNotEmpty)
+        'notes': trimmedNotes,
+    };
+  }
 }
 
 class CreateOrderResponse {

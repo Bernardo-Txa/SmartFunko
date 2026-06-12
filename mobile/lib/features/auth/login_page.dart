@@ -33,12 +33,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (next.isAuthenticated) {
         final queryParameters = GoRouterState.of(context).uri.queryParameters;
         final redirect = queryParameters['redirect'] ?? queryParameters['from'];
-        context.go(redirect?.startsWith('/') == true ? redirect! : '/');
+        final safeRedirect = redirect?.startsWith('/') == true ? redirect : '/';
+        context.go(safeRedirect ?? '/');
       }
     });
 
     final auth = ref.watch(authControllerProvider);
     final theme = Theme.of(context);
+    final errorMessage = auth.errorMessage;
 
     return AppScaffold(
       title: 'Entrar',
@@ -110,10 +112,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     },
                     onFieldSubmitted: (_) => _submit(),
                   ),
-                  if (auth.isError && auth.errorMessage != null) ...[
+                  if (auth.isError && errorMessage != null) ...[
                     const SizedBox(height: 12),
                     Text(
-                      auth.errorMessage!,
+                      errorMessage,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.error,
                       ),
@@ -124,6 +126,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     label: 'Entrar',
                     icon: Icons.login_rounded,
                     isLoading: auth.isLoading,
+                    fullWidth: true,
                     onPressed: _submit,
                   ),
                   const SizedBox(height: 12),
@@ -131,6 +134,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     label: 'Continuar explorando',
                     icon: Icons.storefront_rounded,
                     variant: PrimaryButtonVariant.outlined,
+                    fullWidth: true,
                     onPressed: () => context.go('/catalogo'),
                   ),
                 ],
@@ -143,7 +147,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   void _submit() {
-    if (!_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() != true) {
       return;
     }
 

@@ -7,6 +7,7 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.isLoading = false,
     this.variant = PrimaryButtonVariant.filled,
+    this.fullWidth = false,
     super.key,
   });
 
@@ -15,6 +16,7 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
   final bool isLoading;
   final PrimaryButtonVariant variant;
+  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +44,7 @@ class PrimaryButton extends StatelessWidget {
             ),
     );
 
-    return SizedBox(
-      width: double.infinity,
+    final button = SizedBox(
       height: 52,
       child: switch (variant) {
         PrimaryButtonVariant.outlined => OutlinedButton(
@@ -54,6 +55,20 @@ class PrimaryButton extends StatelessWidget {
           onPressed: effectiveOnPressed,
           child: child,
         ),
+      },
+    );
+
+    if (!fullWidth) {
+      return button;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!constraints.hasBoundedWidth) {
+          return button;
+        }
+
+        return SizedBox(width: double.infinity, child: button);
       },
     );
   }

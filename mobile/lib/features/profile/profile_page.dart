@@ -57,6 +57,7 @@ class ProfilePage extends ConsumerWidget {
                   label: 'Sair',
                   icon: Icons.logout_rounded,
                   variant: PrimaryButtonVariant.outlined,
+                  fullWidth: true,
                   onPressed: () async {
                     await ref.read(authControllerProvider.notifier).signOut();
                     if (context.mounted) {
@@ -78,6 +79,7 @@ class ProfilePage extends ConsumerWidget {
                 PrimaryButton(
                   label: 'Entrar',
                   icon: Icons.login_rounded,
+                  fullWidth: true,
                   onPressed: () => context.go('/login?from=/perfil'),
                 ),
               ],

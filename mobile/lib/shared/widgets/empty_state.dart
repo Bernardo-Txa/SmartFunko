@@ -22,6 +22,7 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final actionLabel = this.actionLabel;
 
     return Center(
       child: ConstrainedBox(
@@ -49,7 +50,11 @@ class EmptyState extends StatelessWidget {
               ),
               if (actionLabel != null && onAction != null) ...[
                 const SizedBox(height: 18),
-                PrimaryButton(label: actionLabel!, onPressed: onAction),
+                PrimaryButton(
+                  label: actionLabel,
+                  fullWidth: true,
+                  onPressed: onAction,
+                ),
               ],
             ],
           ),

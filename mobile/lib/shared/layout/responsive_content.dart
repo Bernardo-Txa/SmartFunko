@@ -5,7 +5,7 @@ double responsiveMaxWidth(BuildContext context) {
   if (width >= 1240) return 760;
   if (width >= 900) return 720;
   if (width >= 720) return 680;
-  return double.infinity;
+  return width;
 }
 
 class ResponsiveContent extends StatelessWidget {

@@ -44,6 +44,7 @@ class OrdersPage extends ConsumerWidget {
             PrimaryButton(
               label: 'Entrar',
               icon: Icons.login_rounded,
+              fullWidth: true,
               onPressed: () => context.go('/login?from=/pedidos'),
             ),
           ],

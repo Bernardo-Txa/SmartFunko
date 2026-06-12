@@ -51,6 +51,10 @@ class _OrderDetailContent extends StatelessWidget {
       status: order.status,
       reviewStatus: order.reviewStatus,
     );
+    final reviewMessage = order.rejectedReason ?? order.reviewNotes;
+    final customerName = order.customerName;
+    final notes = order.notes;
+    final paymentUrl = order.paymentUrl;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,10 +90,9 @@ class _OrderDetailContent extends StatelessWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (order.rejectedReason != null ||
-                  order.reviewNotes != null) ...[
+              if (reviewMessage != null) ...[
                 const SizedBox(height: 10),
-                Text(order.rejectedReason ?? order.reviewNotes!),
+                Text(reviewMessage),
               ],
             ],
           ),
@@ -104,10 +107,9 @@ class _OrderDetailContent extends StatelessWidget {
                 label: 'Criado em',
                 value: DateFormatter.dayMonthYearHour(order.createdAt),
               ),
-              if (order.customerName != null)
-                _DetailRow(label: 'Cliente', value: order.customerName!),
-              if (order.notes != null)
-                _DetailRow(label: 'Observações', value: order.notes!),
+              if (customerName != null)
+                _DetailRow(label: 'Cliente', value: customerName),
+              if (notes != null) _DetailRow(label: 'Observações', value: notes),
             ],
           ),
         ),
@@ -143,12 +145,13 @@ class _OrderDetailContent extends StatelessWidget {
             ],
           ),
         ),
-        if (order.paymentUrl != null) ...[
+        if (paymentUrl != null) ...[
           const SizedBox(height: 16),
           PrimaryButton(
             label: 'Abrir pagamento',
             icon: Icons.open_in_new_rounded,
-            onPressed: () => openPaymentUrl(context, order.paymentUrl!),
+            fullWidth: true,
+            onPressed: () => openPaymentUrl(context, paymentUrl),
           ),
         ],
       ],

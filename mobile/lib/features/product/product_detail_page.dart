@@ -95,6 +95,7 @@ class _ProductDetailContent extends ConsumerWidget {
             PrimaryButton(
               label: 'Adicionar ao carrinho',
               icon: Icons.add_shopping_cart_rounded,
+              fullWidth: true,
               onPressed: product.status.isAvailable
                   ? () {
                       ref
@@ -119,6 +120,7 @@ class _ProductDetailContent extends ConsumerWidget {
               label: 'Compartilhar',
               icon: Icons.ios_share_rounded,
               variant: PrimaryButtonVariant.outlined,
+              fullWidth: true,
               onPressed: () =>
                   Share.share('Veja este produto na Smart Funkos: $shareUrl'),
             ),
@@ -127,6 +129,7 @@ class _ProductDetailContent extends ConsumerWidget {
               label: 'Continuar compra',
               icon: Icons.shopping_bag_rounded,
               variant: PrimaryButtonVariant.outlined,
+              fullWidth: true,
               onPressed: () => context.go('/carrinho'),
             ),
           ],

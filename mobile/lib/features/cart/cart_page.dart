@@ -190,6 +190,7 @@ class _CartSummary extends ConsumerWidget {
           PrimaryButton(
             label: 'Finalizar pedido',
             icon: Icons.send_rounded,
+            fullWidth: true,
             onPressed: cart.canCheckout
                 ? () async {
                     await controller.startCheckout();
@@ -213,6 +214,7 @@ class _CartSummary extends ConsumerWidget {
             label: 'Continuar comprando',
             icon: Icons.manage_search_rounded,
             variant: PrimaryButtonVariant.outlined,
+            fullWidth: true,
             onPressed: () => context.go('/catalogo'),
           ),
           const SizedBox(height: 10),

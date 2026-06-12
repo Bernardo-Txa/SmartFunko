@@ -109,6 +109,7 @@ class _EntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final status = mapRaffleStatus(context, entry.status);
+    final paymentUrl = entry.paymentUrl;
 
     return SizedBox(
       width: double.infinity,
@@ -157,11 +158,12 @@ class _EntryCard extends StatelessWidget {
             ],
             const SizedBox(height: 14),
             if (entry.isPendingPayment) ...[
-              if (entry.paymentUrl != null)
+              if (paymentUrl != null)
                 PrimaryButton(
                   label: 'Abrir pagamento',
                   icon: Icons.open_in_new_rounded,
-                  onPressed: () => openPaymentUrl(context, entry.paymentUrl!),
+                  fullWidth: true,
+                  onPressed: () => openPaymentUrl(context, paymentUrl),
                 )
               else
                 Text(

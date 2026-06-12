@@ -36,6 +36,7 @@ class RafflesPage extends ConsumerWidget {
             label: 'Minhas rifas',
             icon: Icons.confirmation_number_outlined,
             variant: PrimaryButtonVariant.outlined,
+            fullWidth: true,
             onPressed: () => context.go('/minhas-rifas'),
           ),
           const SizedBox(height: 18),

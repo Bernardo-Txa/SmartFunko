@@ -37,7 +37,15 @@ class SmartCard extends StatelessWidget {
     );
 
     final content = expand
-        ? SizedBox(width: double.infinity, child: card)
+        ? LayoutBuilder(
+            builder: (context, constraints) {
+              if (!constraints.hasBoundedWidth) {
+                return card;
+              }
+
+              return SizedBox(width: double.infinity, child: card);
+            },
+          )
         : card;
 
     if (onTap == null) {

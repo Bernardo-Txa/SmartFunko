@@ -39,6 +39,7 @@ class ErrorState extends StatelessWidget {
                 PrimaryButton(
                   label: 'Tentar novamente',
                   icon: Icons.refresh_rounded,
+                  fullWidth: true,
                   onPressed: onRetry,
                 ),
               ],

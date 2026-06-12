@@ -197,6 +197,7 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
                   label: 'Reservar números',
                   icon: Icons.confirmation_number_rounded,
                   isLoading: _isSubmitting,
+                  fullWidth: true,
                   onPressed: selected.isEmpty ? null : _reserve,
                 ),
               ],

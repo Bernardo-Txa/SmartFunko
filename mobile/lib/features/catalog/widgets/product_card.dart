@@ -105,6 +105,7 @@ class ProductCard extends StatelessWidget {
                       PrimaryButton(
                         label: 'Adicionar',
                         icon: Icons.add_shopping_cart_rounded,
+                        fullWidth: true,
                         onPressed: product.isAvailable ? onAddToCart : null,
                       ),
                       const SizedBox(height: 8),

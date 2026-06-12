@@ -38,6 +38,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
     final auth = ref.watch(authControllerProvider);
     final cart = ref.watch(cartControllerProvider);
     final theme = Theme.of(context);
+    final error = _error;
 
     if (auth.isLoading) {
       return const AppScaffold(
@@ -157,10 +158,10 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
               prefixIcon: Icon(Icons.notes_rounded),
             ),
           ),
-          if (_error != null) ...[
+          if (error != null) ...[
             const SizedBox(height: 12),
             Text(
-              _error!,
+              error,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
                 fontWeight: FontWeight.w700,
@@ -191,6 +192,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
             label: 'Enviar pedido',
             icon: Icons.send_rounded,
             isLoading: _isSubmitting,
+            fullWidth: true,
             onPressed: cart.canCheckout ? _submit : null,
           ),
         ],
@@ -215,22 +217,41 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
 
     try {
       final cart = ref.read(cartControllerProvider);
+      final orderItems = <CreateOrderItem>[];
+
+      for (final item in cart.items) {
+        final variantId = item.variantId?.trim();
+        if (variantId == null || variantId.isEmpty || item.quantity <= 0) {
+          if (mounted) {
+            setState(() {
+              _error =
+                  'Não foi possível finalizar este carrinho. Revise os itens e tente novamente.';
+            });
+          }
+          return;
+        }
+
+        orderItems.add(
+          CreateOrderItem(variantId: variantId, quantity: item.quantity),
+        );
+      }
+
+      if (orderItems.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _error = 'Adicione produtos antes de finalizar o pedido.';
+          });
+        }
+        return;
+      }
+
       final request = CreateOrderRequest(
         notes: _notesController.text,
-        items: [
-          for (final item in cart.items)
-            CreateOrderItem(
-              variantId: item.variantId!,
-              quantity: item.quantity,
-            ),
-        ],
+        items: orderItems,
       );
       final response = await ref
           .read(ordersRepositoryProvider)
           .createOrder(request);
-
-      ref.read(cartControllerProvider.notifier).clearAfterOrderCreated();
-      ref.invalidate(ordersProvider);
 
       if (!mounted) {
         return;
@@ -245,7 +266,9 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       );
 
       final orderNumber = response.orderNumber.trim();
+      ref.invalidate(ordersProvider);
       context.go(orderNumber.isEmpty ? '/pedidos' : '/pedidos/$orderNumber');
+      ref.read(cartControllerProvider.notifier).clearAfterOrderCreated();
     } catch (error) {
       final sessionExpired = error is ApiError && error.statusCode == 401;
       setState(() {
