@@ -37,7 +37,10 @@ class ProductDetailPage extends ConsumerWidget {
             message: notFound
                 ? 'Produto não encontrado.'
                 : 'Não foi possível carregar este produto.',
-            onRetry: () => ref.invalidate(productDetailProvider(slug)),
+            onRetry: () {
+              ref.read(catalogRepositoryProvider).invalidateProductBySlug(slug);
+              ref.invalidate(productDetailProvider(slug));
+            },
           );
         },
       ),

@@ -34,7 +34,14 @@ class HomePage extends ConsumerWidget {
             loading: () => const _HighlightsLoading(),
             error: (error, stackTrace) => ErrorState(
               message: 'Não foi possível carregar os destaques.',
-              onRetry: () => ref.invalidate(featuredProductsProvider),
+              onRetry: () {
+                ref
+                    .read(catalogRepositoryProvider)
+                    .invalidateProducts(
+                      const CatalogRequest(pageSize: 6, sort: 'specials_first'),
+                    );
+                ref.invalidate(featuredProductsProvider);
+              },
             ),
           ),
           const SizedBox(height: 24),
@@ -280,6 +287,8 @@ class _HighlightImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       fit: BoxFit.cover,
+      memCacheWidth: 360,
+      memCacheHeight: 360,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
     );

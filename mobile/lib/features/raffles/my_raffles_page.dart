@@ -7,6 +7,7 @@ import '../../core/utils/date_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/list_skeleton.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/price_tag.dart';
@@ -52,13 +53,19 @@ class MyRafflesPage extends ConsumerWidget {
     return AppScaffold(
       title: 'Minhas rifas',
       showBackButton: true,
-      onRefresh: () async => ref.invalidate(myRafflesProvider),
+      onRefresh: () async {
+        ref.read(rafflesRepositoryProvider).invalidateMyRaffles();
+        ref.invalidate(myRafflesProvider);
+      },
       body: entries.when(
         data: (items) => _MyRafflesContent(entries: items),
-        loading: () => const LoadingState(message: 'Carregando suas rifas...'),
+        loading: () => const ListSkeleton(itemCount: 4, imageSize: 56),
         error: (error, stackTrace) => ErrorState(
           message: 'Não foi possível carregar suas rifas.',
-          onRetry: () => ref.invalidate(myRafflesProvider),
+          onRetry: () {
+            ref.read(rafflesRepositoryProvider).invalidateMyRaffles();
+            ref.invalidate(myRafflesProvider);
+          },
         ),
       ),
     );

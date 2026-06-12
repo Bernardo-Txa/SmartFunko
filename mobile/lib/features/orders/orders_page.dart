@@ -7,6 +7,7 @@ import '../../core/utils/date_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/list_skeleton.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/price_tag.dart';
@@ -56,14 +57,19 @@ class OrdersPage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Pedidos',
-      onRefresh: () async => ref.invalidate(ordersProvider),
+      onRefresh: () async {
+        ref.read(ordersRepositoryProvider).invalidateOrders();
+        ref.invalidate(ordersProvider);
+      },
       body: orders.when(
         data: (items) => _OrdersContent(orders: items),
-        loading: () =>
-            const LoadingState(message: 'Carregando seus pedidos...'),
+        loading: () => const ListSkeleton(itemCount: 4, imageSize: 56),
         error: (error, stackTrace) => ErrorState(
           message: 'Não foi possível carregar seus pedidos.',
-          onRetry: () => ref.invalidate(ordersProvider),
+          onRetry: () {
+            ref.read(ordersRepositoryProvider).invalidateOrders();
+            ref.invalidate(ordersProvider);
+          },
         ),
       ),
     );

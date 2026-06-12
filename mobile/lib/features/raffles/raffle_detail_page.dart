@@ -35,13 +35,19 @@ class RaffleDetailPage extends ConsumerWidget {
     return AppScaffold(
       title: 'Rifa',
       showBackButton: true,
-      onRefresh: () async => ref.invalidate(raffleDetailProvider(slug)),
+      onRefresh: () async {
+        ref.read(rafflesRepositoryProvider).invalidateRaffleDetail(slug);
+        ref.invalidate(raffleDetailProvider(slug));
+      },
       body: detail.when(
         data: (raffle) => _RaffleDetailContent(raffle: raffle),
         loading: () => const LoadingState(message: 'Carregando rifa...'),
         error: (error, stackTrace) => ErrorState(
           message: 'Não foi possível carregar esta rifa.',
-          onRetry: () => ref.invalidate(raffleDetailProvider(slug)),
+          onRetry: () {
+            ref.read(rafflesRepositoryProvider).invalidateRaffleDetail(slug);
+            ref.invalidate(raffleDetailProvider(slug));
+          },
         ),
       ),
     );
@@ -209,6 +215,10 @@ class _RaffleDetailContentState extends ConsumerState<_RaffleDetailContent> {
   }
 
   Future<void> _reserve() async {
+    if (_isSubmitting) {
+      return;
+    }
+
     final auth = await ref.read(authControllerProvider.notifier).syncSession();
     final raffle = widget.raffle;
     final selectedNumbers =
@@ -433,6 +443,8 @@ class _RaffleHeroImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolved,
       fit: BoxFit.cover,
+      memCacheWidth: 1000,
+      memCacheHeight: 560,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
     );

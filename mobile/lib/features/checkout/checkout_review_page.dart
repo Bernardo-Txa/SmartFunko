@@ -203,6 +203,10 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) {
+      return;
+    }
+
     final cart = ref.read(cartControllerProvider);
     final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.of(context);

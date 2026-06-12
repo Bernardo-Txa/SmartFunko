@@ -450,6 +450,8 @@ class _CartImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       fit: BoxFit.cover,
+      memCacheWidth: 180,
+      memCacheHeight: 180,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
     );

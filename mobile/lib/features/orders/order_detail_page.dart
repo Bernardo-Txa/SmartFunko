@@ -31,7 +31,12 @@ class OrderDetailPage extends ConsumerWidget {
         loading: () => const LoadingState(message: 'Carregando pedido...'),
         error: (error, stackTrace) => ErrorState(
           message: 'Não foi possível carregar este pedido.',
-          onRetry: () => ref.invalidate(orderDetailProvider(orderNumber)),
+          onRetry: () {
+            ref
+                .read(ordersRepositoryProvider)
+                .invalidateOrderByNumber(orderNumber);
+            ref.invalidate(orderDetailProvider(orderNumber));
+          },
         ),
       ),
     );

@@ -160,6 +160,8 @@ class _ProductImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       fit: BoxFit.cover,
+      memCacheWidth: 420,
+      memCacheHeight: 520,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
     );

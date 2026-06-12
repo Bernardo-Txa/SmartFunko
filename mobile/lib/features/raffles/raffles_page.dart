@@ -8,7 +8,7 @@ import '../../core/utils/date_formatter.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
-import '../../shared/widgets/loading_state.dart';
+import '../../shared/widgets/list_skeleton.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/price_tag.dart';
 import '../../shared/widgets/smart_card.dart';
@@ -26,7 +26,10 @@ class RafflesPage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Rifas',
-      onRefresh: () async => ref.invalidate(rafflesListProvider),
+      onRefresh: () async {
+        ref.read(rafflesRepositoryProvider).invalidateRaffles();
+        ref.invalidate(rafflesListProvider);
+      },
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -42,10 +45,13 @@ class RafflesPage extends ConsumerWidget {
           const SizedBox(height: 18),
           raffles.when(
             data: (items) => _RafflesContent(raffles: items),
-            loading: () => const LoadingState(message: 'Carregando rifas...'),
+            loading: () => const ListSkeleton(itemCount: 3, imageSize: 92),
             error: (error, stackTrace) => ErrorState(
               message: 'Não foi possível carregar as rifas.',
-              onRetry: () => ref.invalidate(rafflesListProvider),
+              onRetry: () {
+                ref.read(rafflesRepositoryProvider).invalidateRaffles();
+                ref.invalidate(rafflesListProvider);
+              },
             ),
           ),
         ],
@@ -178,6 +184,8 @@ class _RaffleImage extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolved,
       fit: BoxFit.cover,
+      memCacheWidth: 220,
+      memCacheHeight: 220,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
     );

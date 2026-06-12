@@ -1,84 +1,103 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/cache/memory_cache.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_error.dart';
 import '../../product/data/product_detail.dart';
 import 'product_models.dart';
 
 final catalogRepositoryProvider = Provider<CatalogRepository>(
-  (ref) => CatalogRepository(ref.watch(apiClientProvider)),
+  (ref) => CatalogRepository(
+    apiClient: ref.watch(apiClientProvider),
+    cache: ref.watch(memoryCacheProvider),
+  ),
 );
 
-final catalogProductsProvider = FutureProvider.autoDispose
-    .family<List<ProductSummary>, CatalogRequest>((ref, request) {
-      return ref
-          .watch(catalogRepositoryProvider)
-          .getProducts(
-            search: request.search,
-            category: request.category,
-            status: request.status,
-            page: request.page,
-            pageSize: request.pageSize,
-            sort: request.sort,
-          );
+final catalogProductsProvider =
+    FutureProvider.family<List<ProductSummary>, CatalogRequest>((ref, request) {
+      return ref.watch(catalogRepositoryProvider).getProducts(request);
     });
 
-final featuredProductsProvider =
-    FutureProvider.autoDispose<List<ProductSummary>>((ref) {
-      return ref.watch(catalogRepositoryProvider).getFeaturedProducts();
-    });
+final featuredProductsProvider = FutureProvider<List<ProductSummary>>((ref) {
+  return ref.watch(catalogRepositoryProvider).getFeaturedProducts();
+});
 
-final productDetailProvider = FutureProvider.autoDispose
-    .family<ProductDetail, String>((ref, slug) {
-      return ref.watch(catalogRepositoryProvider).getProductBySlug(slug);
-    });
+final productDetailProvider = FutureProvider.family<ProductDetail, String>((
+  ref,
+  slug,
+) {
+  return ref.watch(catalogRepositoryProvider).getProductBySlug(slug);
+});
 
 class CatalogRepository {
-  const CatalogRepository(this._apiClient);
+  const CatalogRepository({
+    required ApiClient apiClient,
+    required MemoryCache cache,
+  }) : _apiClient = apiClient,
+       _cache = cache;
 
   final ApiClient _apiClient;
+  final MemoryCache _cache;
 
-  Future<List<ProductSummary>> getProducts({
-    String? search,
-    String? category,
-    String? status,
-    int page = 1,
-    int pageSize = 24,
-    String? sort,
-  }) async {
-    final filter = _filterForStatus(status);
-    final response = await _apiClient.get<Map<String, dynamic>>(
-      '/api/v1/public/products',
-      queryParameters: {
-        if (search != null && search.trim().isNotEmpty) 'q': search.trim(),
-        if (category != null && category.trim().isNotEmpty)
-          'category': category.trim(),
-        if (filter != null) 'filter': filter,
-        'page': page,
-        'pageSize': pageSize,
-        if (sort != null && sort.trim().isNotEmpty) 'sort': sort.trim(),
+  static const Duration _productsTtl = Duration(minutes: 3);
+  static const Duration _productDetailTtl = Duration(minutes: 5);
+
+  Future<List<ProductSummary>> getProducts(
+    CatalogRequest request, {
+    bool forceRefresh = false,
+  }) {
+    return _cache.getOrLoad<List<ProductSummary>>(
+      key: _productsCacheKey(request),
+      debugLabel: 'GET /api/v1/public/products',
+      ttl: _productsTtl,
+      forceRefresh: forceRefresh,
+      loader: () async {
+        final filter = _filterForStatus(request.status);
+        final response = await _apiClient.get<Map<String, dynamic>>(
+          '/api/v1/public/products',
+          queryParameters: {
+            if (request.search != null && request.search!.trim().isNotEmpty)
+              'q': request.search!.trim(),
+            if (request.category != null && request.category!.trim().isNotEmpty)
+              'category': request.category!.trim(),
+            if (filter != null) 'filter': filter,
+            'page': request.page,
+            'pageSize': request.pageSize,
+            if (request.sort != null && request.sort!.trim().isNotEmpty)
+              'sort': request.sort!.trim(),
+          },
+        );
+
+        return _readProductList(response.data);
       },
     );
-
-    return _readProductList(response.data);
   }
 
   Future<List<ProductSummary>> getFeaturedProducts() {
-    return getProducts(pageSize: 6, sort: 'specials_first');
+    return getProducts(
+      const CatalogRequest(pageSize: 6, sort: 'specials_first'),
+    );
   }
 
   Future<ProductDetail> getProductBySlug(String slug) async {
     try {
-      final response = await _apiClient.get<Map<String, dynamic>>(
-        '/api/v1/public/products/$slug',
+      return await _cache.getOrLoad<ProductDetail>(
+        key: _productDetailCacheKey(slug),
+        debugLabel: 'GET /api/v1/public/products/$slug',
+        ttl: _productDetailTtl,
+        loader: () async {
+          final response = await _apiClient.get<Map<String, dynamic>>(
+            '/api/v1/public/products/$slug',
+          );
+          final data = _readObject(response.data);
+
+          if (data == null) {
+            throw const ProductNotFoundException();
+          }
+
+          return ProductDetail.fromJson(data);
+        },
       );
-      final data = _readObject(response.data);
-
-      if (data == null) {
-        throw const ProductNotFoundException();
-      }
-
-      return ProductDetail.fromJson(data);
     } on ApiError catch (error) {
       if (error.statusCode == 404) {
         throw const ProductNotFoundException();
@@ -86,6 +105,22 @@ class CatalogRepository {
 
       rethrow;
     }
+  }
+
+  void invalidateProducts(CatalogRequest request) {
+    _cache.invalidate(_productsCacheKey(request));
+  }
+
+  void invalidateProductBySlug(String slug) {
+    _cache.invalidate(_productDetailCacheKey(slug));
+  }
+
+  String _productsCacheKey(CatalogRequest request) {
+    return 'public:products:${request.cacheKey}';
+  }
+
+  String _productDetailCacheKey(String slug) {
+    return 'public:product:${slug.trim()}';
   }
 
   List<ProductSummary> _readProductList(Map<String, dynamic>? body) {
@@ -164,6 +199,17 @@ class CatalogRequest {
   @override
   int get hashCode =>
       Object.hash(search, category, status, page, pageSize, sort);
+
+  String get cacheKey {
+    return [
+      'q=${search?.trim() ?? ''}',
+      'category=${category?.trim() ?? ''}',
+      'status=${status?.trim() ?? ''}',
+      'page=$page',
+      'pageSize=$pageSize',
+      'sort=${sort?.trim() ?? ''}',
+    ].join('&');
+  }
 }
 
 class CatalogShapeException implements Exception {

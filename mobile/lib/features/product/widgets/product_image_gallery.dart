@@ -107,6 +107,8 @@ class _ImageFrame extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       fit: BoxFit.cover,
+      memCacheWidth: 900,
+      memCacheHeight: 900,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
     );

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
 
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
-import '../../shared/widgets/loading_state.dart';
+import '../../shared/widgets/list_skeleton.dart';
 import '../cart/data/cart_controller.dart';
 import 'data/catalog_repository.dart';
 import 'data/product_models.dart';
@@ -21,9 +22,11 @@ class CatalogPage extends ConsumerStatefulWidget {
 class _CatalogPageState extends ConsumerState<CatalogPage> {
   final _searchController = TextEditingController();
   String _search = '';
+  Timer? _searchDebounce;
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -35,7 +38,10 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
 
     return AppScaffold(
       title: 'Catálogo',
-      onRefresh: () async => ref.invalidate(catalogProductsProvider(request)),
+      onRefresh: () async {
+        ref.read(catalogRepositoryProvider).invalidateProducts(request);
+        ref.invalidate(catalogProductsProvider(request));
+      },
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -56,11 +62,13 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
                       },
                     ),
             ),
-            onSubmitted: (value) => setState(() => _search = value.trim()),
+            onSubmitted: (value) => _applySearch(value),
             onChanged: (value) {
-              if (value.isEmpty && _search.isNotEmpty) {
-                setState(() => _search = '');
-              }
+              _searchDebounce?.cancel();
+              _searchDebounce = Timer(
+                const Duration(milliseconds: 400),
+                () => _applySearch(value),
+              );
             },
           ),
           const SizedBox(height: 18),
@@ -70,11 +78,13 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
               search: _search,
               onAddToCart: _addToCart,
             ),
-            loading: () =>
-                const LoadingState(message: 'Carregando catálogo...'),
+            loading: () => const ListSkeleton(itemCount: 6, imageSize: 88),
             error: (error, stackTrace) => ErrorState(
               message: 'Não foi possível carregar o catálogo.',
-              onRetry: () => ref.invalidate(catalogProductsProvider(request)),
+              onRetry: () {
+                ref.read(catalogRepositoryProvider).invalidateProducts(request);
+                ref.invalidate(catalogProductsProvider(request));
+              },
             ),
           ),
         ],
@@ -93,6 +103,15 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
         ),
       ),
     );
+  }
+
+  void _applySearch(String value) {
+    final nextSearch = value.trim();
+    if (!mounted || nextSearch == _search) {
+      return;
+    }
+
+    setState(() => _search = nextSearch);
   }
 }
 
