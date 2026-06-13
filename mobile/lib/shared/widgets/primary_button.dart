@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     required this.label,
@@ -53,6 +56,13 @@ class PrimaryButton extends StatelessWidget {
         ),
         PrimaryButtonVariant.filled => FilledButton(
           onPressed: effectiveOnPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: const Color(0xFF041018),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
           child: child,
         ),
       },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../layout/responsive_content.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'smart_app_bar.dart';
 
@@ -30,6 +31,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       appBar: showAppBar
           ? SmartAppBar(
               title: title,
@@ -40,34 +42,44 @@ class AppScaffold extends StatelessWidget {
       bottomNavigationBar: showBottomNavigation
           ? const _SmartBottomNavigation()
           : null,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final resolvedPadding =
-                padding ??
-                EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                  AppSpacing.lg,
-                  showBottomNavigation ? 120 : 32,
-                );
-            final scrollView = SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: ResponsiveContent(
-                  child: Padding(padding: resolvedPadding, child: body),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.darkBackgroundAlt, AppColors.darkBackground],
+          ),
+        ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final resolvedPadding =
+                  padding ??
+                  EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    showBottomNavigation ? 132 : 32,
+                  );
+              final scrollView = SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: ResponsiveContent(
+                    child: Padding(padding: resolvedPadding, child: body),
+                  ),
                 ),
-              ),
-            );
+              );
 
-            if (onRefresh == null) {
-              return scrollView;
-            }
+              if (onRefresh == null) {
+                return scrollView;
+              }
 
-            return RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
-          },
+              return RefreshIndicator(onRefresh: onRefresh!, child: scrollView);
+            },
+          ),
         ),
       ),
     );
@@ -115,18 +127,34 @@ class _SmartBottomNavigation extends StatelessWidget {
     final location = GoRouterState.of(context).uri.path;
     final selectedIndex = _selectedIndex(location);
 
-    return NavigationBar(
-      selectedIndex: selectedIndex,
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      onDestinationSelected: (index) => context.go(_items[index].path),
-      destinations: [
-        for (final item in _items)
-          NavigationDestination(
-            icon: Icon(item.icon),
-            selectedIcon: Icon(item.selectedIcon),
-            label: item.label,
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.10),
+              ),
+            ),
+            child: NavigationBar(
+              selectedIndex: selectedIndex,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              onDestinationSelected: (index) => context.go(_items[index].path),
+              destinations: [
+                for (final item in _items)
+                  NavigationDestination(
+                    icon: Icon(item.icon),
+                    selectedIcon: Icon(item.selectedIcon),
+                    label: item.label,
+                  ),
+              ],
+            ),
           ),
-      ],
+        ),
+      ),
     );
   }
 

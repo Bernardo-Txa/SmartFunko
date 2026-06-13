@@ -31,6 +31,8 @@ class StatusBadge extends StatelessWidget {
             ],
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: effectiveColor,
                 fontWeight: FontWeight.w800,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
+import '../theme/app_shadows.dart';
 
 class SmartCard extends StatelessWidget {
   const SmartCard({
@@ -20,18 +21,20 @@ class SmartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final card = DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        gradient: isDark
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.darkSurfaceElevated, AppColors.darkSurface],
+              )
+            : null,
+        color: isDark ? null : theme.cardColor,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.10)),
+        boxShadow: AppShadows.card,
       ),
       child: Padding(padding: padding, child: child),
     );

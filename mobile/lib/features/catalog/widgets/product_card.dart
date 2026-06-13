@@ -2,6 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/network/image_url_resolver.dart';
+import '../../../shared/theme/app_colors.dart';
+import '../../../shared/theme/app_radius.dart';
+import '../../../shared/theme/app_shadows.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/price_tag.dart';
 import '../../../shared/widgets/status_badge.dart';
@@ -27,27 +30,27 @@ class ProductCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: onDetails,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.darkSurfaceElevated, AppColors.darkSurface],
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
               color: product.special
                   ? colorScheme.secondary.withValues(alpha: 0.38)
-                  : colorScheme.outlineVariant.withValues(alpha: 0.35),
+                  : AppColors.primary.withValues(alpha: 0.10),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 18,
-                offset: const Offset(0, 12),
-              ),
-            ],
+            boxShadow: product.special
+                ? AppShadows.glow(colorScheme.secondary)
+                : AppShadows.card,
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -58,8 +61,63 @@ class ProductCard extends StatelessWidget {
                     special: product.special,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            StatusBadge(label: product.status.label),
+                            if (product.special)
+                              StatusBadge(
+                                label: 'Especial',
+                                icon: Icons.star_rounded,
+                                color: colorScheme.secondary,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            height: 1.18,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          product.supplierName ??
+                              product.category ??
+                              'Smart Funkos',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const Spacer(),
+                        PriceTag(
+                          label: product.price.formatted,
+                          subtitle: 'Preço',
+                        ),
+                        const SizedBox(height: 12),
+                        PrimaryButton(
+                          label: 'Adicionar',
+                          icon: Icons.add_shopping_cart_rounded,
+                          fullWidth: true,
+                          onPressed: product.isAvailable ? onAddToCart : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                /*
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -119,7 +177,7 @@ class ProductCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
+                ),*/
               ],
             ),
           ),
@@ -139,12 +197,23 @@ class _ProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final fallback = ColoredBox(
-      color: colorScheme.primary.withValues(alpha: special ? 0.18 : 0.1),
-      child: Icon(
-        Icons.toys_rounded,
-        color: special ? colorScheme.secondary : colorScheme.primary,
-        size: 52,
+    final fallback = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.primary.withValues(alpha: special ? 0.20 : 0.12),
+            colorScheme.secondary.withValues(alpha: special ? 0.16 : 0.05),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.toys_rounded,
+          color: special ? colorScheme.secondary : colorScheme.primary,
+          size: 52,
+        ),
       ),
     );
 

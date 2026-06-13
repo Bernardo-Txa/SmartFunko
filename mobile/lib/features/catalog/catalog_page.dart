@@ -159,7 +159,7 @@ class _CatalogContent extends StatelessWidget {
                 ? 4
                 : width >= 640
                 ? 3
-                : width >= 360
+                : width >= 430
                 ? 2
                 : 1;
 
@@ -172,9 +172,9 @@ class _CatalogContent extends StatelessWidget {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 childAspectRatio: columns == 1
-                    ? 0.62
+                    ? 0.78
                     : columns == 2
-                    ? 0.36
+                    ? 0.40
                     : 0.46,
               ),
               itemBuilder: (context, index) {

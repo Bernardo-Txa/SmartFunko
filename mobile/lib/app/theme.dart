@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../shared/theme/app_colors.dart';
 import '../shared/theme/app_radius.dart';
+import '../shared/theme/app_shadows.dart';
 import '../shared/theme/app_text_styles.dart';
 
 class SmartFunkosTheme {
@@ -16,20 +17,32 @@ class SmartFunkosTheme {
       tertiary: AppColors.success,
       surface: AppColors.darkSurface,
       error: AppColors.danger,
+      outlineVariant: AppColors.darkBorder,
+      surfaceContainerHighest: AppColors.darkSurfaceHighest,
     );
 
     return _base(scheme).copyWith(
       scaffoldBackgroundColor: AppColors.darkBackground,
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.darkBackground,
+        backgroundColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         centerTitle: false,
         elevation: 0,
       ),
       cardColor: AppColors.darkSurface,
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF050B17),
-        indicatorColor: AppColors.primary.withValues(alpha: 0.16),
+        backgroundColor: AppColors.darkSurface.withValues(alpha: 0.96),
+        indicatorColor: AppColors.primary.withValues(alpha: 0.18),
+        elevation: 0,
+        height: 72,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.primary
+                : AppColors.textSecondary,
+            size: 23,
+          ),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             color: states.contains(WidgetState.selected)
@@ -78,7 +91,7 @@ class SmartFunkosTheme {
       visualDensity: VisualDensity.standard,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.65),
+        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.52),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
@@ -118,6 +131,8 @@ class SmartFunkosTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
+          backgroundColor: scheme.primary,
+          foregroundColor: const Color(0xFF041018),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
@@ -130,10 +145,25 @@ class SmartFunkosTheme {
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: scheme.primary.withValues(alpha: 0.11),
+        side: BorderSide(color: scheme.primary.withValues(alpha: 0.22)),
+        labelStyle: TextStyle(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w800,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+      ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: scheme.surfaceContainerHighest,
         contentTextStyle: TextStyle(color: scheme.onSurface),
         actionTextColor: scheme.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
       ),
       dividerTheme: DividerThemeData(
         color: scheme.outlineVariant.withValues(alpha: 0.4),
