@@ -30,6 +30,7 @@ class ProductDetailPage extends ConsumerWidget {
     return AppScaffold(
       title: 'Produto',
       showBackButton: true,
+      showDrawerButton: false,
       body: product.when(
         data: (item) => _ProductDetailContent(product: item),
         loading: () => const LoadingState(message: 'Carregando produto...'),

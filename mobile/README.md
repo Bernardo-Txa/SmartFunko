@@ -145,6 +145,34 @@ Checklist manual sugerido:
 - Brave/Chromium Web: rodar via `flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080` e validar imagens, CORS, scroll horizontal dos chips e navegação por `/catalogo?q=Marvel`.
 - Conferir que wishlist/ranking aparecem como roadmap e não simulam persistência real.
 
+## Mobile 0.6.2: App Shell, Header e Navegação Premium
+
+Esta etapa organiza o app em uma casca visual mais forte: header premium, drawer opcional, busca mais aparente e navegação inferior refinada.
+
+Entregue no app:
+
+- `SmartAppShell` como estrutura central das telas principais.
+- `SmartHeader` com título, subtítulo, busca, carrinho, perfil e menu.
+- `SmartDrawer` com conta, atalhos e itens em roadmap.
+- Login sem header para manter a tela mais limpa.
+- Home e Catálogo com busca ativa no topo.
+- Telas de detalhe com header mais contido e botão voltar.
+
+Fluxos preservados:
+
+- Checkout, rifas, pedidos e login continuam intactos.
+- Drawer e busca não introduzem backend novo.
+- A navegação inferior permanece nas cinco áreas principais.
+
+Checklist manual sugerido:
+
+- Pixel 360 x 800.
+- Pixel 390 x 844.
+- Pixel 430 x 932.
+- Abrir drawer pela Home.
+- Ir de Home para Catálogo e voltar.
+- Abrir produto, rifa, checkout e garantir ausência de overflow.
+
 ## Mobile MVP Cliente 0.2
 
 O app consome endpoints públicos do backend web em `API_BASE_URL`:

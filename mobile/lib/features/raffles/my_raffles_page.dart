@@ -30,6 +30,10 @@ class MyRafflesPage extends ConsumerWidget {
       return const AppScaffold(
         title: 'Minhas rifas',
         showBackButton: true,
+        showSearch: false,
+        showDrawerButton: false,
+        showProfileAction: false,
+        showCartAction: false,
         body: LoadingState(message: 'Verificando sua sessão...'),
       );
     }
@@ -38,6 +42,10 @@ class MyRafflesPage extends ConsumerWidget {
       return AppScaffold(
         title: 'Minhas rifas',
         showBackButton: true,
+        showSearch: false,
+        showDrawerButton: false,
+        showProfileAction: false,
+        showCartAction: false,
         body: EmptyState(
           icon: Icons.lock_outline_rounded,
           title: 'Entre para continuar.',
@@ -53,6 +61,10 @@ class MyRafflesPage extends ConsumerWidget {
     return AppScaffold(
       title: 'Minhas rifas',
       showBackButton: true,
+      showSearch: false,
+      showDrawerButton: false,
+      showProfileAction: false,
+      showCartAction: false,
       onRefresh: () async {
         ref.read(rafflesRepositoryProvider).invalidateMyRaffles();
         ref.invalidate(myRafflesProvider);

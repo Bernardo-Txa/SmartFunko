@@ -76,6 +76,8 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
 
     return AppScaffold(
       title: 'Catálogo',
+      subtitle: 'Drops, fandoms e filtros rápidos',
+      showSearch: true,
       onRefresh: () async {
         ref.read(catalogRepositoryProvider).invalidateProducts(request);
         ref.invalidate(catalogProductsProvider(request));

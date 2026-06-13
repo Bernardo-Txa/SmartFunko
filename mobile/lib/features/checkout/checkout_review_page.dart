@@ -46,6 +46,10 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       return const AppScaffold(
         title: 'Revisar pedido',
         showBackButton: true,
+        showSearch: false,
+        showDrawerButton: false,
+        showProfileAction: false,
+        showCartAction: false,
         body: LoadingState(message: 'Verificando sua sessão...'),
       );
     }
@@ -54,6 +58,10 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       return AppScaffold(
         title: 'Revisar pedido',
         showBackButton: true,
+        showSearch: false,
+        showDrawerButton: false,
+        showProfileAction: false,
+        showCartAction: false,
         body: EmptyState(
           icon: Icons.lock_outline_rounded,
           title: 'Entre para continuar.',
@@ -68,6 +76,10 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       return AppScaffold(
         title: 'Revisar pedido',
         showBackButton: true,
+        showSearch: false,
+        showDrawerButton: false,
+        showProfileAction: false,
+        showCartAction: false,
         body: EmptyState(
           icon: Icons.shopping_bag_outlined,
           title: 'Carrinho vazio',
@@ -81,6 +93,10 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
     return AppScaffold(
       title: 'Revisar pedido',
       showBackButton: true,
+      showSearch: false,
+      showDrawerButton: false,
+      showProfileAction: false,
+      showCartAction: false,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -30,6 +30,9 @@ class CartPage extends ConsumerWidget {
       title: 'Carrinho',
       showBackButton: true,
       showCartAction: false,
+      showSearch: false,
+      showDrawerButton: false,
+      showProfileAction: false,
       body: cart.isEmpty
           ? EmptyState(
               icon: Icons.shopping_bag_outlined,

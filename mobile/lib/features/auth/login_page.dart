@@ -44,8 +44,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     return AppScaffold(
       title: 'Entrar',
+      showHeader: false,
       showBottomNavigation: false,
       showCartAction: false,
+      showDrawerButton: false,
+      showProfileAction: false,
+      showSearch: false,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),

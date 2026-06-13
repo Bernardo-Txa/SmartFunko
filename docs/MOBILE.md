@@ -79,6 +79,34 @@ Critérios de validação:
 - Teste manual em Brave/Chromium Web com `/catalogo?q=Marvel`.
 - Conferir checkout, pedidos, rifas e login após a mudança visual.
 
+## Mobile 0.6.2: App Shell, Header e Navegação Premium
+
+A camada de estrutura foi reorganizada para dar mais identidade ao app sem tocar em regras de negócio.
+
+Entregas:
+
+- `SmartAppShell` como estrutura base das telas públicas principais.
+- `SmartHeader` custom com título, subtítulo, busca, carrinho, perfil e menu.
+- `SmartDrawer` com login/conta, atalhos e itens em roadmap.
+- Home e Catálogo com busca centralizada no topo.
+- Telas sensíveis como login sem header fixo.
+- Telas de detalhe com header mais compacto e botão voltar.
+
+Preservado:
+
+- Checkout, rifas, pedidos e login continuam funcionando.
+- Sem backend novo.
+- Navegação inferior continua nas cinco abas principais.
+
+Validação visual:
+
+- Pixel 360 x 800.
+- Pixel 390 x 844.
+- Pixel 430 x 932.
+- Drawer acessível pela Home.
+- Catálogo com chips e busca no topo.
+- Produto e rifa sem overflow com header compacto.
+
 ## Integração Mobile 0.2
 
 Endpoints públicos usados:

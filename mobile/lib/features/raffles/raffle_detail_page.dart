@@ -35,6 +35,10 @@ class RaffleDetailPage extends ConsumerWidget {
     return AppScaffold(
       title: 'Rifa',
       showBackButton: true,
+      showSearch: false,
+      showDrawerButton: false,
+      showProfileAction: false,
+      showCartAction: false,
       onRefresh: () async {
         ref.read(rafflesRepositoryProvider).invalidateRaffleDetail(slug);
         ref.invalidate(raffleDetailProvider(slug));

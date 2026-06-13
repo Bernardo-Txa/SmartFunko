@@ -27,6 +27,8 @@ class HomePage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Smart Funkos',
+      subtitle: 'Sua coleção começa aqui',
+      showSearch: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

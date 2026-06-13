@@ -26,6 +26,10 @@ class OrderDetailPage extends ConsumerWidget {
     return AppScaffold(
       title: 'Pedido $orderNumber',
       showBackButton: true,
+      showSearch: false,
+      showDrawerButton: false,
+      showProfileAction: false,
+      showCartAction: false,
       body: order.when(
         data: (item) => _OrderDetailContent(order: item),
         loading: () => const LoadingState(message: 'Carregando pedido...'),
