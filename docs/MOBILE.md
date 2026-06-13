@@ -42,70 +42,55 @@ Fluxos protegidos usam a sessao efetiva do Supabase para evitar falso bloqueio q
 ## Escopo MVP cliente
 
 - Login Supabase Auth.
-- Home cliente.
-- Home com identidade Smart Funkos, CTAs, descoberta por fandom, drops e destaques do catálogo público.
-- Catálogo real via API pública Next.js, busca por texto, chips de fandom e filtros de status.
-- Produto real por slug com galeria, preço, badges, curadoria, wishlist preparada e compartilhamento.
+- Home objetiva com ações principais, produtos em destaque reais e rifas ativas reais.
+- Catálogo real via API pública Next.js, busca por texto e filtros de status funcionais.
+- Produto real por slug com galeria, preço, badges, descrição, compartilhamento e carrinho.
 - Carrinho local em memória com adicionar, remover, quantidade, limpar e total estimado.
 - Pedidos reais do cliente.
 - Rifas reais experimentais.
-- Clube e perfil com placeholders explícitos para funcionalidades futuras.
+- Perfil simples com conta, pedidos, minhas rifas e sair.
 
-## Mobile 0.6.1: Geek Commerce Benchmark UI
+## Mobile Reset UX: foco e funcionalidade
 
-A camada visual foi reposicionada para um e-commerce geek premium, usando referências de mercado apenas como benchmark de padrões: descoberta por fandom, drops, cards colecionáveis, filtros rápidos, wishlist, ranking e comunidade. A identidade visual, copy e componentes permanecem próprios da Smart Funkos.
+O mobile foi resetado para uma experiência direta, sem teasers ou componentes que pareçam funcionalidades disponíveis sem fluxo real de ponta a ponta.
 
 Entregas:
 
-- Tema dark com superfícies elevadas, acentos de drop e navegação inferior refinada.
-- Componentes compartilhados para fandom, drop e wishlist.
-- Home com `Shop by fandom`, vitrine real, drops limitados e teaser de ranking/wishlist.
-- Catálogo com suporte a query `q`, chips de fandom e filtros `ready/preorder/order/specials` mapeados para o contrato público existente.
-- Produto com CTA de wishlist preparado, bloco de curadoria e fluxo de carrinho inalterado.
-- Perfil/Clube com atalhos reais e roadmap visível para coleção, scanner, ranking, alertas e comunidade.
+- Bottom nav simples: Home, Catálogo, Rifas, Pedidos e Perfil.
+- Home com título, texto curto, quatro ações principais, produtos em destaque e rifas ativas apenas quando a API retornar dados.
+- Catálogo com busca e filtros de status que chamam o contrato público existente.
+- Cards de produto sem wishlist fake, sem CTA morto e sem chips decorativos.
+- Produto com descrição, preço, status, adicionar ao carrinho, compartilhar e voltar ao catálogo.
+- Perfil com dados do usuário, Meus pedidos, Minhas rifas e Sair.
+- Clube mantido como rota compatível, mas fora da navegação e sem pontuação demo.
 
-Sem mudança de backend nesta etapa:
+Removido ou escondido:
 
-- Wishlist não persiste.
-- Ranking não usa dados reais.
-- Alertas, scanner, coleção e comunidade não chamam endpoint novo.
-- Pagamento e confirmação de rifa continuam centralizados no backend.
+- Drawer complexo.
+- Descoberta por fandom em chips.
+- Wishlist/favoritos sem persistência.
+- Ranking, alertas, scanner, coleção, comunidade e marketplace.
+- Seções de roadmap dentro da experiência principal.
+- Pontuação, benefícios ou conquistas demo no Clube.
+
+Preservado:
+
+- Login Supabase.
+- Catálogo público e detalhe por slug.
+- Cache de catálogo/produto e imagens com fallback.
+- Carrinho local e criação real de pedido.
+- Pedidos reais do cliente.
+- Rifas reais experimentais e minhas rifas.
+- Proteção contra duplo submit no checkout/rifa.
 
 Critérios de validação:
 
 - `flutter analyze`
 - `flutter test`
-- Teste manual em tela grande Android, como Redmi Pad Pro.
-- Teste manual em Brave/Chromium Web com `/catalogo?q=Marvel`.
-- Conferir checkout, pedidos, rifas e login após a mudança visual.
-
-## Mobile 0.6.2: App Shell, Header e Navegação Premium
-
-A camada de estrutura foi reorganizada para dar mais identidade ao app sem tocar em regras de negócio.
-
-Entregas:
-
-- `SmartAppShell` como estrutura base das telas públicas principais.
-- `SmartHeader` custom com título, subtítulo, busca, carrinho, perfil e menu.
-- `SmartDrawer` com login/conta, atalhos e itens em roadmap.
-- Home e Catálogo com busca centralizada no topo.
-- Telas sensíveis como login sem header fixo.
-- Telas de detalhe com header mais compacto e botão voltar.
-
-Preservado:
-
-- Checkout, rifas, pedidos e login continuam funcionando.
-- Sem backend novo.
-- Navegação inferior continua nas cinco abas principais.
-
-Validação visual:
-
-- Pixel 360 x 800.
-- Pixel 390 x 844.
-- Pixel 430 x 932.
-- Drawer acessível pela Home.
-- Catálogo com chips e busca no topo.
-- Produto e rifa sem overflow com header compacto.
+- Teste manual em 360 x 800, 390 x 844 e 430 x 932.
+- Fluxo Home > Catálogo > Produto > Carrinho > Pedido.
+- Fluxo Rifas > Detalhe > Reserva > Minhas rifas.
+- Login, logout e retorno de rotas protegidas.
 
 ## Integração Mobile 0.2
 
@@ -251,23 +236,35 @@ Pedido:
 
 1. Cliente adiciona produtos ao carrinho local.
 2. Cliente ajusta quantidades e confere total estimado.
-3. Botão `Enviar pedido` mostra aviso de que a criação real entra na próxima etapa.
-4. Histórico em `/pedidos` permanece placeholder até integração com APIs reais.
+3. `Finalizar pedido` exige login quando necessário.
+4. O app envia o pedido real ao backend.
+5. Em sucesso, limpa o carrinho e navega para `/pedidos/[orderNumber]` quando houver número.
 
 Rifa:
 
 1. Cliente acessa `/rifas`.
-2. Cards placeholder levam para `/rifas/demo`.
-3. Reserva e pagamento seguem fora da base 0.1.1.
+2. Abre uma campanha real em `/rifas/[slug]`.
+3. Seleciona números disponíveis.
+4. Reserva exige login e o backend valida disponibilidade.
+5. Se houver link de pagamento, o app abre o link externo; o app não marca pagamento localmente.
 
 ## Roadmap
 
-- `0.1.1`: base compilável, auth, router, tema e placeholders.
+- UI premium.
+- Wishlist real.
+- Alertas reais.
+- Coleção do usuário.
+- Scanner.
+- Comunidade/marketplace.
+
+Histórico:
+
+- `0.1.1`: base compilável, auth, router e tema.
 - `0.2`: catálogo/produto reais via APIs Next e carrinho local.
 - `0.3`: criação real de pedido a partir do carrinho.
 - `0.4`: rifas cliente.
 - `0.5`: Clube e perfil conectados a dados reais.
-- `0.6.1`: UI geek commerce premium, fandom discovery, drops e roadmap de wishlist/ranking/coleção.
+- `0.6.x`: UI premium foi adiada; mobile voltou ao foco funcional.
 - Release prep: ícones, splash, screenshots, políticas e lojas.
 
 ## Publicação

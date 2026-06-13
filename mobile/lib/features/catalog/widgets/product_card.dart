@@ -5,11 +5,9 @@ import '../../../core/network/image_url_resolver.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_radius.dart';
 import '../../../shared/theme/app_shadows.dart';
-import '../../../shared/widgets/drop_badge.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/price_tag.dart';
 import '../../../shared/widgets/status_badge.dart';
-import '../../../shared/widgets/wishlist_button.dart';
 import '../data/product_models.dart';
 
 class ProductCard extends StatelessWidget {
@@ -17,12 +15,18 @@ class ProductCard extends StatelessWidget {
     required this.product,
     required this.onDetails,
     required this.onAddToCart,
+    this.isWishlisted = false,
+    this.isWishlistUpdating = false,
+    this.onToggleWishlist,
     super.key,
   });
 
   final ProductSummary product;
   final VoidCallback onDetails;
   final VoidCallback onAddToCart;
+  final bool isWishlisted;
+  final bool isWishlistUpdating;
+  final VoidCallback? onToggleWishlist;
 
   @override
   Widget build(BuildContext context) {
@@ -36,20 +40,14 @@ class ProductCard extends StatelessWidget {
         onTap: onDetails,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.darkSurfaceElevated, AppColors.darkSurface],
-            ),
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
               color: product.special
                   ? colorScheme.secondary.withValues(alpha: 0.38)
                   : AppColors.primary.withValues(alpha: 0.10),
             ),
-            boxShadow: product.special
-                ? AppShadows.glow(colorScheme.secondary)
-                : AppShadows.card,
+            boxShadow: AppShadows.card,
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.md),
@@ -65,18 +63,15 @@ class ProductCard extends StatelessWidget {
                         imageUrl: product.imageUrl,
                         special: product.special,
                       ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: WishlistButton(
-                          onPressed: () => _showWishlistMessage(context),
-                        ),
-                      ),
-                      if (product.special)
-                        const Positioned(
-                          left: 10,
+                      if (onToggleWishlist != null)
+                        Positioned(
                           top: 10,
-                          child: DropBadge(label: 'Drop'),
+                          right: 10,
+                          child: _WishlistIconButton(
+                            isWishlisted: isWishlisted,
+                            isLoading: isWishlistUpdating,
+                            onPressed: onToggleWishlist,
+                          ),
                         ),
                     ],
                   ),
@@ -144,11 +139,51 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _showWishlistMessage(BuildContext context) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Wishlist mobile em breve.')));
+class _WishlistIconButton extends StatelessWidget {
+  const _WishlistIconButton({
+    required this.isWishlisted,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  final bool isWishlisted;
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isWishlisted
+        ? theme.colorScheme.error
+        : theme.colorScheme.onSurface;
+
+    return Material(
+      color: theme.cardColor.withValues(alpha: 0.92),
+      shape: const CircleBorder(),
+      elevation: 4,
+      child: SizedBox.square(
+        dimension: 42,
+        child: IconButton(
+          tooltip: isWishlisted
+              ? 'Remover dos favoritos'
+              : 'Salvar nos favoritos',
+          onPressed: isLoading ? null : onPressed,
+          icon: isLoading
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  isWishlisted
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: color,
+                ),
+        ),
+      ),
+    );
   }
 }
 

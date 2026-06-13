@@ -17,6 +17,8 @@ export const wishlistUpdateSchema = z.object({
   notes: z.string().trim().optional().nullable(),
 });
 
+export const wishlistIdentifierSchema = z.string().uuid();
+
 type WishlistPriority = "low" | "medium" | "high";
 
 type DemandWishlistRow = {
@@ -74,6 +76,11 @@ type WishlistRowWithProduct = {
   priority: WishlistPriority;
   product_id: string;
   products?: WishlistProductRow | WishlistProductRow[] | null;
+};
+
+type WishlistIdRow = {
+  product_id: string;
+  products?: { slug: string } | { slug: string }[] | null;
 };
 
 export type WishlistDemandProduct = {
@@ -137,6 +144,29 @@ export type WishlistProductListItem = {
     variantId: string | null;
   } | null;
   productId: string;
+};
+
+export type WishlistApiListItem = WishlistProductListItem & {
+  created_at: string;
+  customer_id: string;
+  desired_price: number | null;
+  product_id: string;
+  products: {
+    category: string | null;
+    currentPrice: number | null;
+    id: string;
+    imageUrl: string | null;
+    main_image_url: string | null;
+    name: string;
+    slug: string;
+    status: WishlistProductVariantRow["status"] | null;
+  } | null;
+};
+
+export type WishlistIdsResponse = {
+  items: Array<{ productId: string; slug: string | null }>;
+  productIds: string[];
+  slugs: string[];
 };
 
 const priorityScore: Record<"low" | "medium" | "high", number> = {
@@ -235,13 +265,40 @@ function mapWishlistRow(row: WishlistRowWithProduct): WishlistProductListItem {
   };
 }
 
+function mapWishlistApiItem(item: WishlistProductListItem): WishlistApiListItem {
+  return {
+    ...item,
+    created_at: item.createdAt,
+    customer_id: item.customerId,
+    desired_price: item.desiredPrice,
+    product_id: item.productId,
+    products: item.product
+      ? {
+          category: item.product.category,
+          currentPrice: item.product.currentPrice,
+          id: item.product.id,
+          imageUrl: item.product.imageUrl,
+          main_image_url: item.product.imageUrl,
+          name: item.product.name,
+          slug: item.product.slug,
+          status: item.product.status,
+        }
+      : null,
+  };
+}
+
 export class WishlistService {
   constructor(private readonly supabase: SupabaseAdminClient = createSupabaseAdminClient()) {}
 
-  async listWishlist(customerId: string) {
+  async listWishlist(customerId: string): Promise<WishlistApiListItem[]> {
+    const items = await this.listWishlistWithProducts(customerId);
+    return items.map(mapWishlistApiItem);
+  }
+
+  async listWishlistIds(customerId: string): Promise<WishlistIdsResponse> {
     const { data, error } = await this.supabase
       .from("wishlist_items")
-      .select("id,customer_id,product_id,desired_price,priority,notes,created_at,products(id,name,slug,main_image_url)")
+      .select("product_id,products(slug)")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false });
 
@@ -249,7 +306,19 @@ export class WishlistService {
       throwQueryError(error, "Falha ao listar wishlist");
     }
 
-    return data ?? [];
+    const items = ((data ?? []) as unknown as WishlistIdRow[]).map((row) => {
+      const product = firstRelation(row.products);
+      return {
+        productId: row.product_id,
+        slug: product?.slug ?? null,
+      };
+    });
+
+    return {
+      items,
+      productIds: items.map((item) => item.productId),
+      slugs: items.flatMap((item) => (item.slug ? [item.slug] : [])),
+    };
   }
 
   async listWishlistWithProducts(customerId: string): Promise<WishlistProductListItem[]> {
@@ -298,21 +367,16 @@ export class WishlistService {
     return data;
   }
 
-  async deleteWishlistItem(customerId: string, id: string) {
-    const { data, error } = await this.supabase
+  async deleteWishlistItem(customerId: string, identifier: string) {
+    const parsedIdentifier = wishlistIdentifierSchema.parse(identifier);
+    const { error } = await this.supabase
       .from("wishlist_items")
       .delete()
-      .eq("id", id)
       .eq("customer_id", customerId)
-      .select("id")
-      .maybeSingle();
+      .or(`id.eq.${parsedIdentifier},product_id.eq.${parsedIdentifier}`);
 
     if (error) {
       throwQueryError(error, "Falha ao remover wishlist");
-    }
-
-    if (!data) {
-      throw notFound("Favorito nao encontrado");
     }
   }
 

@@ -3,16 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/auth/auth_controller.dart';
 import '../../core/config/app_config.dart';
 import '../../shared/widgets/app_scaffold.dart';
-import '../../shared/widgets/drop_badge.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
-import '../../shared/widgets/wishlist_button.dart';
 import '../cart/data/cart_controller.dart';
 import '../catalog/data/catalog_repository.dart';
+import '../wishlist/application/wishlist_controller.dart';
 import 'data/product_detail.dart';
 import 'widgets/product_badges.dart';
 import 'widgets/product_image_gallery.dart';
@@ -60,6 +60,10 @@ class _ProductDetailContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final shareUrl = '${AppConfig.apiBaseUrl}/produto/${product.slug}';
+    final auth = ref.watch(authControllerProvider);
+    final wishlist = ref.watch(wishlistControllerProvider);
+    final isWishlisted = wishlist.isWishlisted(product.id);
+    final isWishlistUpdating = wishlist.isUpdating(product.id);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -87,14 +91,7 @@ class _ProductDetailContent extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 14),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: ProductBadges(badges: product.badges)),
-                const SizedBox(width: 12),
-                WishlistButton(onPressed: () => _showWishlistMessage(context)),
-              ],
-            ),
+            ProductBadges(badges: product.badges),
             const SizedBox(height: 16),
             ProductPriceBlock(price: product.price, status: product.status),
             const SizedBox(height: 16),
@@ -102,13 +99,8 @@ class _ProductDetailContent extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const DropBadge(
-                    label: 'Curadoria',
-                    icon: Icons.auto_awesome_rounded,
-                  ),
-                  const SizedBox(height: 12),
                   Text(
-                    'Por que colecionar?',
+                    'Descrição',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -122,6 +114,21 @@ class _ProductDetailContent extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 18),
+            PrimaryButton(
+              label: isWishlisted ? 'Remover dos favoritos' : 'Favoritar',
+              icon: isWishlisted
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              variant: PrimaryButtonVariant.outlined,
+              fullWidth: true,
+              isLoading: isWishlistUpdating,
+              onPressed: () => _toggleWishlist(
+                context,
+                ref,
+                isAuthenticated: auth.isAuthenticated,
+              ),
+            ),
+            const SizedBox(height: 10),
             PrimaryButton(
               label: 'Adicionar ao carrinho',
               icon: Icons.add_shopping_cart_rounded,
@@ -147,14 +154,6 @@ class _ProductDetailContent extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             PrimaryButton(
-              label: 'Favoritar',
-              icon: Icons.favorite_border_rounded,
-              variant: PrimaryButtonVariant.outlined,
-              fullWidth: true,
-              onPressed: () => _showWishlistMessage(context),
-            ),
-            const SizedBox(height: 10),
-            PrimaryButton(
               label: 'Compartilhar',
               icon: Icons.ios_share_rounded,
               variant: PrimaryButtonVariant.outlined,
@@ -164,11 +163,11 @@ class _ProductDetailContent extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             PrimaryButton(
-              label: 'Continuar compra',
-              icon: Icons.shopping_bag_rounded,
+              label: 'Voltar ao catálogo',
+              icon: Icons.arrow_back_rounded,
               variant: PrimaryButtonVariant.outlined,
               fullWidth: true,
-              onPressed: () => context.go('/carrinho'),
+              onPressed: () => context.go('/catalogo'),
             ),
           ],
         );
@@ -192,12 +191,47 @@ class _ProductDetailContent extends ConsumerWidget {
     );
   }
 
-  void _showWishlistMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Wishlist mobile preparada para integração futura.'),
-      ),
-    );
+  Future<void> _toggleWishlist(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isAuthenticated,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (!isAuthenticated) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Entre para salvar favoritos.'),
+          action: SnackBarAction(
+            label: 'Entrar',
+            onPressed: () => context.go('/login?from=/produto/${product.slug}'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final added = await ref
+          .read(wishlistControllerProvider.notifier)
+          .toggle(product.id);
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            added ? 'Adicionado à wishlist.' : 'Removido da wishlist.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Não foi possível atualizar a wishlist.')),
+      );
+    }
   }
 }
 

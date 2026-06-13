@@ -27,6 +27,7 @@ class OrdersPage extends ConsumerWidget {
     if (auth.isLoading) {
       return const AppScaffold(
         title: 'Pedidos',
+        showAppBar: false,
         body: LoadingState(message: 'Verificando sua sessão...'),
       );
     }
@@ -34,6 +35,7 @@ class OrdersPage extends ConsumerWidget {
     if (!auth.isAuthenticated) {
       return AppScaffold(
         title: 'Pedidos',
+        showAppBar: false,
         body: Column(
           children: [
             const EmptyState(
@@ -57,6 +59,7 @@ class OrdersPage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Pedidos',
+      showAppBar: false,
       onRefresh: () async {
         ref.read(ordersRepositoryProvider).invalidateOrders();
         ref.invalidate(ordersProvider);

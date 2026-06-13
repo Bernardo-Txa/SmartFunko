@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'responsive_content.dart';
-import '../widgets/smart_drawer.dart';
 import '../widgets/smart_header.dart';
 
 class SmartAppShell extends StatelessWidget {
@@ -15,7 +14,7 @@ class SmartAppShell extends StatelessWidget {
     this.showHeader = true,
     this.showSearch = false,
     this.showBackButton = false,
-    this.showDrawerButton = true,
+    this.showDrawerButton = false,
     this.showCartAction = true,
     this.showProfileAction = true,
     this.showBottomNavigation = true,
@@ -46,7 +45,6 @@ class SmartAppShell extends StatelessWidget {
 
     return Scaffold(
       extendBody: true,
-      drawer: showDrawerButton ? const SmartDrawer() : null,
       appBar: showHeader
           ? SmartHeader(
               title: headerTitle,
@@ -187,7 +185,9 @@ class _SmartBottomNavigation extends StatelessWidget {
     }
     if (location.startsWith('/rifas')) return 2;
     if (location.startsWith('/pedidos')) return 3;
-    if (location.startsWith('/perfil')) return 4;
+    if (location.startsWith('/perfil') || location.startsWith('/wishlist')) {
+      return 4;
+    }
     return 0;
   }
 }

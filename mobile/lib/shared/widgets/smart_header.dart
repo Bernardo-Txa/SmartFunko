@@ -14,7 +14,7 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
     this.subtitle,
     this.showBackButton = false,
     this.showSearch = false,
-    this.showDrawerButton = true,
+    this.showDrawerButton = false,
     this.showCartAction = true,
     this.showProfileAction = true,
     this.actions = const [],
@@ -184,14 +184,6 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
                               color: colorScheme.onSurface,
                               size: 20,
                             ),
-                    ),
-                  if (showDrawerButton)
-                    Builder(
-                      builder: (context) => _HeaderAction(
-                        tooltip: 'Menu',
-                        icon: Icons.menu_rounded,
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
                     ),
                 ],
               ),

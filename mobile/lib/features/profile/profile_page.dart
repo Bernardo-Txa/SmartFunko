@@ -7,8 +7,8 @@ import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
-import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/smart_card.dart';
+import '../wishlist/application/wishlist_controller.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -20,6 +20,7 @@ class ProfilePage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Perfil',
+      showAppBar: false,
       body: auth.isLoading
           ? const LoadingState(message: 'Verificando sua sessão...')
           : auth.isAuthenticated && user != null
@@ -54,11 +55,12 @@ class ProfilePage extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const SectionHeader(
-                  title: 'Área do colecionador',
-                  subtitle: 'Atalhos e recursos preparados para evoluir.',
+                _ProfileActionCard(
+                  title: 'Minha wishlist',
+                  subtitle: 'Veja e remova produtos salvos como favoritos.',
+                  icon: Icons.favorite_rounded,
+                  onTap: () => context.go('/wishlist'),
                 ),
-                const SizedBox(height: 12),
                 _ProfileActionCard(
                   title: 'Meus pedidos',
                   subtitle: 'Acompanhe pedidos e links de pagamento liberados.',
@@ -71,30 +73,6 @@ class ProfilePage extends ConsumerWidget {
                   icon: Icons.confirmation_number_rounded,
                   onTap: () => context.go('/minhas-rifas'),
                 ),
-                _ProfileActionCard(
-                  title: 'Clube Smart Funkos',
-                  subtitle: 'Pontos, níveis e benefícios em evolução.',
-                  icon: Icons.workspace_premium_rounded,
-                  onTap: () => context.go('/clube'),
-                ),
-                const _RoadmapCard(
-                  title: 'Minha coleção',
-                  subtitle:
-                      'Roadmap: organizar itens comprados, desejados e raros.',
-                  icon: Icons.inventory_2_rounded,
-                ),
-                const _RoadmapCard(
-                  title: 'Scanner',
-                  subtitle:
-                      'Roadmap: leitura de código para consultar item e preço.',
-                  icon: Icons.qr_code_scanner_rounded,
-                ),
-                const _RoadmapCard(
-                  title: 'Comunidade',
-                  subtitle:
-                      'Roadmap: ranking, wishlist pública e trocas entre fãs.',
-                  icon: Icons.groups_rounded,
-                ),
                 const SizedBox(height: 6),
                 PrimaryButton(
                   label: 'Sair',
@@ -102,6 +80,7 @@ class ProfilePage extends ConsumerWidget {
                   variant: PrimaryButtonVariant.outlined,
                   fullWidth: true,
                   onPressed: () async {
+                    ref.read(wishlistControllerProvider.notifier).clear();
                     await ref.read(authControllerProvider.notifier).signOut();
                     if (context.mounted) {
                       context.go('/login');
@@ -115,8 +94,7 @@ class ProfilePage extends ConsumerWidget {
                 const EmptyState(
                   icon: Icons.person_outline_rounded,
                   title: 'Você está como visitante',
-                  message:
-                      'Entre para ver perfil, pedidos e Clube Smart Funkos.',
+                  message: 'Entre para ver perfil, pedidos e suas rifas.',
                 ),
                 const SizedBox(height: 18),
                 PrimaryButton(
@@ -152,28 +130,6 @@ class _ProfileActionCard extends StatelessWidget {
       icon: icon,
       trailing: Icons.chevron_right_rounded,
       onTap: onTap,
-    );
-  }
-}
-
-class _RoadmapCard extends StatelessWidget {
-  const _RoadmapCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ProfileTile(
-      title: title,
-      subtitle: subtitle,
-      icon: icon,
-      trailing: Icons.lock_clock_rounded,
     );
   }
 }

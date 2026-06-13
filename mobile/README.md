@@ -108,70 +108,52 @@ flutter analyze
 flutter test
 ```
 
-## Mobile 0.6.1: Geek Commerce Benchmark UI
+## Mobile Reset UX: foco e funcionalidade
 
-Esta etapa evolui a interface mobile para uma experiência de e-commerce geek premium, inspirada por padrões de descoberta de Funko, BoxLunch, Hot Topic, Tokyo Otaku Mode, Geral Geek e Geek Fanáticos, sem copiar layout, marca ou assets dessas lojas.
+O mobile foi simplificado para priorizar fluxos reais e reduzir a superfície de protótipo. A navegação principal fica no bottom nav:
 
-Entregue no app:
+- Home.
+- Catálogo.
+- Rifas.
+- Pedidos.
+- Perfil.
 
-- Home com descoberta por fandom, vitrine SmartFunko, drops limitados e teaser honesto de ranking/wishlist.
-- Catálogo com busca por texto, entrada por `?q=Fandom`, chips de fandom e filtros de status (`Pronta-entrega`, `Pré-venda`, `Encomenda`, `Drops`).
-- Cards de produto com visual de drop, wishlist preparada, badges e imagens cacheadas.
-- Detalhe de produto com curadoria, wishlist preparada, compartilhar e carrinho preservado.
-- Perfil e Clube com atalhos reais e placeholders explícitos para coleção, scanner, ranking, alertas e comunidade.
-- Tema dark premium com superfícies, bordas, sombras e navegação inferior visualmente reforçadas.
-
-Integrações preparadas, ainda sem backend novo:
-
-- Wishlist persistente.
-- Ranking dos mais desejados.
-- Alertas de estoque e pré-venda.
-- Minha coleção.
-- Scanner de código.
-- Comunidade/marketplace entre colecionadores.
-
-Fluxos que devem continuar funcionais:
+Escopo disponível agora:
 
 - Login Supabase.
-- Catálogo público e detalhe por slug.
-- Carrinho local.
-- Checkout com criação de pedido real.
-- Pedidos do cliente.
-- Rifas e minhas rifas.
+- Home objetiva com saudação, ações principais, produtos em destaque reais e rifas ativas reais.
+- Catálogo público com busca por texto, filtros de status funcionais, preço, status e ação de carrinho.
+- Produto por slug com imagem, nome, preço, status, descrição, compartilhar e adicionar ao carrinho.
+- Carrinho local com quantidade, remoção, total e criação de pedido real para usuário logado.
+- Pedidos reais do cliente e detalhe por número.
+- Rifas reais experimentais, detalhe, seleção de números e minhas rifas.
+- Perfil simples com dados da conta, pedidos, minhas rifas e sair.
+
+Removido ou escondido do mobile:
+
+- Drawer complexo.
+- Fandom chips decorativos.
+- Visual e seções de drops como peça de descoberta.
+- Wishlist, favoritos e ranking sem persistência real.
+- Scanner, coleção, comunidade e marketplace.
+- Clube com pontuação ou benefícios demo.
+- Teasers e cards de roadmap dentro da experiência principal.
+
+Roadmap futuro, fora do escopo atual:
+
+- UI premium.
+- Wishlist real.
+- Alertas reais de estoque/pre-venda.
+- Coleção do usuário.
+- Scanner.
+- Comunidade/marketplace.
 
 Checklist manual sugerido:
 
-- Redmi Pad Pro: validar home, catálogo em grid, detalhe de produto, carrinho, checkout, rifas e perfil.
-- Brave/Chromium Web: rodar via `flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080` e validar imagens, CORS, scroll horizontal dos chips e navegação por `/catalogo?q=Marvel`.
-- Conferir que wishlist/ranking aparecem como roadmap e não simulam persistência real.
-
-## Mobile 0.6.2: App Shell, Header e Navegação Premium
-
-Esta etapa organiza o app em uma casca visual mais forte: header premium, drawer opcional, busca mais aparente e navegação inferior refinada.
-
-Entregue no app:
-
-- `SmartAppShell` como estrutura central das telas principais.
-- `SmartHeader` com título, subtítulo, busca, carrinho, perfil e menu.
-- `SmartDrawer` com conta, atalhos e itens em roadmap.
-- Login sem header para manter a tela mais limpa.
-- Home e Catálogo com busca ativa no topo.
-- Telas de detalhe com header mais contido e botão voltar.
-
-Fluxos preservados:
-
-- Checkout, rifas, pedidos e login continuam intactos.
-- Drawer e busca não introduzem backend novo.
-- A navegação inferior permanece nas cinco áreas principais.
-
-Checklist manual sugerido:
-
-- Pixel 360 x 800.
-- Pixel 390 x 844.
-- Pixel 430 x 932.
-- Abrir drawer pela Home.
-- Ir de Home para Catálogo e voltar.
-- Abrir produto, rifa, checkout e garantir ausência de overflow.
+- Abrir Home, Catálogo, Produto, Carrinho, Pedidos, Rifas, Minhas rifas, Perfil, Login e Logout.
+- Adicionar produto ao carrinho e finalizar pedido sem voltar para Home.
+- Reservar rifa quando houver campanha aberta e link de pagamento retornado pelo backend.
+- Confirmar que não há botão morto, seção falsa ou overflow visível.
 
 ## Mobile MVP Cliente 0.2
 

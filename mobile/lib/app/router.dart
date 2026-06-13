@@ -17,6 +17,7 @@ import '../features/raffles/my_raffles_page.dart';
 import '../features/raffles/raffle_detail_page.dart';
 import '../features/raffles/raffles_page.dart';
 import '../features/splash/splash_page.dart';
+import '../features/wishlist/presentation/wishlist_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
@@ -91,6 +92,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/perfil',
         builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: '/wishlist',
+        builder: (context, state) => const WishlistPage(),
       ),
     ],
   );

@@ -26,6 +26,7 @@ class RafflesPage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Rifas',
+      showAppBar: false,
       onRefresh: () async {
         ref.read(rafflesRepositoryProvider).invalidateRaffles();
         ref.invalidate(rafflesListProvider);

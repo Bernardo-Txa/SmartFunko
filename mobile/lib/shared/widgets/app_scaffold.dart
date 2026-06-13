@@ -13,7 +13,7 @@ class AppScaffold extends StatelessWidget {
     this.showBottomNavigation = true,
     this.showCartAction = true,
     this.showSearch = false,
-    this.showDrawerButton = true,
+    this.showDrawerButton = false,
     this.showProfileAction = true,
     this.actions = const [],
     this.onRefresh,

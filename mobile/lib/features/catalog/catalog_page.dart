@@ -7,9 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
-import '../../shared/widgets/fandom_chip.dart';
 import '../../shared/widgets/list_skeleton.dart';
 import '../cart/data/cart_controller.dart';
+import '../../core/auth/auth_controller.dart';
+import '../wishlist/application/wishlist_controller.dart';
 import 'data/catalog_repository.dart';
 import 'data/product_models.dart';
 import 'widgets/product_card.dart';
@@ -29,12 +30,10 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
   bool _routeQueryApplied = false;
   String? _lastRouteQuery;
 
-  static const _fandoms = ['Marvel', 'DC', 'Anime', 'Disney', 'Games'];
   static const _statusFilters = [
     _CatalogFilter(label: 'Pronta-entrega', value: 'available'),
     _CatalogFilter(label: 'Pré-venda', value: 'preorder'),
     _CatalogFilter(label: 'Encomenda', value: 'order_only'),
-    _CatalogFilter(label: 'Drops', value: 'specials'),
   ];
 
   @override
@@ -76,7 +75,8 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
 
     return AppScaffold(
       title: 'Catálogo',
-      subtitle: 'Drops, fandoms e filtros rápidos',
+      subtitle: 'Produtos disponíveis para pedido',
+      showAppBar: false,
       showSearch: true,
       onRefresh: () async {
         ref.read(catalogRepositoryProvider).invalidateProducts(request);
@@ -92,7 +92,7 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
               hintText: 'Buscar por personagem, franquia ou SKU',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: _search.isEmpty
-                  ? const Icon(Icons.tune_rounded)
+                  ? null
                   : IconButton(
                       tooltip: 'Limpar busca',
                       icon: const Icon(Icons.close_rounded),
@@ -113,11 +113,9 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
           ),
           const SizedBox(height: 12),
           _CatalogFilters(
-            fandoms: _fandoms,
             statusFilters: _statusFilters,
             search: _search,
             status: _status,
-            onFandomTap: _applyFandom,
             onStatusTap: _toggleStatus,
             onClear: _clearFilters,
           ),
@@ -165,12 +163,6 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
     setState(() => _search = nextSearch);
   }
 
-  void _applyFandom(String fandom) {
-    _searchDebounce?.cancel();
-    _searchController.text = fandom;
-    setState(() => _search = fandom);
-  }
-
   void _toggleStatus(String status) {
     setState(() => _status = _status == status ? null : status);
   }
@@ -185,7 +177,7 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
   }
 }
 
-class _CatalogContent extends StatelessWidget {
+class _CatalogContent extends ConsumerWidget {
   const _CatalogContent({
     required this.products,
     required this.search,
@@ -199,8 +191,10 @@ class _CatalogContent extends StatelessWidget {
   final ValueChanged<ProductSummary> onAddToCart;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final auth = ref.watch(authControllerProvider);
+    final wishlist = ref.watch(wishlistControllerProvider);
 
     if (products.isEmpty) {
       return EmptyState(
@@ -210,7 +204,7 @@ class _CatalogContent extends StatelessWidget {
             : 'Nada encontrado',
         message: search.isEmpty && status == null
             ? 'O catálogo público não retornou produtos agora.'
-            : 'Tente outro fandom, status ou termo de busca.',
+            : 'Tente outro status ou termo de busca.',
       );
     }
 
@@ -257,6 +251,14 @@ class _CatalogContent extends StatelessWidget {
                   product: product,
                   onDetails: () => context.go('/produto/${product.slug}'),
                   onAddToCart: () => onAddToCart(product),
+                  isWishlisted: wishlist.isWishlisted(product.id),
+                  isWishlistUpdating: wishlist.isUpdating(product.id),
+                  onToggleWishlist: () => _toggleWishlist(
+                    context,
+                    ref,
+                    product,
+                    isAuthenticated: auth.isAuthenticated,
+                  ),
                 );
               },
             );
@@ -265,24 +267,64 @@ class _CatalogContent extends StatelessWidget {
       ],
     );
   }
+
+  Future<void> _toggleWishlist(
+    BuildContext context,
+    WidgetRef ref,
+    ProductSummary product, {
+    required bool isAuthenticated,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (!isAuthenticated) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text('Entre para salvar favoritos.'),
+          action: SnackBarAction(
+            label: 'Entrar',
+            onPressed: () => context.go('/login?from=/catalogo'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final added = await ref
+          .read(wishlistControllerProvider.notifier)
+          .toggle(product.id);
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            added ? 'Adicionado à wishlist.' : 'Removido da wishlist.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Não foi possível atualizar a wishlist.')),
+      );
+    }
+  }
 }
 
 class _CatalogFilters extends StatelessWidget {
   const _CatalogFilters({
-    required this.fandoms,
     required this.statusFilters,
     required this.search,
     required this.status,
-    required this.onFandomTap,
     required this.onStatusTap,
     required this.onClear,
   });
 
-  final List<String> fandoms;
   final List<_CatalogFilter> statusFilters;
   final String search;
   final String? status;
-  final ValueChanged<String> onFandomTap;
   final ValueChanged<String> onStatusTap;
   final VoidCallback onClear;
 
@@ -297,39 +339,20 @@ class _CatalogFilters extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              for (final fandom in fandoms) ...[
-                FandomChip(
-                  label: fandom,
-                  icon: Icons.auto_awesome_rounded,
-                  selected: search.toLowerCase() == fandom.toLowerCase(),
-                  onTap: () => onFandomTap(fandom),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
               for (final filter in statusFilters) ...[
-                FandomChip(
-                  label: filter.label,
-                  icon: filter.value == 'specials'
-                      ? Icons.bolt_rounded
-                      : Icons.sell_rounded,
+                FilterChip(
+                  label: Text(filter.label),
+                  avatar: const Icon(Icons.sell_rounded, size: 18),
                   selected: status == filter.value,
-                  onTap: () => onStatusTap(filter.value),
+                  onSelected: (_) => onStatusTap(filter.value),
                 ),
                 const SizedBox(width: 8),
               ],
               if (hasFilters)
-                FandomChip(
-                  label: 'Limpar',
-                  icon: Icons.close_rounded,
-                  onTap: onClear,
+                ActionChip(
+                  avatar: const Icon(Icons.close_rounded, size: 18),
+                  label: const Text('Limpar'),
+                  onPressed: onClear,
                 ),
             ],
           ),
