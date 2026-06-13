@@ -108,6 +108,43 @@ flutter analyze
 flutter test
 ```
 
+## Mobile 0.6.1: Geek Commerce Benchmark UI
+
+Esta etapa evolui a interface mobile para uma experiência de e-commerce geek premium, inspirada por padrões de descoberta de Funko, BoxLunch, Hot Topic, Tokyo Otaku Mode, Geral Geek e Geek Fanáticos, sem copiar layout, marca ou assets dessas lojas.
+
+Entregue no app:
+
+- Home com descoberta por fandom, vitrine SmartFunko, drops limitados e teaser honesto de ranking/wishlist.
+- Catálogo com busca por texto, entrada por `?q=Fandom`, chips de fandom e filtros de status (`Pronta-entrega`, `Pré-venda`, `Encomenda`, `Drops`).
+- Cards de produto com visual de drop, wishlist preparada, badges e imagens cacheadas.
+- Detalhe de produto com curadoria, wishlist preparada, compartilhar e carrinho preservado.
+- Perfil e Clube com atalhos reais e placeholders explícitos para coleção, scanner, ranking, alertas e comunidade.
+- Tema dark premium com superfícies, bordas, sombras e navegação inferior visualmente reforçadas.
+
+Integrações preparadas, ainda sem backend novo:
+
+- Wishlist persistente.
+- Ranking dos mais desejados.
+- Alertas de estoque e pré-venda.
+- Minha coleção.
+- Scanner de código.
+- Comunidade/marketplace entre colecionadores.
+
+Fluxos que devem continuar funcionais:
+
+- Login Supabase.
+- Catálogo público e detalhe por slug.
+- Carrinho local.
+- Checkout com criação de pedido real.
+- Pedidos do cliente.
+- Rifas e minhas rifas.
+
+Checklist manual sugerido:
+
+- Redmi Pad Pro: validar home, catálogo em grid, detalhe de produto, carrinho, checkout, rifas e perfil.
+- Brave/Chromium Web: rodar via `flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080` e validar imagens, CORS, scroll horizontal dos chips e navegação por `/catalogo?q=Marvel`.
+- Conferir que wishlist/ranking aparecem como roadmap e não simulam persistência real.
+
 ## Mobile MVP Cliente 0.2
 
 O app consome endpoints públicos do backend web em `API_BASE_URL`:

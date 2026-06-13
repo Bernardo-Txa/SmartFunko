@@ -43,14 +43,41 @@ Fluxos protegidos usam a sessao efetiva do Supabase para evitar falso bloqueio q
 
 - Login Supabase Auth.
 - Home cliente.
-- Home com identidade Smart Funkos, CTAs e destaques do catálogo público.
-- Catálogo real via API pública Next.js.
-- Produto real por slug com galeria, preço, badges, descrição e compartilhamento.
+- Home com identidade Smart Funkos, CTAs, descoberta por fandom, drops e destaques do catálogo público.
+- Catálogo real via API pública Next.js, busca por texto, chips de fandom e filtros de status.
+- Produto real por slug com galeria, preço, badges, curadoria, wishlist preparada e compartilhamento.
 - Carrinho local em memória com adicionar, remover, quantidade, limpar e total estimado.
-- Pedidos placeholder.
-- Rifas placeholder.
-- Clube placeholder.
-- Perfil com usuário Supabase e logout.
+- Pedidos reais do cliente.
+- Rifas reais experimentais.
+- Clube e perfil com placeholders explícitos para funcionalidades futuras.
+
+## Mobile 0.6.1: Geek Commerce Benchmark UI
+
+A camada visual foi reposicionada para um e-commerce geek premium, usando referências de mercado apenas como benchmark de padrões: descoberta por fandom, drops, cards colecionáveis, filtros rápidos, wishlist, ranking e comunidade. A identidade visual, copy e componentes permanecem próprios da Smart Funkos.
+
+Entregas:
+
+- Tema dark com superfícies elevadas, acentos de drop e navegação inferior refinada.
+- Componentes compartilhados para fandom, drop e wishlist.
+- Home com `Shop by fandom`, vitrine real, drops limitados e teaser de ranking/wishlist.
+- Catálogo com suporte a query `q`, chips de fandom e filtros `ready/preorder/order/specials` mapeados para o contrato público existente.
+- Produto com CTA de wishlist preparado, bloco de curadoria e fluxo de carrinho inalterado.
+- Perfil/Clube com atalhos reais e roadmap visível para coleção, scanner, ranking, alertas e comunidade.
+
+Sem mudança de backend nesta etapa:
+
+- Wishlist não persiste.
+- Ranking não usa dados reais.
+- Alertas, scanner, coleção e comunidade não chamam endpoint novo.
+- Pagamento e confirmação de rifa continuam centralizados no backend.
+
+Critérios de validação:
+
+- `flutter analyze`
+- `flutter test`
+- Teste manual em tela grande Android, como Redmi Pad Pro.
+- Teste manual em Brave/Chromium Web com `/catalogo?q=Marvel`.
+- Conferir checkout, pedidos, rifas e login após a mudança visual.
 
 ## Integração Mobile 0.2
 
@@ -212,6 +239,7 @@ Rifa:
 - `0.3`: criação real de pedido a partir do carrinho.
 - `0.4`: rifas cliente.
 - `0.5`: Clube e perfil conectados a dados reais.
+- `0.6.1`: UI geek commerce premium, fandom discovery, drops e roadmap de wishlist/ranking/coleção.
 - Release prep: ícones, splash, screenshots, políticas e lojas.
 
 ## Publicação

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../shared/theme/app_colors.dart';
 import '../shared/theme/app_radius.dart';
-import '../shared/theme/app_shadows.dart';
 import '../shared/theme/app_text_styles.dart';
 
 class SmartFunkosTheme {

@@ -5,9 +5,11 @@ import '../../../core/network/image_url_resolver.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_radius.dart';
 import '../../../shared/theme/app_shadows.dart';
+import '../../../shared/widgets/drop_badge.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/price_tag.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../../shared/widgets/wishlist_button.dart';
 import '../data/product_models.dart';
 
 class ProductCard extends StatelessWidget {
@@ -56,9 +58,27 @@ class ProductCard extends StatelessWidget {
               children: [
                 AspectRatio(
                   aspectRatio: 1,
-                  child: _ProductImage(
-                    imageUrl: product.imageUrl,
-                    special: product.special,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _ProductImage(
+                        imageUrl: product.imageUrl,
+                        special: product.special,
+                      ),
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: WishlistButton(
+                          onPressed: () => _showWishlistMessage(context),
+                        ),
+                      ),
+                      if (product.special)
+                        const Positioned(
+                          left: 10,
+                          top: 10,
+                          child: DropBadge(label: 'Drop'),
+                        ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -117,73 +137,18 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                /*
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          StatusBadge(label: product.status.label),
-                          if (product.special)
-                            const StatusBadge(
-                              label: 'Especial',
-                              icon: Icons.star_rounded,
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        product.supplierName ??
-                            product.category ??
-                            'Smart Funkos',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      PriceTag(
-                        label: product.price.formatted,
-                        subtitle: 'Preço',
-                      ),
-                      const SizedBox(height: 12),
-                      PrimaryButton(
-                        label: 'Adicionar',
-                        icon: Icons.add_shopping_cart_rounded,
-                        fullWidth: true,
-                        onPressed: product.isAvailable ? onAddToCart : null,
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: onDetails,
-                          icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                          label: const Text('Detalhes'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),*/
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _showWishlistMessage(BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Wishlist mobile em breve.')));
   }
 }
 

@@ -5,8 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/network/image_url_resolver.dart';
+import '../../shared/widgets/drop_badge.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/fandom_chip.dart';
+import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/smart_card.dart';
 import '../cart/data/cart_controller.dart';
 import '../catalog/data/catalog_repository.dart';
@@ -30,7 +35,18 @@ class HomePage extends ConsumerWidget {
           ),
           const SizedBox(height: 22),
           featuredProducts.when(
-            data: (products) => _HighlightsSection(products: products),
+            data: (products) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _FandomSection(),
+                const SizedBox(height: 24),
+                _HighlightsSection(products: products),
+                const SizedBox(height: 24),
+                _DropsSection(products: products),
+                const SizedBox(height: 24),
+                const _WishlistRankingTeaser(),
+              ],
+            ),
             loading: () => const _HighlightsLoading(),
             error: (error, stackTrace) => ErrorState(
               message: 'Não foi possível carregar os destaques.',
@@ -98,7 +114,7 @@ class _HeroSection extends StatelessWidget {
               const SizedBox(height: 8),
             ],
             Text(
-              'Smart Funkos',
+              'Monte sua coleção SmartFunko',
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w900,
                 height: 1.05,
@@ -106,7 +122,7 @@ class _HeroSection extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Colecionáveis, rifas e comunidade geek em um só lugar.',
+              'Descubra drops, pré-vendas e colecionáveis por fandom em uma experiência feita para colecionadores.',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -147,8 +163,6 @@ class _HighlightsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     if (products.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -156,11 +170,12 @@ class _HighlightsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Destaques',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+        SectionHeader(
+          title: 'Vitrine SmartFunko',
+          subtitle:
+              'Produtos reais do catálogo, com foco em descoberta rápida.',
+          actionLabel: 'Ver todos',
+          onAction: () => context.go('/catalogo'),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -179,6 +194,152 @@ class _HighlightsSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _FandomSection extends StatelessWidget {
+  const _FandomSection();
+
+  static const _fandoms = [
+    'Marvel',
+    'DC',
+    'Anime',
+    'Disney',
+    'Games',
+    'Star Wars',
+    'Harry Potter',
+    'Terror',
+    'Música',
+    'Esportes',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+          title: 'Shop by fandom',
+          subtitle: 'Use os filtros para começar por universos que você curte.',
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final fandom in _fandoms) ...[
+                FandomChip(
+                  label: fandom,
+                  icon: Icons.auto_awesome_rounded,
+                  onTap: () =>
+                      context.go('/catalogo?q=${Uri.encodeComponent(fandom)}'),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DropsSection extends StatelessWidget {
+  const _DropsSection({required this.products});
+
+  final List<ProductSummary> products;
+
+  @override
+  Widget build(BuildContext context) {
+    final drops = products
+        .where(
+          (product) =>
+              product.special || product.status == ProductStatus.preorder,
+        )
+        .take(4)
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+          title: 'Drops limitados',
+          subtitle: 'Itens especiais e pré-vendas aparecem aqui primeiro.',
+        ),
+        const SizedBox(height: 12),
+        if (drops.isEmpty)
+          const EmptyState(
+            icon: Icons.bolt_rounded,
+            title: 'Novos drops aparecem aqui',
+            message:
+                'Quando houver produtos especiais ou pré-vendas, a vitrine será atualizada.',
+          )
+        else
+          Column(
+            children: [
+              for (final product in drops)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SmartCard(
+                    onTap: () => context.go('/produto/${product.slug}'),
+                    child: Row(
+                      children: [
+                        const DropBadge(label: 'Drop'),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _WishlistRankingTeaser extends StatelessWidget {
+  const _WishlistRankingTeaser();
+
+  @override
+  Widget build(BuildContext context) {
+    return SmartCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DropBadge(label: 'Roadmap', icon: Icons.favorite_rounded),
+          const SizedBox(height: 12),
+          Text(
+            'Mais desejados',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Em breve: ranking dos colecionadores e wishlist mobile completa.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          PrimaryButton(
+            label: 'Explorar catálogo',
+            icon: Icons.manage_search_rounded,
+            fullWidth: true,
+            onPressed: () => context.go('/catalogo'),
+          ),
+        ],
+      ),
     );
   }
 }

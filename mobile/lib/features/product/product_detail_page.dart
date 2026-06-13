@@ -5,10 +5,12 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/config/app_config.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/widgets/drop_badge.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
+import '../../shared/widgets/wishlist_button.dart';
 import '../cart/data/cart_controller.dart';
 import '../catalog/data/catalog_repository.dart';
 import 'data/product_detail.dart';
@@ -84,14 +86,38 @@ class _ProductDetailContent extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 14),
-            ProductBadges(badges: product.badges),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: ProductBadges(badges: product.badges)),
+                const SizedBox(width: 12),
+                WishlistButton(onPressed: () => _showWishlistMessage(context)),
+              ],
+            ),
             const SizedBox(height: 16),
             ProductPriceBlock(price: product.price, status: product.status),
             const SizedBox(height: 16),
             SmartCard(
-              child: Text(
-                product.description,
-                style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const DropBadge(
+                    label: 'Curadoria',
+                    icon: Icons.auto_awesome_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Por que colecionar?',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    product.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 18),
@@ -117,6 +143,14 @@ class _ProductDetailContent extends ConsumerWidget {
                       );
                     }
                   : null,
+            ),
+            const SizedBox(height: 10),
+            PrimaryButton(
+              label: 'Favoritar',
+              icon: Icons.favorite_border_rounded,
+              variant: PrimaryButtonVariant.outlined,
+              fullWidth: true,
+              onPressed: () => _showWishlistMessage(context),
             ),
             const SizedBox(height: 10),
             PrimaryButton(
@@ -154,6 +188,14 @@ class _ProductDetailContent extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+
+  void _showWishlistMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Wishlist mobile preparada para integração futura.'),
+      ),
     );
   }
 }

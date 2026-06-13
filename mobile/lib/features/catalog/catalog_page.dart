@@ -1,11 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:async';
 
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/fandom_chip.dart';
 import '../../shared/widgets/list_skeleton.dart';
 import '../cart/data/cart_controller.dart';
 import 'data/catalog_repository.dart';
@@ -22,7 +24,39 @@ class CatalogPage extends ConsumerStatefulWidget {
 class _CatalogPageState extends ConsumerState<CatalogPage> {
   final _searchController = TextEditingController();
   String _search = '';
+  String? _status;
   Timer? _searchDebounce;
+  bool _routeQueryApplied = false;
+  String? _lastRouteQuery;
+
+  static const _fandoms = ['Marvel', 'DC', 'Anime', 'Disney', 'Games'];
+  static const _statusFilters = [
+    _CatalogFilter(label: 'Pronta-entrega', value: 'available'),
+    _CatalogFilter(label: 'Pré-venda', value: 'preorder'),
+    _CatalogFilter(label: 'Encomenda', value: 'order_only'),
+    _CatalogFilter(label: 'Drops', value: 'specials'),
+  ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final query = GoRouterState.of(context).uri.queryParameters['q']?.trim();
+    if (_routeQueryApplied && query == _lastRouteQuery) {
+      return;
+    }
+
+    _routeQueryApplied = true;
+    _lastRouteQuery = query;
+    _searchDebounce?.cancel();
+
+    if (query != null && query.isNotEmpty) {
+      _search = query;
+      _searchController.text = query;
+    } else {
+      _search = '';
+      _searchController.clear();
+    }
+  }
 
   @override
   void dispose() {
@@ -33,7 +67,11 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
 
   @override
   Widget build(BuildContext context) {
-    final request = CatalogRequest(search: _search, sort: 'specials_first');
+    final request = CatalogRequest(
+      search: _search,
+      status: _status,
+      sort: 'specials_first',
+    );
     final products = ref.watch(catalogProductsProvider(request));
 
     return AppScaffold(
@@ -71,11 +109,22 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
               );
             },
           ),
+          const SizedBox(height: 12),
+          _CatalogFilters(
+            fandoms: _fandoms,
+            statusFilters: _statusFilters,
+            search: _search,
+            status: _status,
+            onFandomTap: _applyFandom,
+            onStatusTap: _toggleStatus,
+            onClear: _clearFilters,
+          ),
           const SizedBox(height: 18),
           products.when(
             data: (items) => _CatalogContent(
               products: items,
               search: _search,
+              status: _status,
               onAddToCart: _addToCart,
             ),
             loading: () => const ListSkeleton(itemCount: 6, imageSize: 88),
@@ -113,17 +162,38 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
 
     setState(() => _search = nextSearch);
   }
+
+  void _applyFandom(String fandom) {
+    _searchDebounce?.cancel();
+    _searchController.text = fandom;
+    setState(() => _search = fandom);
+  }
+
+  void _toggleStatus(String status) {
+    setState(() => _status = _status == status ? null : status);
+  }
+
+  void _clearFilters() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _search = '';
+      _status = null;
+    });
+  }
 }
 
 class _CatalogContent extends StatelessWidget {
   const _CatalogContent({
     required this.products,
     required this.search,
+    required this.status,
     required this.onAddToCart,
   });
 
   final List<ProductSummary> products;
   final String search;
+  final String? status;
   final ValueChanged<ProductSummary> onAddToCart;
 
   @override
@@ -133,10 +203,12 @@ class _CatalogContent extends StatelessWidget {
     if (products.isEmpty) {
       return EmptyState(
         icon: Icons.manage_search_rounded,
-        title: search.isEmpty ? 'Nenhum produto disponível' : 'Nada encontrado',
-        message: search.isEmpty
+        title: search.isEmpty && status == null
+            ? 'Nenhum produto disponível'
+            : 'Nada encontrado',
+        message: search.isEmpty && status == null
             ? 'O catálogo público não retornou produtos agora.'
-            : 'Tente buscar por outro personagem, franquia ou categoria.',
+            : 'Tente outro fandom, status ou termo de busca.',
       );
     }
 
@@ -172,7 +244,7 @@ class _CatalogContent extends StatelessWidget {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
                 childAspectRatio: columns == 1
-                    ? 0.78
+                    ? 0.58
                     : columns == 2
                     ? 0.40
                     : 0.46,
@@ -191,4 +263,83 @@ class _CatalogContent extends StatelessWidget {
       ],
     );
   }
+}
+
+class _CatalogFilters extends StatelessWidget {
+  const _CatalogFilters({
+    required this.fandoms,
+    required this.statusFilters,
+    required this.search,
+    required this.status,
+    required this.onFandomTap,
+    required this.onStatusTap,
+    required this.onClear,
+  });
+
+  final List<String> fandoms;
+  final List<_CatalogFilter> statusFilters;
+  final String search;
+  final String? status;
+  final ValueChanged<String> onFandomTap;
+  final ValueChanged<String> onStatusTap;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasFilters = search.isNotEmpty || status != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final fandom in fandoms) ...[
+                FandomChip(
+                  label: fandom,
+                  icon: Icons.auto_awesome_rounded,
+                  selected: search.toLowerCase() == fandom.toLowerCase(),
+                  onTap: () => onFandomTap(fandom),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final filter in statusFilters) ...[
+                FandomChip(
+                  label: filter.label,
+                  icon: filter.value == 'specials'
+                      ? Icons.bolt_rounded
+                      : Icons.sell_rounded,
+                  selected: status == filter.value,
+                  onTap: () => onStatusTap(filter.value),
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (hasFilters)
+                FandomChip(
+                  label: 'Limpar',
+                  icon: Icons.close_rounded,
+                  onTap: onClear,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CatalogFilter {
+  const _CatalogFilter({required this.label, required this.value});
+
+  final String label;
+  final String value;
 }
