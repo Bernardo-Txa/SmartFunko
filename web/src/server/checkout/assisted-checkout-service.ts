@@ -59,9 +59,9 @@ type AssistedOrderRow = {
   status: string;
   total: number | string;
   payment_link_url: string | null;
-  payment_max_installments: number | null;
-  payment_max_installments_source: PaymentMaxInstallmentsSource | null;
-  payment_fee_mode: PaymentFeeMode | null;
+  payment_max_installments?: number | null;
+  payment_max_installments_source?: PaymentMaxInstallmentsSource | null;
+  payment_fee_mode?: PaymentFeeMode | null;
   payment_provider_reference: string | null;
   public_token: string;
   customers?: {
@@ -133,12 +133,30 @@ function mapCaptureMethod(method: string | null) {
 function orderSelect() {
   return `
     id,order_number,customer_id,review_status,status,total,payment_link_url,payment_provider_reference,public_token,
-    payment_max_installments,payment_max_installments_source,payment_fee_mode,
     customers(name,email,phone),
     order_items(quantity,unit_price,product_variants(products(name))),
     payments(amount,status)
   `;
 }
+
+type AssistedOrderBaseRow = Pick<
+  AssistedOrderRow,
+  | "customer_id"
+  | "id"
+  | "order_number"
+  | "payment_link_url"
+  | "payment_provider_reference"
+  | "public_token"
+  | "review_status"
+  | "status"
+  | "total"
+>;
+
+type AssistedOrderItemRow = {
+  product_variant_id: string | null;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+};
 
 export class AssistedCheckoutService {
   private readonly audit: AuditLogService;
@@ -309,7 +327,10 @@ export class AssistedCheckoutService {
         reviewed_by: actorProfileId,
       })
       .eq("id", orderId)
-      .select(orderSelect())
+      .select(`
+        id,order_number,customer_id,review_status,status,total,
+        payment_link_url,payment_provider_reference,public_token
+      `)
       .single();
 
     if (error) {
@@ -382,16 +403,9 @@ export class AssistedCheckoutService {
     const { data, error } = await this.supabase
       .from("orders")
       .update({
-        payment_fee_mode: paymentRules.feeMode,
         payment_link_created_at: now,
         payment_link_url: result.checkoutUrl,
-        payment_max_installments: paymentRules.maxInstallments,
-        payment_max_installments_source: paymentRules.maxInstallmentsSource,
         payment_provider: "infinitepay",
-        payment_provider_payload: {
-          request: result.requestPayload,
-          response: result.raw,
-        },
         payment_provider_reference: result.providerReference,
         review_notes: null,
         review_status: "awaiting_payment",
@@ -667,21 +681,178 @@ export class AssistedCheckoutService {
   }
 
   private async getAssistedOrder(orderId: string) {
-    const { data, error } = await this.supabase
+    const { data: order, error } = await this.supabase
       .from("orders")
-      .select(orderSelect())
+      .select(`
+        id,order_number,customer_id,review_status,status,total,
+        payment_link_url,payment_provider_reference,public_token
+      `)
       .eq("id", orderId)
-      .maybeSingle();
+      .maybeSingle<AssistedOrderBaseRow>();
 
     if (error) {
+      console.error("[AssistedCheckout] failed to fetch assisted order", {
+        orderId,
+        error,
+      });
       throwQueryError(error, "Falha ao buscar pedido do checkout assistido");
     }
 
-    if (!data) {
+    if (!order) {
       throw notFound("Pedido nao encontrado");
     }
 
-    return data as unknown as AssistedOrderRow;
+    const [
+      customer,
+      orderItems,
+      payments,
+    ] = await Promise.all([
+      this.fetchAssistedOrderCustomer(order.customer_id, orderId),
+      this.fetchAssistedOrderItems(orderId),
+      this.fetchAssistedOrderPayments(orderId),
+    ]);
+
+    return {
+      ...order,
+      customers: customer,
+      order_items: orderItems,
+      payments,
+    } as AssistedOrderRow;
+  }
+
+  private async fetchAssistedOrderCustomer(customerId: string, orderId: string) {
+    const { data, error } = await this.supabase
+      .from("customers")
+      .select("name,email,phone")
+      .eq("id", customerId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[AssistedCheckout] customer lookup failed", {
+        customerId,
+        orderId,
+        error,
+      });
+      return null;
+    }
+
+    return data;
+  }
+
+  private async fetchAssistedOrderItems(orderId: string) {
+    const { data: items, error } = await this.supabase
+      .from("order_items")
+      .select("quantity,unit_price,product_variant_id")
+      .eq("order_id", orderId);
+
+    if (error) {
+      console.error("[AssistedCheckout] order items lookup failed", {
+        orderId,
+        error,
+      });
+      throwQueryError(error, "Falha ao buscar itens do pedido do checkout assistido");
+    }
+
+    const normalizedItems = ((items ?? []) as AssistedOrderItemRow[]).map((item) => ({
+      productVariantId: item.product_variant_id,
+      quantity: Number(item.quantity ?? 0),
+      unit_price: item.unit_price ?? 0,
+    }));
+    const variantIds = Array.from(
+      new Set(
+        normalizedItems
+          .map((item) => item.productVariantId)
+          .filter((variantId): variantId is string => Boolean(variantId)),
+      ),
+    );
+
+    if (variantIds.length === 0) {
+      return normalizedItems.map((item) => ({
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        product_variants: null,
+      }));
+    }
+
+    const { data: variants, error: variantsError } = await this.supabase
+      .from("product_variants")
+      .select("id,product_id")
+      .in("id", variantIds);
+
+    if (variantsError) {
+      console.error("[AssistedCheckout] product variants lookup failed", {
+        orderId,
+        error: variantsError,
+      });
+
+      return normalizedItems.map((item) => ({
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        product_variants: null,
+      }));
+    }
+
+    const variantRows = (variants ?? []) as Array<{ id: string; product_id: string | null }>;
+    const productIds = Array.from(
+      new Set(
+        variantRows
+          .map((variant) => variant.product_id)
+          .filter((productId): productId is string => Boolean(productId)),
+      ),
+    );
+    const productNames = new Map<string, string | null>();
+
+    if (productIds.length > 0) {
+      const { data: products, error: productsError } = await this.supabase
+        .from("products")
+        .select("id,name")
+        .in("id", productIds);
+
+      if (productsError) {
+        console.error("[AssistedCheckout] products lookup failed", {
+          orderId,
+          error: productsError,
+        });
+      } else {
+        for (const product of (products ?? []) as Array<{ id: string; name: string | null }>) {
+          productNames.set(product.id, product.name);
+        }
+      }
+    }
+
+    const variantById = new Map(variantRows.map((variant) => [variant.id, variant]));
+
+    return normalizedItems.map((item) => {
+      const variant = item.productVariantId ? variantById.get(item.productVariantId) : null;
+      const productName = variant?.product_id ? productNames.get(variant.product_id) : null;
+
+      return {
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        product_variants: {
+          products: {
+            name: productName ?? null,
+          },
+        },
+      };
+    });
+  }
+
+  private async fetchAssistedOrderPayments(orderId: string) {
+    const { data, error } = await this.supabase
+      .from("payments")
+      .select("amount,status")
+      .eq("order_id", orderId);
+
+    if (error) {
+      console.error("[AssistedCheckout] payments lookup failed", {
+        orderId,
+        error,
+      });
+      return [];
+    }
+
+    return data ?? [];
   }
 
   private resolveOrderPaymentRules(

@@ -27,12 +27,23 @@ export async function POST(request: Request, { params }: Params) {
     const input = rawBody.trim()
       ? approveOrderForPaymentSchema.parse(body)
       : approveOrderForPaymentSchema.parse({});
-    const result = await new AssistedCheckoutService(undefined, admin.profile.id).approveOrderForPayment(
-      id,
-      admin.profile.id,
-      baseUrl,
-      input,
-    );
+    let result;
+
+    try {
+      result = await new AssistedCheckoutService(undefined, admin.profile.id).approveOrderForPayment(
+        id,
+        admin.profile.id,
+        baseUrl,
+        input,
+      );
+    } catch (error) {
+      console.error("[ApprovePayment] failed", {
+        adminId: admin.profile.id,
+        error,
+        orderId: id,
+      });
+      throw error;
+    }
 
     return jsonOk(result);
   });
