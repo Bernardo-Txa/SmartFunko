@@ -16,21 +16,54 @@ type AccountOrder = {
   id: string;
   order_number: string;
   review_status: string | null;
-  status: string;
-  total: number;
-  updated_at: string;
-  order_items?: Array<unknown>;
+  status: string | null;
+  total: number | string | null;
+  updated_at: string | null;
+  order_items?: Array<unknown> | null;
   payments?: Array<{
-    amount: number;
-    status: string;
-  }>;
+    amount: number | string | null;
+    status: string | null;
+  }> | null;
 };
+
+function toNumber(value: number | string | null | undefined) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function safeDate(value: string | null | undefined) {
+  return value ? formatDate(value) : "-";
+}
+
+function AccountOrdersErrorState() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-[var(--foreground)]">Meus pedidos</h1>
+      </div>
+      <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+        Não foi possível carregar seus pedidos agora. Tente novamente em alguns instantes.
+      </p>
+    </div>
+  );
+}
 
 export default async function AccountOrdersPage() {
   const { customer } = await requireUserPage("/conta/pedidos");
-  const orders = customer
-    ? ((await new OrderService().getCustomerOrders(customer.id)) as unknown as AccountOrder[])
-    : [];
+
+  let orders: AccountOrder[] = [];
+
+  if (customer) {
+    try {
+      orders = (await new OrderService().getCustomerOrders(customer.id)) as unknown as AccountOrder[];
+    } catch (error) {
+      console.error("[AccountOrdersPage] failed to load orders", {
+        customerId: customer.id,
+        error,
+      });
+      return <AccountOrdersErrorState />;
+    }
+  }
 
   if (!customer) {
     return (
@@ -60,6 +93,9 @@ export default async function AccountOrdersPage() {
             const paidAmount = getOrderPaidAmount(order);
             const pendingAmount = getOrderPendingAmount(order);
             const reviewMeta = getOrderReviewStatusMeta(order.review_status);
+            const orderNumber = order.order_number || "Pedido";
+            const total = toNumber(order.total);
+            const status = order.status ?? "draft";
 
             return (
               <article
@@ -70,15 +106,15 @@ export default async function AccountOrdersPage() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-lg font-bold text-[var(--foreground)]">
-                        {order.order_number}
+                        {orderNumber}
                       </h2>
-                      <OrderStatusBadge status={order.status} />
+                      <OrderStatusBadge status={status} />
                       {order.review_status ? (
                         <span className={getStatusBadgeClassName(reviewMeta)}>{reviewMeta.label}</span>
                       ) : null}
                     </div>
                     <p className="mt-1 text-sm text-[var(--muted)]">
-                      Atualizado em {formatDate(order.updated_at)} · {order.order_items?.length ?? 0} item(ns)
+                      Atualizado em {safeDate(order.updated_at)} · {order.order_items?.length ?? 0} item(ns)
                     </p>
                     <p className="mt-2 text-sm text-[var(--muted)]">
                       Pago {formatCurrency(paidAmount)} · Pendente {formatCurrency(pendingAmount)}
@@ -86,7 +122,7 @@ export default async function AccountOrdersPage() {
                   </div>
                   <div className="flex items-center justify-between gap-4 md:justify-end">
                     <strong className="text-lg text-[var(--foreground)]">
-                      {formatCurrency(order.total)}
+                      {formatCurrency(total)}
                     </strong>
                     <Link
                       href={`/conta/pedidos/${order.order_number}`}

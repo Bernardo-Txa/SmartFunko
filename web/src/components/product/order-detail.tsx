@@ -26,7 +26,7 @@ export type OrderDetailData = {
     paidAt?: string | null;
     status: string;
   }>;
-  updatedAt: string;
+  updatedAt?: string | null;
   items: Array<{
     name: string;
     sku: string;
@@ -79,7 +79,7 @@ export function OrderDetail({ order }: { order: OrderDetailData }) {
             ) : null}
           </div>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            {order.customerName} · atualizado em {formatDate(order.updatedAt)}
+            {order.customerName} · atualizado em {order.updatedAt ? formatDate(order.updatedAt) : "-"}
           </p>
           {order.seller ? (
             <p className="mt-1 text-sm text-[var(--muted)]">

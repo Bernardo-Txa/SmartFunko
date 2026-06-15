@@ -4,6 +4,7 @@ import { OrderDetail, type OrderDetailData } from "@/components/product/order-de
 import { getOrderPaidAmount, getOrderPendingAmount, isOrderPayable } from "@/lib/orders/payable";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { AssistedCheckoutService } from "@/server/checkout/assisted-checkout-service";
+import { HttpError } from "@/server/http/errors";
 import { OrderService } from "@/server/orders/order-service";
 
 type Props = {
@@ -24,10 +25,10 @@ type AccountOrderItem = {
       name?: string;
     } | null;
   } | null;
-  quantity: number;
-  source: string;
-  status: string;
-  unit_price: number;
+  quantity: number | string | null;
+  source: string | null;
+  status: string | null;
+  unit_price: number | string | null;
 };
 
 type AccountOrderDetail = {
@@ -44,15 +45,15 @@ type AccountOrderDetail = {
   seller: string | null;
   notes: string | null;
   payments?: Array<{
-    amount: number;
-    created_at: string;
-    method: string;
+    amount: number | string | null;
+    created_at: string | null;
+    method: string | null;
     paid_at: string | null;
-    status: string;
+    status: string | null;
   }>;
-  status: string;
-  total: number;
-  updated_at: string;
+  status: string | null;
+  total: number | string | null;
+  updated_at: string | null;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -60,6 +61,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `Pedido ${orderNumber}`,
   };
+}
+
+function toNumber(value: number | string | null | undefined) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function AccountOrderDetailErrorState() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+        Não foi possível carregar este pedido agora. Tente novamente em alguns instantes.
+      </p>
+    </div>
+  );
 }
 
 export default async function AccountOrderPage({ params, searchParams }: Props) {
@@ -78,7 +94,21 @@ export default async function AccountOrderPage({ params, searchParams }: Props) 
       customer.id,
       orderNumber,
     )) as unknown as AccountOrderDetail;
-  } catch {
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404) {
+      notFound();
+    }
+
+    console.error("[AccountOrderPage] failed to load order", {
+      customerId: customer.id,
+      orderNumber,
+      error,
+    });
+
+    return <AccountOrderDetailErrorState />;
+  }
+
+  if (!order) {
     notFound();
   }
 
@@ -109,11 +139,11 @@ export default async function AccountOrderPage({ params, searchParams }: Props) 
     customerName: order.customers?.name ?? "Cliente",
     items: ((order.order_items ?? []) as AccountOrderItem[]).map((item) => ({
       name: item.product_variants?.products?.name ?? "Produto",
-      quantity: item.quantity,
+      quantity: toNumber(item.quantity),
       sku: item.product_variants?.sku ?? "-",
-      source: item.source,
-      status: item.status,
-      unitPrice: item.unit_price,
+      source: item.source ?? "national_order",
+      status: item.status ?? "requested",
+      unitPrice: toNumber(item.unit_price),
     })),
     orderNumber: order.order_number,
     notes: order.notes,
@@ -121,18 +151,18 @@ export default async function AccountOrderPage({ params, searchParams }: Props) 
     pendingAmount,
     paymentLinkUrl: payable ? order.payment_link_url : null,
     payments: payments.map((payment) => ({
-      amount: payment.amount,
+      amount: toNumber(payment.amount),
       createdAt: payment.created_at,
-      method: payment.method,
+      method: payment.method ?? "manual",
       paidAt: payment.paid_at,
-      status: payment.status,
+      status: payment.status ?? "pending",
     })),
     rejectedReason: order.rejected_reason,
     reviewNotes: order.review_notes,
     reviewStatus: order.review_status,
     seller: order.seller,
-    status: order.status,
-    total: order.total,
+    status: order.status ?? "draft",
+    total: toNumber(order.total),
     updatedAt: order.updated_at,
   };
 

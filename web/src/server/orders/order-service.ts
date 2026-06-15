@@ -122,11 +122,11 @@ type OrderDetailRow = OrderRow & {
 };
 
 type PublicOrderPayment = {
-  amount: number;
-  created_at: string;
-  method: string;
+  amount: number | string | null;
+  created_at: string | null;
+  method: string | null;
   paid_at: string | null;
-  status: string;
+  status: string | null;
 };
 
 type PublicOrderItem = {
@@ -136,20 +136,21 @@ type PublicOrderItem = {
       name?: string;
     } | null;
   } | null;
-  quantity: number;
-  source: string;
-  status: string;
-  total_price: number;
-  unit_price: number;
+  quantity: number | string | null;
+  source: string | null;
+  status: string | null;
+  total_price: number | string | null;
+  unit_price: number | string | null;
 };
 
 type PublicOrderRow = {
   coupon_code: string | null;
-  created_at: string;
+  created_at: string | null;
   customers?: {
     name?: string;
   } | null;
-  discount: number;
+  discount: number | string | null;
+  id?: string;
   seller: string | null;
   notes: string | null;
   order_items?: PublicOrderItem[];
@@ -162,8 +163,8 @@ type PublicOrderRow = {
   review_notes: string | null;
   review_status: string;
   status: string;
-  total: number;
-  updated_at: string;
+  total: number | string | null;
+  updated_at: string | null;
 };
 
 function orderSelect() {
@@ -180,6 +181,20 @@ function orderSelect() {
       product_variants(id,sku,products(id,name,slug,main_image_url))
     ),
     payments(id,method,amount,fee_amount,net_amount,status,paid_at,created_at)
+  `;
+}
+
+function customerOrderSelect() {
+  return `
+    id,order_number,customer_id,channel,seller,status,subtotal,discount,shipping_amount,total,coupon_code,
+    public_token,public_tracking_enabled,notes,created_at,updated_at,
+    review_status,review_notes,rejected_reason,payment_link_url,
+    customers(name),
+    order_items(
+      quantity,unit_price,total_price,source,status,
+      product_variants(sku,products(name))
+    ),
+    payments(method,amount,status,paid_at,created_at)
   `;
 }
 
@@ -597,7 +612,7 @@ export class OrderService {
   async getCustomerOrders(customerId: string) {
     const { data, error } = await this.supabase
       .from("orders")
-      .select(orderSelect())
+      .select(customerOrderSelect())
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false });
 
@@ -611,7 +626,7 @@ export class OrderService {
   async getCustomerOrderByNumber(customerId: string, orderNumber: string) {
     const { data, error } = await this.supabase
       .from("orders")
-      .select(orderSelect())
+      .select(customerOrderSelect())
       .eq("customer_id", customerId)
       .eq("order_number", orderNumber)
       .maybeSingle();
@@ -754,16 +769,17 @@ export class OrderService {
     const pendingAmount = getOrderPendingAmount(order);
 
     return {
+      id: order.id,
       createdAt: order.created_at,
       customerName: order.customers?.name ?? "Cliente",
       items: (order.order_items ?? []).map((item) => ({
         name: item.product_variants?.products?.name ?? "Produto",
-        quantity: item.quantity,
+        quantity: Number(item.quantity ?? 0),
         sku: item.product_variants?.sku ?? "-",
-        source: item.source,
-        status: item.status,
-        totalPrice: item.total_price,
-        unitPrice: item.unit_price,
+        source: item.source ?? "national_order",
+        status: item.status ?? "requested",
+        totalPrice: Number(item.total_price ?? 0),
+        unitPrice: Number(item.unit_price ?? 0),
       })),
       notes: order.notes,
       orderNumber: order.order_number,
@@ -771,11 +787,11 @@ export class OrderService {
       pendingAmount,
       paymentLinkUrl: payable ? order.payment_link_url : null,
       payments: (order.payments ?? []).map((payment) => ({
-        amount: payment.amount,
+        amount: Number(payment.amount ?? 0),
         createdAt: payment.created_at,
-        method: payment.method,
+        method: payment.method ?? "manual",
         paidAt: payment.paid_at,
-        status: payment.status,
+        status: payment.status ?? "pending",
       })),
       rejectedReason: order.rejected_reason,
       reviewNotes: order.review_notes,
@@ -784,7 +800,7 @@ export class OrderService {
       status: order.status,
       couponCode: order.coupon_code,
       discount: Number(order.discount ?? 0),
-      total: order.total,
+      total: Number(order.total ?? 0),
       updatedAt: order.updated_at,
     };
   }

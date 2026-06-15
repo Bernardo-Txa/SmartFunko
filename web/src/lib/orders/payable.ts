@@ -1,6 +1,6 @@
 export type OrderPayableInput = {
   payments?: Array<{
-    amount: number | string;
+    amount: number | string | null;
     status?: string | null;
   }> | null;
   review_status?: string | null;
