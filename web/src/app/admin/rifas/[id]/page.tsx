@@ -240,6 +240,8 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                     <td className="px-4 py-3 text-[var(--muted)]">{order.paid_at ? formatDate(order.paid_at) : "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">
                       {order.payment_provider ?? "-"}
+                      {order.payment_max_installments ? <p className="text-xs">Até {order.payment_max_installments}x</p> : null}
+                      {order.payment_fee_mode ? <p className="text-xs">Taxa: {order.payment_fee_mode}</p> : null}
                       {order.capture_method ? <p className="text-xs">{order.capture_method}</p> : null}
                       {order.transaction_nsu ? <p className="max-w-48 break-all text-xs">{order.transaction_nsu}</p> : null}
                       {order.cash_entry_id ? <p className="text-xs">Caixa: {order.cash_entry_id.slice(0, 8)}</p> : null}

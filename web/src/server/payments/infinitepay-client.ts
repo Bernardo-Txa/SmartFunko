@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { badRequest, internalError } from "@/server/http/errors";
 import { env, hasInfinitePayCheckoutEnv } from "@/lib/env";
+import type { PaymentFeeMode } from "@/server/payments/payment-rules";
 
 export type InfinitePayCheckoutItem = {
   name: string;
@@ -15,7 +16,9 @@ export type CreateInfinitePayCheckoutInput = {
   customerEmail?: string | null;
   customerPhone?: string | null;
   amountCents: number;
+  feeMode?: PaymentFeeMode;
   items: InfinitePayCheckoutItem[];
+  maxInstallments?: number;
   redirectUrl: string;
   webhookUrl: string;
 };
@@ -23,6 +26,7 @@ export type CreateInfinitePayCheckoutInput = {
 export type CreateInfinitePayCheckoutResult = {
   checkoutUrl: string;
   providerReference: string;
+  requestPayload: Record<string, unknown>;
   raw: unknown;
 };
 
@@ -38,8 +42,10 @@ export type NormalizedInfinitePayWebhook = {
   eventId: string;
   eventType: string;
   invoiceSlug: string | null;
+  installments: number | null;
   orderNumber: string | null;
   paidAmountCents: number | null;
+  providerFeeAmountCents: number | null;
   providerReference: string | null;
   receiptUrl: string | null;
   status: "paid" | "failed" | "expired" | "cancelled" | "unknown";
@@ -58,9 +64,12 @@ type InfinitePayWebhookPayload = {
   capture_method?: string;
   event_id?: string;
   event_type?: string;
+  fee_amount?: number | string;
   invoice_slug?: string;
+  installments?: number | string;
   order_nsu?: string;
   paid_amount?: number | string;
+  provider_fee_amount?: number | string;
   receipt_url?: string;
   slug?: string;
   status?: string;
@@ -88,6 +97,15 @@ function toCents(value: number | string | undefined) {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.round(parsed) : null;
+}
+
+function toInt(value: number | string | undefined) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : null;
 }
 
 function normalizeStatus(payload: InfinitePayWebhookPayload): NormalizedInfinitePayWebhook["status"] {
@@ -148,6 +166,20 @@ export async function createInfinitePayCheckout(
     redirect_url: input.redirectUrl,
     webhook_url: input.webhookUrl,
   };
+  const unsupportedControls: Record<string, unknown> = {};
+
+  if (input.maxInstallments) {
+    unsupportedControls.maxInstallments = input.maxInstallments;
+  }
+
+  if (input.feeMode) {
+    unsupportedControls.feeMode = input.feeMode;
+  }
+
+  if (Object.keys(unsupportedControls).length > 0) {
+    unsupportedControls.note =
+      "InfinitePay /links payload documented by the project does not expose max installments or fee mode fields.";
+  }
 
   const headers: Record<string, string> = {
     "content-type": "application/json",
@@ -184,6 +216,10 @@ export async function createInfinitePayCheckout(
   return {
     checkoutUrl,
     providerReference: raw?.invoice_slug ?? input.orderNumber,
+    requestPayload: {
+      ...payload,
+      unsupportedControls: Object.keys(unsupportedControls).length > 0 ? unsupportedControls : undefined,
+    },
     raw,
   };
 }
@@ -232,6 +268,7 @@ export async function checkInfinitePayPaymentStatus(input: CheckInfinitePayPayme
       event_id: `payment_check:${input.orderNumber}:${input.slug ?? input.transactionNsu ?? "status"}:${Date.now()}`,
       event_type: raw.paid ? "paid" : "payment_check",
       invoice_slug: input.slug ?? undefined,
+      installments: raw.installments,
       order_nsu: input.orderNumber,
       paid_amount: raw.paid_amount,
       status: raw.paid ? "paid" : "pending",
@@ -285,8 +322,10 @@ export function normalizeInfinitePayWebhook(payload: unknown): NormalizedInfinit
       [orderNumber, transactionNsu, invoiceSlug, status, data.amount].filter(Boolean).join(":"),
     eventType: data.event_type ?? data.type ?? status,
     invoiceSlug,
+    installments: toInt(data.installments),
     orderNumber,
     paidAmountCents: toCents(data.paid_amount),
+    providerFeeAmountCents: toCents(data.provider_fee_amount ?? data.fee_amount),
     providerReference,
     receiptUrl: data.receipt_url ?? null,
     status,

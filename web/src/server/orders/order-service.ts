@@ -172,6 +172,8 @@ function orderSelect() {
     public_token,public_token_created_at,public_tracking_enabled,notes,internal_notes,created_by,created_at,updated_at,
     review_status,review_notes,rejected_reason,reviewed_by,reviewed_at,
     payment_provider,payment_link_url,payment_provider_reference,payment_link_created_at,payment_link_expires_at,
+    payment_max_installments,payment_max_installments_source,payment_fee_mode,
+    paid_installments,provider_payment_method,provider_fee_amount,
     customers(id,name,email,phone,status),
     order_items(
       id,order_id,product_variant_id,inventory_item_id,quantity,unit_price,total_price,source,status,created_at,updated_at,

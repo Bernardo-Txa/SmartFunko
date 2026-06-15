@@ -22,6 +22,7 @@ import {
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { OrderService } from "@/server/orders/order-service";
+import { getDefaultOrderMaxInstallments } from "@/server/payments/payment-rules";
 import { PurchaseBatchService } from "@/server/purchase-batches/purchase-batch-service";
 
 type Props = {
@@ -44,6 +45,9 @@ type OrderDetail = {
   public_tracking_enabled: boolean;
   payment_link_created_at: string | null;
   payment_link_url: string | null;
+  payment_max_installments: number | null;
+  payment_max_installments_source: string | null;
+  payment_fee_mode: string | null;
   payment_provider: string | null;
   payment_provider_reference: string | null;
   rejected_reason: string | null;
@@ -169,6 +173,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
     .filter((payment) => payment.status === "paid")
     .reduce((sum, payment) => sum + Number(payment.amount), 0);
   const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
+  const defaultMaxInstallments = getDefaultOrderMaxInstallments(Math.round(Number(order.total) * 100));
   const publicLink = `${env.siteUrl}/pedido/${order.order_number}?token=${order.public_token}`;
   const reviewMeta = getOrderReviewStatusMeta(order.review_status);
 
@@ -234,6 +239,14 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               ) : null}
               {order.review_notes ? (
                 <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{order.review_notes}</p>
+              ) : null}
+              {order.payment_max_installments ? (
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  Parcelamento aprovado:{" "}
+                  <span className="font-semibold text-[var(--foreground)]">até {order.payment_max_installments}x</span>
+                  {" · "}
+                  Origem: {order.payment_max_installments_source === "admin_override" ? "ajuste manual" : "regra padrão"}
+                </p>
               ) : null}
             </div>
             {order.payment_link_url ? (
@@ -363,6 +376,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           orderTotal={Number(order.total)}
           paidAmount={paidAmount}
           pendingAmount={pendingAmount}
+          defaultMaxInstallments={defaultMaxInstallments}
+          paymentMaxInstallments={order.payment_max_installments}
+          paymentMaxInstallmentsSource={order.payment_max_installments_source}
           paymentLinkUrl={order.payment_link_url}
           publicLink={publicLink}
           reviewStatus={order.review_status}

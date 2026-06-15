@@ -11,6 +11,12 @@ import {
   normalizeInfinitePayWebhook,
   type NormalizedInfinitePayWebhook,
 } from "@/server/payments/infinitepay-client";
+import {
+  getDefaultOrderMaxInstallments,
+  validateAdminMaxInstallments,
+  type PaymentFeeMode,
+  type PaymentMaxInstallmentsSource,
+} from "@/server/payments/payment-rules";
 import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -28,7 +34,12 @@ export const rejectOrderSchema = z.object({
   reason: z.string().trim().min(3, "Informe o motivo da recusa").max(1000),
 });
 
+export const approveOrderForPaymentSchema = z.object({
+  maxInstallments: z.number().int().optional(),
+}).strict();
+
 export type CreateCustomerOrderRequestInput = z.infer<typeof createCustomerOrderRequestSchema>;
+export type ApproveOrderForPaymentInput = z.infer<typeof approveOrderForPaymentSchema>;
 
 type VariantRow = {
   id: string;
@@ -48,6 +59,9 @@ type AssistedOrderRow = {
   status: string;
   total: number | string;
   payment_link_url: string | null;
+  payment_max_installments: number | null;
+  payment_max_installments_source: PaymentMaxInstallmentsSource | null;
+  payment_fee_mode: PaymentFeeMode | null;
   payment_provider_reference: string | null;
   public_token: string;
   customers?: {
@@ -119,6 +133,7 @@ function mapCaptureMethod(method: string | null) {
 function orderSelect() {
   return `
     id,order_number,customer_id,review_status,status,total,payment_link_url,payment_provider_reference,public_token,
+    payment_max_installments,payment_max_installments_source,payment_fee_mode,
     customers(name,email,phone),
     order_items(quantity,unit_price,product_variants(products(name))),
     payments(amount,status)
@@ -260,14 +275,22 @@ export class AssistedCheckoutService {
     };
   }
 
-  async approveOrderForPayment(orderId: string, actorProfileId: string, baseUrl?: string) {
+  async approveOrderForPayment(
+    orderId: string,
+    actorProfileId: string,
+    baseUrl?: string,
+    input: ApproveOrderForPaymentInput = {},
+  ) {
     const order = await this.getAssistedOrder(orderId);
 
     if (order.review_status !== "under_review" && order.review_status !== "awaiting_payment") {
       throw conflict("Somente pedido em analise ou aguardando pagamento pode gerar link");
     }
 
-    return this.generatePaymentLinkForOrder(orderId, actorProfileId, "Pedido aprovado e link InfinitePay gerado", baseUrl);
+    return this.generatePaymentLinkForOrder(orderId, actorProfileId, "Pedido aprovado e link InfinitePay gerado", baseUrl, {
+      rejectBelowDefault: true,
+      requestedMaxInstallments: input.maxInstallments,
+    });
   }
 
   async rejectOrder(orderId: string, reason: string, actorProfileId: string) {
@@ -311,6 +334,7 @@ export class AssistedCheckoutService {
     actorProfileId: string,
     historyNote = "Link InfinitePay regerado",
     baseUrl = env.siteUrl,
+    options: { rejectBelowDefault?: boolean; requestedMaxInstallments?: number } = {},
   ) {
     const order = await this.getAssistedOrder(orderId);
 
@@ -322,28 +346,52 @@ export class AssistedCheckoutService {
       throw conflict("Pedido precisa ter itens e total maior que zero");
     }
 
+    const amountCents = Math.round(Number(order.total) * 100);
+    const paymentRules = this.resolveOrderPaymentRules(order, options);
+
+    console.info(
+      `[PaymentRules] order amount=${amountCents} defaultMaxInstallments=${paymentRules.defaultMaxInstallments}`,
+    );
+
+    if (paymentRules.maxInstallmentsSource === "admin_override") {
+      console.info(`[PaymentRules] adminOverrideMaxInstallments=${paymentRules.maxInstallments}`);
+    }
+
     const result = await createInfinitePayCheckout({
-      amountCents: Math.round(Number(order.total) * 100),
+      amountCents,
       customerEmail: order.customers?.email ?? null,
       customerName: order.customers?.name ?? "Cliente Smart Funkos",
       customerPhone: order.customers?.phone ?? null,
+      feeMode: paymentRules.feeMode,
       items: order.order_items.map((item) => ({
         name: item.product_variants?.products?.name ?? "Produto Smart Funkos",
         quantity: item.quantity,
         unitAmountCents: Math.round(Number(item.unit_price) * 100),
       })),
+      maxInstallments: paymentRules.maxInstallments,
       orderNumber: order.order_number,
       redirectUrl: `${baseUrl}/pedido/${order.order_number}?token=${order.public_token}`,
       webhookUrl: `${baseUrl}/api/v1/webhooks/infinitepay`,
     });
 
+    console.info(
+      `[InfinitePay] order payment link created orderId=${orderId} amount=${amountCents} maxInstallments=${paymentRules.maxInstallments}`,
+    );
+
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from("orders")
       .update({
+        payment_fee_mode: paymentRules.feeMode,
         payment_link_created_at: now,
         payment_link_url: result.checkoutUrl,
+        payment_max_installments: paymentRules.maxInstallments,
+        payment_max_installments_source: paymentRules.maxInstallmentsSource,
         payment_provider: "infinitepay",
+        payment_provider_payload: {
+          request: result.requestPayload,
+          response: result.raw,
+        },
         payment_provider_reference: result.providerReference,
         review_notes: null,
         review_status: "awaiting_payment",
@@ -402,7 +450,7 @@ export class AssistedCheckoutService {
       .eq("id", event.id);
 
     if (normalized.status === "paid") {
-      return this.applyPaidWebhook(order, normalized, event.id);
+      return this.applyPaidWebhook(order, normalized, event.id, payload);
     }
 
     if (["failed", "expired", "cancelled"].includes(normalized.status)) {
@@ -459,7 +507,7 @@ export class AssistedCheckoutService {
       .eq("id", event.id);
 
     if (check.normalized.status === "paid") {
-      const result = await this.applyPaidWebhook(order, check.normalized, event.id);
+      const result = await this.applyPaidWebhook(order, check.normalized, event.id, check.raw);
       await this.audit.createAdminActionLog({
         action: "checkout.payment_check_paid",
         adminId: actorProfileId ?? undefined,
@@ -513,7 +561,12 @@ export class AssistedCheckoutService {
     return this.checkInfinitePayPaymentForOrder(data.id, null, options);
   }
 
-  private async applyPaidWebhook(order: AssistedOrderRow, normalized: NormalizedInfinitePayWebhook, eventId: string) {
+  private async applyPaidWebhook(
+    order: AssistedOrderRow,
+    normalized: NormalizedInfinitePayWebhook,
+    eventId: string,
+    payload?: unknown,
+  ) {
     if (order.status === "paid" || order.review_status === "paid") {
       await this.markProviderEvent(eventId, "ignored", "Pedido ja estava pago");
       return { status: "ignored", reason: "Pedido ja pago" };
@@ -565,14 +618,42 @@ export class AssistedCheckoutService {
         ? String(paymentResult.payment_id)
         : null;
 
-    await this.supabase
+    if (paymentId) {
+      const { error: paymentMetadataError } = await this.supabase
+        .from("payments")
+        .update({
+          paid_installments: normalized.installments,
+          payment_fee_mode: order.payment_fee_mode ?? "merchant_absorbs",
+          payment_max_installments: order.payment_max_installments,
+          payment_max_installments_source: order.payment_max_installments_source,
+          provider_fee_amount: centsToCurrency(normalized.providerFeeAmountCents),
+          provider_payload: payload ?? null,
+          provider_payment_method: normalized.captureMethod,
+        })
+        .eq("id", paymentId);
+
+      if (paymentMetadataError) {
+        await this.markProviderEvent(eventId, "failed", paymentMetadataError.message, paymentId);
+        throwQueryError(paymentMetadataError, "Falha ao salvar auditoria do pagamento InfinitePay");
+      }
+    }
+
+    const { error: orderMetadataError } = await this.supabase
       .from("orders")
       .update({
+        paid_installments: normalized.installments,
         payment_provider_reference: normalized.transactionNsu ?? normalized.providerReference,
+        provider_fee_amount: centsToCurrency(normalized.providerFeeAmountCents),
+        provider_payment_method: normalized.captureMethod,
         review_status: "paid",
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", order.id);
+
+    if (orderMetadataError) {
+      await this.markProviderEvent(eventId, "failed", orderMetadataError.message, paymentId);
+      throwQueryError(orderMetadataError, "Falha ao salvar auditoria do pedido InfinitePay");
+    }
 
     await this.addOrderHistory(order.id, order.review_status, "paid", "Pagamento confirmado pela InfinitePay", null);
     await this.markProviderEvent(eventId, "processed", undefined, paymentId);
@@ -601,6 +682,53 @@ export class AssistedCheckoutService {
     }
 
     return data as unknown as AssistedOrderRow;
+  }
+
+  private resolveOrderPaymentRules(
+    order: AssistedOrderRow,
+    options: { rejectBelowDefault?: boolean; requestedMaxInstallments?: number },
+  ) {
+    const amountCents = Math.round(Number(order.total) * 100);
+    const defaultMaxInstallments = getDefaultOrderMaxInstallments(amountCents);
+    const feeMode: PaymentFeeMode = "merchant_absorbs";
+
+    if (options.requestedMaxInstallments !== undefined) {
+      let requested: number;
+
+      try {
+        requested = validateAdminMaxInstallments(options.requestedMaxInstallments);
+      } catch (error) {
+        throw badRequest(error instanceof Error ? error.message : "Parcelas maximas invalidas");
+      }
+
+      if (options.rejectBelowDefault && requested < defaultMaxInstallments) {
+        throw badRequest(`Parcelas maximas nao podem ser menores que o padrao de ${defaultMaxInstallments}x`);
+      }
+
+      return {
+        defaultMaxInstallments,
+        feeMode,
+        maxInstallments: requested,
+        maxInstallmentsSource:
+          requested > defaultMaxInstallments ? "admin_override" : "default_rule" as PaymentMaxInstallmentsSource,
+      };
+    }
+
+    if (order.payment_max_installments) {
+      return {
+        defaultMaxInstallments,
+        feeMode: order.payment_fee_mode ?? feeMode,
+        maxInstallments: order.payment_max_installments,
+        maxInstallmentsSource: order.payment_max_installments_source ?? "default_rule",
+      };
+    }
+
+    return {
+      defaultMaxInstallments,
+      feeMode,
+      maxInstallments: defaultMaxInstallments,
+      maxInstallmentsSource: "default_rule" as PaymentMaxInstallmentsSource,
+    };
   }
 
   private async findOrderForWebhook(normalized: NormalizedInfinitePayWebhook) {

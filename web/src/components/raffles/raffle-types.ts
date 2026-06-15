@@ -63,9 +63,12 @@ export type RaffleOrder = {
   paid_at: string | null;
   paid_amount?: number | string | null;
   payment_id?: string | null;
+  payment_fee_mode?: string | null;
   payment_link_created_at?: string | null;
   payment_link_expires_at?: string | null;
   payment_link_url?: string | null;
+  payment_max_installments?: number | null;
+  payment_max_installments_source?: string | null;
   payment_provider?: string | null;
   payment_provider_reference?: string | null;
   payment_status?: string | null;

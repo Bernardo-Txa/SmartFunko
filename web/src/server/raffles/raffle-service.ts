@@ -9,6 +9,7 @@ import {
   normalizeInfinitePayWebhook,
   type NormalizedInfinitePayWebhook,
 } from "@/server/payments/infinitepay-client";
+import { getRafflePaymentRules, type PaymentFeeMode, type PaymentMaxInstallmentsSource } from "@/server/payments/payment-rules";
 import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -121,6 +122,9 @@ type RaffleOrderRow = {
   order_number: string;
   paid_amount?: number | string | null;
   payment_link_url?: string | null;
+  payment_max_installments?: number | null;
+  payment_max_installments_source?: PaymentMaxInstallmentsSource | null;
+  payment_fee_mode?: PaymentFeeMode | null;
   payment_provider?: string | null;
   payment_provider_reference?: string | null;
   payment_status?: string | null;
@@ -165,6 +169,8 @@ function orderSelect() {
     payment_id,cash_entry_id,reserved_until,paid_at,cancelled_at,expired_at,notes,created_at,updated_at,
     payment_provider,payment_status,payment_link_url,payment_provider_reference,payment_link_created_at,
     payment_link_expires_at,receipt_url,capture_method,transaction_nsu,paid_amount,provider_payload,
+    payment_max_installments,payment_max_installments_source,payment_fee_mode,paid_installments,
+    provider_payment_method,provider_fee_amount,
     raffle_campaigns(id,code,slug,title,prize_title,draw_at,status),
     customers(id,name,email,phone),
     raffle_numbers(id,number,label,status,reserved_until,sold_at)
@@ -807,16 +813,28 @@ export class RaffleService {
     }
 
     const result = await this.createInfinitePayLinkForRaffleOrder(order, baseUrl);
+    const paymentRules = getRafflePaymentRules();
+
+    console.info(
+      `[InfinitePay] raffle payment link created orderId=${raffleOrderId} feeMode=${paymentRules.feeMode} maxInstallments=${paymentRules.maxInstallments}`,
+    );
+
     const now = new Date().toISOString();
     const { data, error } = await this.supabase
       .from("raffle_orders")
       .update({
+        payment_fee_mode: paymentRules.feeMode,
         payment_link_created_at: now,
         payment_link_url: result.checkoutUrl,
+        payment_max_installments: paymentRules.maxInstallments,
+        payment_max_installments_source: paymentRules.maxInstallmentsSource,
         payment_provider: "infinitepay",
         payment_provider_reference: result.providerReference,
         payment_status: "pending",
-        provider_payload: result.raw,
+        provider_payload: {
+          request: result.requestPayload,
+          response: result.raw,
+        },
       })
       .eq("id", raffleOrderId)
       .select(orderSelect())
@@ -1146,12 +1164,14 @@ export class RaffleService {
 
     const labels = (order.raffle_numbers ?? []).map((number) => number.label).join(", ");
     const campaignCode = order.raffle_campaigns?.code ?? order.raffle_campaign_id;
+    const paymentRules = getRafflePaymentRules();
 
     return createInfinitePayCheckout({
       amountCents: Math.round(Number(order.total_amount) * 100),
       customerEmail: order.customers?.email ?? null,
       customerName: order.customers?.name ?? "Cliente Smart Funkos",
       customerPhone: order.customers?.phone ?? null,
+      feeMode: paymentRules.feeMode,
       items: [
         {
           name: `Rifa ${campaignCode} - numeros ${labels || order.quantity}`,
@@ -1159,6 +1179,7 @@ export class RaffleService {
           unitAmountCents: Math.round(Number(order.total_amount) * 100),
         },
       ],
+      maxInstallments: paymentRules.maxInstallments,
       orderNumber: raffleOrderNsu(order.id),
       redirectUrl: `${baseUrl}/conta/rifas/${order.id}`,
       webhookUrl: `${baseUrl}/api/v1/webhooks/infinitepay`,
@@ -1264,15 +1285,23 @@ export class RaffleService {
     reason: string,
     payload: unknown,
   ) {
+    const paymentRules = getRafflePaymentRules();
+
     await this.supabase
       .from("raffle_orders")
       .update({
         capture_method: mapCaptureMethod(normalized.captureMethod),
+        paid_installments: normalized.installments,
         paid_amount: centsToCurrency(normalized.paidAmountCents ?? normalized.amountCents),
+        payment_fee_mode: paymentRules.feeMode,
+        payment_max_installments: paymentRules.maxInstallments,
+        payment_max_installments_source: paymentRules.maxInstallmentsSource,
         payment_provider: "infinitepay",
         payment_provider_reference: normalized.invoiceSlug ?? normalized.providerReference,
         payment_status: "manual_review",
+        provider_fee_amount: centsToCurrency(normalized.providerFeeAmountCents),
         provider_payload: payload,
+        provider_payment_method: normalized.captureMethod,
         receipt_url: normalized.receiptUrl,
         transaction_nsu: normalized.transactionNsu,
       })
@@ -1359,6 +1388,7 @@ export class RaffleService {
 
     const paidAt = new Date().toISOString();
     const paidAmount = centsToCurrency(receivedCents);
+    const paymentRules = getRafflePaymentRules();
     const { data: cashEntry, error: cashError } = await this.supabase
       .from("cash_entries")
       .insert({
@@ -1382,12 +1412,18 @@ export class RaffleService {
       .update({
         cash_entry_id: cashEntry.id,
         capture_method: mapCaptureMethod(normalized.captureMethod),
+        paid_installments: normalized.installments,
         paid_amount: paidAmount,
         paid_at: paidAt,
+        payment_fee_mode: paymentRules.feeMode,
+        payment_max_installments: paymentRules.maxInstallments,
+        payment_max_installments_source: paymentRules.maxInstallmentsSource,
         payment_provider: "infinitepay",
         payment_provider_reference: normalized.invoiceSlug ?? normalized.providerReference,
         payment_status: "paid",
+        provider_fee_amount: centsToCurrency(normalized.providerFeeAmountCents),
         provider_payload: payload,
+        provider_payment_method: normalized.captureMethod,
         receipt_url: normalized.receiptUrl,
         status: "paid",
         transaction_nsu: normalized.transactionNsu,

@@ -98,6 +98,14 @@ O redirect nao confirma pagamento por si so. Quando a InfinitePay devolve `slug`
 
 Se o valor pago vier ausente ou menor que o esperado, o evento fica em `manual_review` e nao cria baixa automatica de caixa/pagamento. Para rifa, pagamentos atrasados ou numeros ja liberados tambem entram em `manual_review`.
 
+Parcelamento e taxa:
+
+- pedidos abaixo de R$ 150,00 usam regra interna de ate 1x;
+- pedidos a partir de R$ 150,00 usam regra interna de ate 3x;
+- admin pode aumentar o limite na aprovacao, ate o teto operacional de 12x;
+- rifa usa regra propria de 1x e `payment_fee_mode=customer_pays`;
+- a documentacao atual de `/links` nao expõe campo de payload para limite de parcelas ou repasse de taxa, entao a aplicacao salva esses dados para auditoria e depende da configuracao da conta InfinitePay para enforcement real de taxa/parcelas.
+
 Os links gerados pelo painel admin usam o dominio real da requisicao admin como base. Ainda assim, mantenha `NEXT_PUBLIC_SITE_URL` apontando para o dominio valido do ambiente, por exemplo:
 
 ```txt

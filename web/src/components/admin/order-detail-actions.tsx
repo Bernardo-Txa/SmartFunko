@@ -57,24 +57,30 @@ function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftIt
 
 export function OrderDetailActions({
   customerId,
+  defaultMaxInstallments,
   inventory,
   items,
   orderId,
   orderTotal,
   paidAmount,
   pendingAmount,
+  paymentMaxInstallments,
+  paymentMaxInstallmentsSource,
   paymentLinkUrl,
   publicLink,
   reviewStatus,
   seller,
 }: {
   customerId: string;
+  defaultMaxInstallments: number;
   inventory: InventoryOption[];
   items: OrderItemOption[];
   orderId: string;
   orderTotal: number;
   paidAmount: number;
   pendingAmount: number;
+  paymentMaxInstallments: number | null;
+  paymentMaxInstallmentsSource: string | null;
   paymentLinkUrl: string | null;
   publicLink: string;
   reviewStatus: string | null;
@@ -96,6 +102,7 @@ export function OrderDetailActions({
     Object.fromEntries(items.map((item) => [item.id, item.status])),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [maxInstallments, setMaxInstallments] = useState(String(paymentMaxInstallments ?? defaultMaxInstallments));
   const [rejectReason, setRejectReason] = useState("");
 
   const availableInventory = inventory.filter(
@@ -195,7 +202,23 @@ export function OrderDetailActions({
   }
 
   async function approveForPayment() {
-    const data = await submitJson(`/api/v1/admin/orders/${orderId}/approve-payment`, "POST");
+    if (!maxInstallments.trim()) {
+      setMessage("");
+      setError("Informe parcelas maximas");
+      return;
+    }
+
+    const parsedMaxInstallments = Number(maxInstallments);
+
+    if (!Number.isInteger(parsedMaxInstallments)) {
+      setMessage("");
+      setError("Informe parcelas maximas como numero inteiro");
+      return;
+    }
+
+    const data = await submitJson(`/api/v1/admin/orders/${orderId}/approve-payment`, "POST", {
+      maxInstallments: parsedMaxInstallments,
+    });
     showSuccess(data?.checkoutUrl ? "Pedido aprovado e link InfinitePay gerado." : "Pedido aprovado.");
   }
 
@@ -272,16 +295,45 @@ export function OrderDetailActions({
         <h2 className="text-lg font-bold text-[var(--foreground)]">Checkout assistido</h2>
         <div className="mt-4 grid gap-4">
           {reviewStatus === "under_review" ? (
-            <div className="grid gap-3 md:grid-cols-[auto_1fr]">
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={approveForPayment}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <CheckCircle2 size={16} aria-hidden="true" />
-                {isSubmitting ? <SmartButtonLoading message="Gerando..." /> : "Aprovar e gerar link"}
-              </button>
+            <div className="grid gap-3">
+              <div className="grid gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 md:grid-cols-[1fr_180px_auto] md:items-end">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--foreground)]">
+                    Total: {new Intl.NumberFormat("pt-BR", { currency: "BRL", style: "currency" }).format(orderTotal)}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">Parcelamento padrão: até {defaultMaxInstallments}x</p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                    Padrão: pedidos a partir de R$ 150,00 permitem até 3x. Você pode aumentar manualmente se necessário.
+                  </p>
+                  {Number(maxInstallments) > defaultMaxInstallments ? (
+                    <p className="mt-2 rounded-md border border-yellow-300/30 bg-yellow-500/10 p-2 text-xs font-semibold text-yellow-100">
+                      Você está liberando até {maxInstallments} parcelas para este pedido.
+                    </p>
+                  ) : null}
+                </div>
+                <label className="block">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">Parcelas máximas</span>
+                  <input
+                    value={maxInstallments}
+                    onChange={(event) => setMaxInstallments(event.target.value)}
+                    min={defaultMaxInstallments}
+                    max={12}
+                    required
+                    step={1}
+                    type="number"
+                    className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={approveForPayment}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                  {isSubmitting ? <SmartButtonLoading message="Gerando..." /> : "Aprovar e gerar link"}
+                </button>
+              </div>
               <form onSubmit={rejectOrder} className="grid gap-2 md:grid-cols-[1fr_auto]">
                 <input
                   value={rejectReason}
@@ -302,6 +354,14 @@ export function OrderDetailActions({
 
           {reviewStatus === "awaiting_payment" ? (
             <div className="grid gap-3">
+              {paymentMaxInstallments ? (
+                <p className="text-sm text-[var(--muted)]">
+                  Parcelamento aprovado:{" "}
+                  <span className="font-semibold text-[var(--foreground)]">até {paymentMaxInstallments}x</span>
+                  {" · "}
+                  Origem: {paymentMaxInstallmentsSource === "admin_override" ? "ajuste manual" : "regra padrão"}
+                </p>
+              ) : null}
               {paymentLinkUrl ? (
                 <div className="rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
                   <p className="break-all text-sm text-[var(--muted)]">{paymentLinkUrl}</p>
