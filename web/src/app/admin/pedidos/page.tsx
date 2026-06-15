@@ -22,20 +22,20 @@ const channels = {
 
 type AdminOrder = {
   channel: keyof typeof channels;
-  created_at: string;
+  created_at: string | null;
   id: string;
   order_number: string;
   review_status: string | null;
   seller: string | null;
-  status: string;
-  total: number;
+  status: string | null;
+  total: number | string | null;
   customers?: {
     name?: string;
   } | null;
   payments?: Array<{
-    amount: number;
-    status: string;
-  }>;
+    amount: number | string | null;
+    status: string | null;
+  }> | null;
 };
 
 type Props = {
@@ -52,6 +52,15 @@ function getParam(value: string | undefined) {
   return value?.trim() ?? "";
 }
 
+function toNumber(value: number | string | null | undefined) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function safeDate(value: string | null | undefined) {
+  return value ? formatDate(value) : "-";
+}
+
 export default async function AdminOrdersPage({ searchParams }: Props) {
   const admin = await requireAdminPage();
   const params = await searchParams;
@@ -60,16 +69,24 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const seller = getParam(params?.seller);
   const reviewStatus = getParam(params?.reviewStatus);
   const status = getParam(params?.status);
-  const orders = (await new OrderService(
-    undefined,
-    admin.profile.id,
-  ).listOrders({
-    channel: channel || undefined,
-    search: search || undefined,
-    seller: seller || undefined,
-    reviewStatus: reviewStatus || undefined,
-    status: status || undefined,
-  })) as unknown as AdminOrder[];
+  let orders: AdminOrder[] = [];
+  let loadError = false;
+
+  try {
+    orders = (await new OrderService(
+      undefined,
+      admin.profile.id,
+    ).listOrders({
+      channel: channel || undefined,
+      search: search || undefined,
+      seller: seller || undefined,
+      reviewStatus: reviewStatus || undefined,
+      status: status || undefined,
+    })) as unknown as AdminOrder[];
+  } catch (error) {
+    loadError = true;
+    console.error("[AdminOrdersPage] failed to load orders", error);
+  }
 
   return (
     <AdminShell title="Pedidos" description="Pedidos manuais e pedidos enviados pelo carrinho assistido.">
@@ -173,12 +190,14 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
-            {orders.map((order) => {
+            {!loadError && orders.map((order) => {
               const paidAmount = (order.payments ?? [])
                 .filter((payment) => payment.status === "paid")
-                .reduce((sum, payment) => sum + Number(payment.amount), 0);
-              const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
+                .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+              const total = toNumber(order.total);
+              const pendingAmount = Math.max(0, total - paidAmount);
               const reviewMeta = getOrderReviewStatusMeta(order.review_status);
+              const statusValue = order.status ?? "draft";
 
               return (
                 <tr key={order.id} className={order.review_status === "under_review" ? "bg-yellow-300/8" : undefined}>
@@ -190,11 +209,11 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   <td className="px-4 py-3 text-[var(--muted)]">{order.customers?.name ?? "Cliente"}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{channels[order.channel] ?? order.channel}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{getOrderSellerLabel(order.seller)}</td>
-                  <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(order.total)}</td>
+                  <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(total)}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatCurrency(paidAmount)}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{formatCurrency(pendingAmount)}</td>
                   <td className="px-4 py-3">
-                    <OrderStatusBadge status={order.status} />
+                    <OrderStatusBadge status={statusValue} />
                   </td>
                   <td className="px-4 py-3">
                     {order.review_status ? (
@@ -203,14 +222,18 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                       <span className="text-[var(--muted)]">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-[var(--muted)]">{formatDate(order.created_at)}</td>
+                  <td className="px-4 py-3 text-[var(--muted)]">{safeDate(order.created_at)}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      {orders.length === 0 ? (
+      {loadError ? (
+        <p className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+          Não foi possível carregar os pedidos agora.
+        </p>
+      ) : orders.length === 0 ? (
         <p className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
           Nenhum pedido encontrado com os filtros atuais.
         </p>

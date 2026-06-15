@@ -20,6 +20,7 @@ import {
   getPaymentStatusMeta,
 } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
+import { HttpError } from "@/server/http/errors";
 import { InventoryService } from "@/server/inventory/inventory-service";
 import { OrderService } from "@/server/orders/order-service";
 import { getDefaultOrderMaxInstallments } from "@/server/payments/payment-rules";
@@ -36,11 +37,11 @@ type OrderDetail = {
   channel: string;
   coupon_code: string | null;
   seller: string | null;
-  status: string;
-  subtotal: number;
-  discount: number;
-  shipping_amount: number;
-  total: number;
+  status: string | null;
+  subtotal: number | string | null;
+  discount: number | string | null;
+  shipping_amount: number | string | null;
+  total: number | string | null;
   public_token: string;
   public_tracking_enabled: boolean;
   payment_link_created_at: string | null;
@@ -56,8 +57,8 @@ type OrderDetail = {
   reviewed_at: string | null;
   notes: string | null;
   internal_notes: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   customers?: {
     email: string | null;
     name: string;
@@ -72,11 +73,11 @@ type OrderItem = {
   id: string;
   inventory_item_id: string | null;
   product_variant_id: string;
-  quantity: number;
+  quantity: number | string | null;
   source: string;
   status: string;
-  total_price: number;
-  unit_price: number;
+  total_price: number | string | null;
+  unit_price: number | string | null;
   product_variants?: {
     sku: string;
     products?: {
@@ -88,10 +89,10 @@ type OrderItem = {
 
 type PaymentItem = {
   id: string;
-  amount: number;
-  fee_amount: number;
+  amount: number | string | null;
+  fee_amount: number | string | null;
   method: string;
-  net_amount: number;
+  net_amount: number | string | null;
   paid_at: string | null;
   status: string;
 };
@@ -143,6 +144,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+function toNumber(value: number | string | null | undefined) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function safeDate(value: string | null | undefined) {
+  return value ? formatDate(value) : "-";
+}
+
+function AdminOrderDetailErrorState() {
+  return (
+    <AdminShell title="Pedido" description="Detalhe operacional do pedido.">
+      <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+        Não foi possível carregar este pedido agora.
+      </p>
+    </AdminShell>
+  );
+}
+
 export default async function AdminOrderDetailPage({ params }: Props) {
   const { id } = await params;
   const admin = await requireAdminPage();
@@ -152,15 +172,32 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 
   try {
     order = (await orderService.getOrderById(id)) as unknown as OrderDetail;
-  } catch {
-    notFound();
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404) {
+      notFound();
+    }
+
+    console.error("[AdminOrderDetailPage] failed to load order", { id, error });
+    return <AdminOrderDetailErrorState />;
   }
 
   const [inventory, history, logs, batchLinks] = await Promise.all([
-    new InventoryService(undefined, admin.profile.id).listInventory(),
-    orderService.listOrderStatusHistory(id),
-    orderService.listOrderAuditLogs(id),
-    new PurchaseBatchService(undefined, admin.profile.id).listBatchItemsForOrder(id),
+    new InventoryService(undefined, admin.profile.id).listInventory().catch((error) => {
+      console.error("[AdminOrderDetailPage] failed to load inventory", { id, error });
+      return [];
+    }),
+    orderService.listOrderStatusHistory(id).catch((error) => {
+      console.error("[AdminOrderDetailPage] failed to load order history", { id, error });
+      return [];
+    }),
+    orderService.listOrderAuditLogs(id).catch((error) => {
+      console.error("[AdminOrderDetailPage] failed to load order audit logs", { id, error });
+      return [];
+    }),
+    new PurchaseBatchService(undefined, admin.profile.id).listBatchItemsForOrder(id).catch((error) => {
+      console.error("[AdminOrderDetailPage] failed to load batch links", { id, error });
+      return [];
+    }),
   ]);
   const batchByOrderItem = new Map(
     (batchLinks as unknown as OrderBatchLink[])
@@ -171,9 +208,10 @@ export default async function AdminOrderDetailPage({ params }: Props) {
   const payments = order.payments ?? [];
   const paidAmount = payments
     .filter((payment) => payment.status === "paid")
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
-  const pendingAmount = Math.max(0, Number(order.total) - paidAmount);
-  const defaultMaxInstallments = getDefaultOrderMaxInstallments(Math.round(Number(order.total) * 100));
+    .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+  const orderTotal = toNumber(order.total);
+  const pendingAmount = Math.max(0, orderTotal - paidAmount);
+  const defaultMaxInstallments = getDefaultOrderMaxInstallments(Math.round(orderTotal * 100));
   const publicLink = `${env.siteUrl}/pedido/${order.order_number}?token=${order.public_token}`;
   const reviewMeta = getOrderReviewStatusMeta(order.review_status);
 
@@ -187,7 +225,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <OrderStatusBadge status={order.status} />
+                <OrderStatusBadge status={order.status ?? "draft"} />
                 {order.review_status ? (
                   <span className={getStatusBadgeClassName(reviewMeta)}>{reviewMeta.label}</span>
                 ) : null}
@@ -206,8 +244,8 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               </p>
             </div>
             <div className="grid gap-1 text-sm md:text-right">
-              <span>Criado em {formatDate(order.created_at)}</span>
-              <span>Atualizado em {formatDate(order.updated_at)}</span>
+              <span>Criado em {safeDate(order.created_at)}</span>
+              <span>Atualizado em {safeDate(order.updated_at)}</span>
             </div>
           </div>
         </section>
@@ -215,11 +253,11 @@ export default async function AdminOrderDetailPage({ params }: Props) {
         <div className="grid gap-4 md:grid-cols-5">
           <MetricCard
             label="Subtotal"
-            value={formatCurrency(order.subtotal)}
+            value={formatCurrency(toNumber(order.subtotal))}
             detail={order.coupon_code ? `Cupom ${order.coupon_code}` : "Antes de descontos"}
           />
-          <MetricCard label="Desconto" value={formatCurrency(order.discount)} detail="Aplicado no pedido" />
-          <MetricCard label="Total" value={formatCurrency(order.total)} detail="Valor do pedido" />
+          <MetricCard label="Desconto" value={formatCurrency(toNumber(order.discount))} detail="Aplicado no pedido" />
+          <MetricCard label="Total" value={formatCurrency(orderTotal)} detail="Valor do pedido" />
           <MetricCard label="Pago" value={formatCurrency(paidAmount)} detail="Pagamentos confirmados" />
           <MetricCard label="Pendente" value={formatCurrency(pendingAmount)} detail="Saldo aberto" />
         </div>
@@ -230,7 +268,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               <h2 className="text-lg font-bold text-[var(--foreground)]">Análise do pedido</h2>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Status: <span className="font-semibold text-[var(--foreground)]">{reviewMeta.label}</span>
-                {order.reviewed_at ? ` · revisado em ${formatDate(order.reviewed_at)}` : ""}
+                {order.reviewed_at ? ` · revisado em ${safeDate(order.reviewed_at)}` : ""}
               </p>
               {order.rejected_reason ? (
                 <p className="mt-2 rounded-md border border-red-300/25 bg-red-500/10 p-3 text-sm text-red-100">
@@ -313,9 +351,9 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                           <span className="text-[var(--muted)]">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-[var(--muted)]">{item.quantity}</td>
-                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.unit_price)}</td>
-                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(item.total_price)}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{toNumber(item.quantity)}</td>
+                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(toNumber(item.unit_price))}</td>
+                      <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(toNumber(item.total_price))}</td>
                     </tr>
                   );
                 })}
@@ -340,12 +378,12 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                       <strong className="text-[var(--foreground)]">{payment.method}</strong>
                       <p className="mt-1 flex flex-wrap items-center gap-2 text-[var(--muted)]">
                         <PaymentStatusBadge status={payment.status} />
-                        <span>{payment.paid_at ? formatDate(payment.paid_at) : "Sem data de baixa"}</span>
-                        <span title={statusMeta.label}>Taxa {formatCurrency(payment.fee_amount)}</span>
-                        <span>Líquido {formatCurrency(payment.net_amount)}</span>
+                        <span>{payment.paid_at ? safeDate(payment.paid_at) : "Sem data de baixa"}</span>
+                        <span title={statusMeta.label}>Taxa {formatCurrency(toNumber(payment.fee_amount))}</span>
+                        <span>Líquido {formatCurrency(toNumber(payment.net_amount))}</span>
                       </p>
                     </div>
-                    <span className="font-semibold text-[var(--foreground)]">{formatCurrency(payment.amount)}</span>
+                    <span className="font-semibold text-[var(--foreground)]">{formatCurrency(toNumber(payment.amount))}</span>
                   </div>
                 );
               })
@@ -373,7 +411,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           inventory={inventory as unknown as InventoryOption[]}
           items={(order.order_items ?? []).map((item) => ({ id: item.id, status: item.status }))}
           orderId={order.id}
-          orderTotal={Number(order.total)}
+          orderTotal={orderTotal}
           paidAmount={paidAmount}
           pendingAmount={pendingAmount}
           defaultMaxInstallments={defaultMaxInstallments}
@@ -396,7 +434,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                     {getOperationalStatusMeta(entry.new_status).label}
                   </strong>
                   <p className="mt-1 text-[var(--muted)]">
-                    {formatDate(entry.created_at)} · {entry.profiles?.name ?? "Sistema"}
+                    {safeDate(entry.created_at)} · {entry.profiles?.name ?? "Sistema"}
                   </p>
                   {entry.notes ? <p className="mt-1 text-[var(--muted)]">{entry.notes}</p> : null}
                 </div>
@@ -410,7 +448,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                 <div key={entry.id} className="rounded-lg border border-[var(--border)] p-3 text-sm">
                   <strong className="text-[var(--foreground)]">{entry.action}</strong>
                   <p className="mt-1 text-[var(--muted)]">
-                    {entry.entity_type} · {formatDate(entry.created_at)} · {entry.profiles?.name ?? "Sistema"}
+                    {entry.entity_type} · {safeDate(entry.created_at)} · {entry.profiles?.name ?? "Sistema"}
                   </p>
                 </div>
               ))}
