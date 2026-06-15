@@ -61,7 +61,16 @@ function numbersText(numbers: RaffleNumber[] | undefined) {
     return "-";
   }
 
-  return numbers.map((number) => number.label).join(", ");
+  return numbers.map((number) => number.label ?? String(number.number)).join(", ");
+}
+
+function shortId(value: string | null | undefined) {
+  return value ? value.slice(0, 8) : null;
+}
+
+function numericAmount(value: number | string | null | undefined) {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) ? amount : 0;
 }
 
 export default async function AdminRaffleDetailPage({ params }: Props) {
@@ -76,19 +85,30 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
 
   try {
     campaign = (await service.getRaffleCampaignById(id)) as unknown as RaffleCampaign;
-  } catch {
+  } catch (error) {
+    console.error("[AdminRaffleDetailPage] failed to load campaign", { error, raffleId: id });
     notFound();
   }
 
   const [ordersResult, numbersResult] = await Promise.all([
-    service.listRaffleOrders(id),
-    service.listPublicRaffleNumbers(id),
+    service.listRaffleOrders(id)
+      .then((data) => ({ data: Array.isArray(data) ? data : [], failed: false }))
+      .catch((error) => {
+        console.error("[AdminRaffleDetailPage] failed to load raffle orders", { error, raffleId: id });
+        return { data: [], failed: true };
+      }),
+    service.listPublicRaffleNumbers(id)
+      .then((data) => ({ data: Array.isArray(data) ? data : [], failed: false }))
+      .catch((error) => {
+        console.error("[AdminRaffleDetailPage] failed to load raffle numbers", { error, raffleId: id });
+        return { data: [], failed: true };
+      }),
   ]);
-  const orders = ordersResult as unknown as RaffleOrder[];
-  const numbers = numbersResult as unknown as RaffleNumber[];
+  const orders = ordersResult.data as unknown as RaffleOrder[];
+  const numbers = numbersResult.data as unknown as RaffleNumber[];
   const winnerNumber = numbers.find((number) => number.status === "winner");
   const stats = getStats(campaign);
-  const pendingRevenue = stats.pending * Number(campaign.price_per_number);
+  const pendingRevenue = stats.pending * numericAmount(campaign.price_per_number);
   const drawMethod = getRaffleDrawMethodMeta(campaign.draw_method);
 
   return (
@@ -164,6 +184,11 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             <h2 className="text-lg font-bold text-[var(--foreground)]">Resultado</h2>
+            {numbersResult.failed ? (
+              <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
+                Nao foi possivel carregar numeros da rifa. O restante da campanha segue disponivel.
+              </p>
+            ) : null}
             <dl className="mt-4 grid gap-3 text-sm">
               <div>
                 <dt className="font-semibold text-[var(--foreground)]">Numero vencedor</dt>
@@ -205,6 +230,11 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
             <p className="mt-1 text-sm text-[var(--muted)]">
               Reservas e compras vinculadas a esta campanha.
             </p>
+            {ordersResult.failed ? (
+              <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
+                Nao foi possivel carregar pedidos da rifa. Tente novamente em instantes ou consulte os logs.
+              </p>
+            ) : null}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1300px] text-left text-sm">
@@ -231,7 +261,7 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                       <p className="text-xs">{order.customers?.email ?? order.customers?.phone ?? ""}</p>
                     </td>
                     <td className="px-4 py-3 text-[var(--muted)]">{numbersText(order.raffle_numbers)}</td>
-                    <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(Number(order.total_amount))}</td>
+                    <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(numericAmount(order.total_amount))}</td>
                     <td className="px-4 py-3">
                       <RaffleOrderStatusBadge status={order.status} />
                     </td>
@@ -244,8 +274,8 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                       {order.payment_fee_mode ? <p className="text-xs">Taxa: {order.payment_fee_mode}</p> : null}
                       {order.capture_method ? <p className="text-xs">{order.capture_method}</p> : null}
                       {order.transaction_nsu ? <p className="max-w-48 break-all text-xs">{order.transaction_nsu}</p> : null}
-                      {order.cash_entry_id ? <p className="text-xs">Caixa: {order.cash_entry_id.slice(0, 8)}</p> : null}
-                      {order.payment_id ? <p className="text-xs">Pagamento: {order.payment_id.slice(0, 8)}</p> : null}
+                      {shortId(order.cash_entry_id) ? <p className="text-xs">Caixa: {shortId(order.cash_entry_id)}</p> : null}
+                      {shortId(order.payment_id) ? <p className="text-xs">Pagamento: {shortId(order.payment_id)}</p> : null}
                     </td>
                     <td className="px-4 py-3">
                       <RaffleOrderActions

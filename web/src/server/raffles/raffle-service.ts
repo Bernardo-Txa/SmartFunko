@@ -337,6 +337,7 @@ function statusAllowsPublicRead(status: string) {
 
 export class RaffleService {
   private readonly audit: AuditLogService;
+  private expireReservationsPromise: Promise<number> | null = null;
 
   constructor(
     private readonly supabase: SupabaseAdminClient = createSupabaseAdminClient(),
@@ -675,6 +676,7 @@ export class RaffleService {
     const { data, error } = await query;
 
     if (error) {
+      console.error("[RaffleService] listRaffleOrders failed", { campaignId, error, filters });
       throwQueryError(error, "Falha ao listar pedidos de rifa");
     }
 
@@ -965,6 +967,7 @@ export class RaffleService {
       .order("number", { ascending: true });
 
     if (error) {
+      console.error("[RaffleService] listPublicRaffleNumbers failed", { campaignId, error });
       throwQueryError(error, "Falha ao listar numeros da rifa");
     }
 
@@ -1046,13 +1049,22 @@ export class RaffleService {
   }
 
   async expireRaffleReservations() {
-    const { data, error } = await this.supabase.rpc("expire_raffle_reservations");
-
-    if (error) {
-      throwQueryError(error, "Falha ao expirar reservas de rifa");
+    if (this.expireReservationsPromise) {
+      return this.expireReservationsPromise;
     }
 
-    return Number(data ?? 0);
+    this.expireReservationsPromise = (async () => {
+      const { data, error } = await this.supabase.rpc("expire_raffle_reservations");
+
+      if (error) {
+        console.error("[RaffleService] expireReservations failed", { error });
+        throwQueryError(error, "Falha ao expirar reservas de rifa");
+      }
+
+      return Number(data ?? 0);
+    })();
+
+    return this.expireReservationsPromise;
   }
 
   async handleInfinitePayWebhook(payload: unknown) {

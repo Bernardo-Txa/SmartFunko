@@ -133,6 +133,7 @@ function mapCaptureMethod(method: string | null) {
 function orderSelect() {
   return `
     id,order_number,customer_id,review_status,status,total,payment_link_url,payment_provider_reference,public_token,
+    payment_max_installments,payment_max_installments_source,payment_fee_mode,
     customers(name,email,phone),
     order_items(quantity,unit_price,product_variants(products(name))),
     payments(amount,status)
@@ -144,7 +145,10 @@ type AssistedOrderBaseRow = Pick<
   | "customer_id"
   | "id"
   | "order_number"
+  | "payment_fee_mode"
   | "payment_link_url"
+  | "payment_max_installments"
+  | "payment_max_installments_source"
   | "payment_provider_reference"
   | "public_token"
   | "review_status"
@@ -403,8 +407,11 @@ export class AssistedCheckoutService {
     const { data, error } = await this.supabase
       .from("orders")
       .update({
+        payment_fee_mode: paymentRules.feeMode,
         payment_link_created_at: now,
         payment_link_url: result.checkoutUrl,
+        payment_max_installments: paymentRules.maxInstallments,
+        payment_max_installments_source: paymentRules.maxInstallmentsSource,
         payment_provider: "infinitepay",
         payment_provider_reference: result.providerReference,
         review_notes: null,
@@ -685,7 +692,8 @@ export class AssistedCheckoutService {
       .from("orders")
       .select(`
         id,order_number,customer_id,review_status,status,total,
-        payment_link_url,payment_provider_reference,public_token
+        payment_link_url,payment_provider_reference,public_token,
+        payment_max_installments,payment_max_installments_source,payment_fee_mode
       `)
       .eq("id", orderId)
       .maybeSingle<AssistedOrderBaseRow>();
