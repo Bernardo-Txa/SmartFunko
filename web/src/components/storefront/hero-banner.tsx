@@ -28,7 +28,7 @@ export function HeroBanner({ products }: { products: Product[] }) {
             Loja e comunidade de colecionaveis
           </p>
           <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">
-            Sua Coleção comeca aqui.
+            Sua coleção começa aqui.
           </h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
             Funkos, colecionaveis, pre-vendas e encomendas selecionadas para
