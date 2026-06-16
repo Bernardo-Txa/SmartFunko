@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ExternalLink } from "lucide-react";
-import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleOrder } from "@/components/raffles/raffle-types";
 import { RaffleOrderStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
@@ -63,7 +62,6 @@ export default async function AccountRafflesPage() {
       </div>
 
       <div className="grid gap-5">
-        <RaffleExperimentalNotice />
         {!customer ? (
           <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
             Nenhum cadastro de cliente vinculado a este login ainda.

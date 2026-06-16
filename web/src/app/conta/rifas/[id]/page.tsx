@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleOrder } from "@/components/raffles/raffle-types";
 import { RaffleNumberStatusBadge, RaffleOrderStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
@@ -126,7 +125,6 @@ export default async function AccountRaffleDetailPage({ params }: Props) {
       </div>
 
       <div className="grid gap-5">
-        <RaffleExperimentalNotice />
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             <span className="text-sm font-semibold text-[var(--muted)]">Total</span>

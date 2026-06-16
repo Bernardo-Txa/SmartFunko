@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
-import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import { RaffleNumberPicker } from "@/components/raffles/raffle-number-picker";
 import type { RaffleCampaign, RaffleNumber } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge, RaffleNumberStatusBadge } from "@/components/ui/status-badge";
@@ -161,7 +160,6 @@ export default async function RaffleDetailPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(raffleJsonLd) }}
       />
       <div className="grid gap-6">
-        <RaffleExperimentalNotice />
         <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
             {raffle.prize_image_url ? (

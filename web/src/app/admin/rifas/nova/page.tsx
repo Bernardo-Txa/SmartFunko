@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { RaffleCampaignForm } from "@/components/admin/raffle-campaign-form";
-import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import { isRafflesEnabled } from "@/lib/env";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 
@@ -20,7 +19,6 @@ export default async function AdminNewRafflePage() {
   return (
     <AdminShell title="Nova rifa" description="Cadastro inicial da campanha e geracao dos numeros.">
       <div className="grid gap-5">
-        <RaffleExperimentalNotice />
         <RaffleCampaignForm />
       </div>
     </AdminShell>

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Ticket } from "lucide-react";
-import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleCampaign } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
@@ -78,7 +77,6 @@ export default async function RafflesPage() {
       </div>
 
       <div className="grid gap-5">
-        <RaffleExperimentalNotice />
         {campaigns.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {campaigns.map((campaign) => {

@@ -151,3 +151,26 @@ cd web
 npm run lint
 npm run build
 ```
+
+## Resultado Supabase Producao - 2026-06-15
+
+Projeto validado: `sufppaxdxmxdcfkuvanm`.
+
+Migrations aplicadas no remoto:
+- `20260615120000_payment_rules_installments_and_fees.sql`
+- `20260615143000_stability_payments_provider_fields.sql`
+
+Validacoes remotas concluídas:
+- tabelas criticas existem;
+- campos criticos de `orders`, `raffle_orders`, `raffle_numbers` e `payments` existem;
+- selects reais de `OrderService`, `AssistedCheckoutService`, `RaffleService` e `/api/v1/admin/orders/[id]/payments` passam sem erro;
+- RPC `expire_raffle_reservations` existe e executou com retorno `0`;
+- sem reservas pendentes expiradas;
+- sem divergencia ativa entre quantidade de pedidos de rifa e numeros vinculados;
+- sem divergencia ativa de total de pedido de rifa;
+- sem pedido assistido em analise/aguardando pagamento sem itens;
+- sem pedido pago sem pagamento pago;
+- sem pagamento pago sem `paid_at`.
+
+Correcao de dado aplicada:
+- 1 pedido legado de rifa com `status = paid` e `payment_status = pending` foi normalizado para `payment_status = paid`.

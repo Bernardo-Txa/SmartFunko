@@ -8,7 +8,6 @@ import {
   RaffleExpireReservationsButton,
   RaffleOrderActions,
 } from "@/components/admin/raffle-admin-actions";
-import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleCampaign, RaffleNumber, RaffleOrder } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge, RaffleNumberStatusBadge, RaffleOrderStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
@@ -114,7 +113,6 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
   return (
     <AdminShell title={campaign.title} description="Detalhe operacional da campanha de rifa.">
       <div className="grid gap-5">
-        <RaffleExperimentalNotice />
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>

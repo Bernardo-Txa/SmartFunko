@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { RaffleOpenCampaignButton } from "@/components/admin/raffle-admin-actions";
-import { RaffleExperimentalNotice } from "@/components/raffles/raffle-experimental-notice";
 import type { RaffleCampaign } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
@@ -63,7 +62,6 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
   return (
     <AdminShell title="Rifas" description="Campanhas DEV 1.1 com reserva temporaria e confirmacao manual.">
       <div className="grid gap-5">
-        <RaffleExperimentalNotice />
         <div className="grid gap-4 md:grid-cols-4">
           <MetricCard label="Abertas" value={`${openCampaigns}`} detail="Aceitando reservas" />
           <MetricCard label="Pendentes" value={`${pendingNumbers}`} detail="Aguardando pagamento" />
