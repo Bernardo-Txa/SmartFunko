@@ -306,24 +306,8 @@ function assertNumberRange(input: {
 function assertPublishReadiness(campaign: RaffleCampaignRow) {
   const missing: string[] = [];
 
-  if (!campaign.rules?.trim()) {
-    missing.push("regulamento");
-  }
-
   if (!campaign.starts_at) {
     missing.push("data de inicio");
-  }
-
-  if (!campaign.ends_at) {
-    missing.push("data de encerramento");
-  }
-
-  if (!campaign.draw_at) {
-    missing.push("data de sorteio");
-  }
-
-  if (!campaign.draw_method) {
-    missing.push("metodo de sorteio");
   }
 
   if (missing.length > 0) {
