@@ -167,7 +167,7 @@ const fallbackSuppliers: CatalogSupplier[] = [
   {
     accent_color: null,
     banner_url: null,
-    description: "Colecao especial Piticas.",
+    description: "Coleção especial Piticas.",
     id: "piticas",
     logo_url: "/brand/piticas.webp",
     name: "Piticas",
@@ -179,7 +179,7 @@ const fallbackSuppliers: CatalogSupplier[] = [
   {
     accent_color: null,
     banner_url: null,
-    description: "Colecao especial Copag.",
+    description: "Coleção especial Copag.",
     id: "copag",
     logo_url: null,
     name: "Copag",
@@ -191,7 +191,7 @@ const fallbackSuppliers: CatalogSupplier[] = [
   {
     accent_color: null,
     banner_url: null,
-    description: "Colecao especial Panini.",
+    description: "Coleção especial Panini.",
     id: "panini",
     logo_url: null,
     name: "Panini",

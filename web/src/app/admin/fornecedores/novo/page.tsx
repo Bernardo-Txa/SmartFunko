@@ -11,7 +11,7 @@ export default async function NewSupplierPage() {
   await requireAdminPage();
 
   return (
-    <AdminShell title="Novo fornecedor" description="Cadastro de fornecedor, marca ou colecao especial.">
+    <AdminShell title="Novo fornecedor" description="Cadastro de fornecedor, marca ou Coleção especial.">
       <SupplierForm mode="create" />
     </AdminShell>
   );

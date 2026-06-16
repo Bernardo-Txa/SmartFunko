@@ -31,7 +31,7 @@ export function SupplierTile({ supplier }: { supplier: CatalogSupplier }) {
         </div>
       </div>
       <p className="mt-4 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
-        {supplier.description ?? "Colecao ativa no catalogo Smart Funkos."}
+        {supplier.description ?? "Coleção ativa no catalogo Smart Funkos."}
       </p>
     </Link>
   );

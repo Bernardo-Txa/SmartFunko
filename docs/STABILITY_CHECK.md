@@ -2,7 +2,7 @@
 
 Escopo deste hotfix: pedidos, pagamentos, checkout assistido, rifas, migrations/schema, logs e tratamento de erro.
 
-Fora de escopo: UI premium, mobile visual, home mobile, wishlist, colecao, scanner, marketplace e design system.
+Fora de escopo: UI premium, mobile visual, home mobile, wishlist, Coleção, scanner, marketplace e design system.
 
 ## Rotas criticas
 

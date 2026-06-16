@@ -19,6 +19,7 @@ function parseArgs(argv) {
     limit: null,
     skipInvalid: false,
     source: "national",
+    supplier: null,
     variantStatus: "order_only",
   };
 
@@ -37,6 +38,9 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === "--source") {
       args.source = argv[index + 1];
+      index += 1;
+    } else if (arg === "--supplier") {
+      args.supplier = argv[index + 1];
       index += 1;
     } else if (arg === "--variant-status") {
       args.variantStatus = argv[index + 1];
@@ -251,7 +255,7 @@ function mapRows(rows, args) {
     const specialLabel = row[indexByHeader.special]?.trim() || null;
     const supplierName = supplierHeader
       ? normalizeSupplierName(row[indexByHeader[supplierHeader]] ?? "")
-      : null;
+      : normalizeSupplierName(args.supplier ?? "");
     const tags = specialLabel ? specialTags(specialLabel) : [];
 
     const missing = [
