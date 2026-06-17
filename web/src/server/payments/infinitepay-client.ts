@@ -10,6 +10,8 @@ export type InfinitePayCheckoutItem = {
   unitAmountCents: number;
 };
 
+export type InfinitePayCheckoutKind = "order" | "raffle";
+
 export type CreateInfinitePayCheckoutInput = {
   orderNumber: string;
   customerName: string;
@@ -18,6 +20,7 @@ export type CreateInfinitePayCheckoutInput = {
   amountCents: number;
   feeMode?: PaymentFeeMode;
   items: InfinitePayCheckoutItem[];
+  kind?: InfinitePayCheckoutKind;
   maxInstallments?: number;
   redirectUrl: string;
   webhookUrl: string;
@@ -54,8 +57,17 @@ export type NormalizedInfinitePayWebhook = {
 
 type InfinitePayLinkResponse = {
   checkout_url?: string;
+  data?: {
+    checkout_url?: string;
+    invoice_slug?: string;
+    link?: string;
+    payment_url?: string;
+    url?: string;
+  };
   invoice_slug?: string;
   link?: string;
+  payment_url?: string;
+  slug?: string;
   url?: string;
 };
 
@@ -87,7 +99,7 @@ type InfinitePayPaymentCheckResponse = {
 };
 
 function infinitePayHandle() {
-  return env.infinitePayHandle.trim().replace(/^@/, "");
+  return env.infinitePayHandle.trim().replace(/^[@$]+/, "");
 }
 
 function toCents(value: number | string | undefined) {
@@ -143,6 +155,91 @@ function getSignature(headers: Headers) {
   ).replace(/^sha256=/, "");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function firstNonEmptyString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function responseKeys(value: unknown) {
+  if (!isRecord(value)) {
+    return "none";
+  }
+
+  const keys = Object.keys(value);
+  const dataKeys = isRecord(value.data) ? Object.keys(value.data).map((key) => `data.${key}`) : [];
+  return [...keys, ...dataKeys].sort().join(",") || "none";
+}
+
+function normalizeCheckoutItems(items: InfinitePayCheckoutItem[]) {
+  return items.map((item, index) => {
+    const description = item.name.trim();
+    const quantity = Number(item.quantity);
+    const unitAmountCents = Number(item.unitAmountCents);
+
+    if (!description) {
+      throw internalError(`Item InfinitePay ${index + 1} sem descricao`);
+    }
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw internalError(`Item InfinitePay ${index + 1} com quantidade invalida`);
+    }
+
+    if (!Number.isInteger(unitAmountCents) || unitAmountCents <= 0) {
+      throw internalError(`Item InfinitePay ${index + 1} com preco invalido`);
+    }
+
+    return {
+      description,
+      price: unitAmountCents,
+      quantity,
+    };
+  });
+}
+
+function assertCreateCheckoutInput(input: CreateInfinitePayCheckoutInput) {
+  if (!input.orderNumber.trim()) {
+    throw internalError("Payload InfinitePay sem order_nsu");
+  }
+
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    throw internalError("Payload InfinitePay com valor invalido");
+  }
+
+  try {
+    new URL(input.redirectUrl);
+    new URL(input.webhookUrl);
+  } catch {
+    throw internalError("Payload InfinitePay com URL invalida");
+  }
+}
+
+export function parseInfinitePayLinkResponse(body: unknown) {
+  if (!isRecord(body)) {
+    return null;
+  }
+
+  const data = isRecord(body.data) ? body.data : {};
+  return firstNonEmptyString(
+    body.url,
+    body.link,
+    body.checkout_url,
+    body.payment_url,
+    data.url,
+    data.link,
+    data.checkout_url,
+    data.payment_url,
+  );
+}
+
 export async function createInfinitePayCheckout(
   input: CreateInfinitePayCheckoutInput,
 ): Promise<CreateInfinitePayCheckoutResult> {
@@ -150,6 +247,10 @@ export async function createInfinitePayCheckout(
     throw internalError("Configure INFINITEPAY_HANDLE antes de gerar link de pagamento");
   }
 
+  assertCreateCheckoutInput(input);
+
+  const items = normalizeCheckoutItems(input.items);
+  const kind = input.kind ?? "order";
   const payload = {
     customer: {
       email: input.customerEmail ?? undefined,
@@ -157,12 +258,8 @@ export async function createInfinitePayCheckout(
       phone_number: input.customerPhone ?? undefined,
     },
     handle: infinitePayHandle(),
-    items: input.items.map((item) => ({
-      description: item.name,
-      price: item.unitAmountCents,
-      quantity: item.quantity,
-    })),
-    order_nsu: input.orderNumber,
+    items,
+    order_nsu: input.orderNumber.trim(),
     redirect_url: input.redirectUrl,
     webhook_url: input.webhookUrl,
   };
@@ -189,33 +286,47 @@ export async function createInfinitePayCheckout(
     headers.authorization = `Bearer ${env.infinitePayApiKey}`;
   }
 
+  console.info(`[InfinitePay] create link kind=${kind} orderNsu=${payload.order_nsu} amount=${input.amountCents}`);
+  console.info(`[InfinitePay] payload keys=${Object.keys(payload).sort().join(",")}`);
+
   const response = await fetch(`${env.infinitePayApiBaseUrl.replace(/\/$/, "")}/links`, {
     body: JSON.stringify(payload),
     headers,
     method: "POST",
   });
 
-  let raw: InfinitePayLinkResponse | null = null;
+  let raw: unknown = null;
 
   try {
-    raw = (await response.json()) as InfinitePayLinkResponse;
+    raw = await response.json();
   } catch {
     raw = null;
   }
 
+  const checkoutUrl = parseInfinitePayLinkResponse(raw);
+  const rawResponse = raw as InfinitePayLinkResponse | null;
+  const providerReference =
+    firstNonEmptyString(rawResponse?.invoice_slug, rawResponse?.data?.invoice_slug, rawResponse?.slug) ??
+    payload.order_nsu;
+  const keys = responseKeys(raw);
+
+  console.info(`[InfinitePay] response status=${response.status}`);
+  console.info(`[InfinitePay] response keys=${keys}`);
+  console.info(`[InfinitePay] parsed url present=${Boolean(checkoutUrl)}`);
+
   if (!response.ok) {
+    console.error(`[InfinitePay] create link failed kind=${kind} orderNsu=${payload.order_nsu} status=${response.status} responseKeys=${keys}`);
     throw internalError("InfinitePay nao gerou o link. Verifique as credenciais e tente novamente.");
   }
 
-  const checkoutUrl = raw?.url ?? raw?.checkout_url ?? raw?.link;
-
   if (!checkoutUrl) {
-    throw internalError("Resposta da InfinitePay sem URL de checkout");
+    console.error(`[InfinitePay] missing checkout url kind=${kind} orderNsu=${payload.order_nsu} status=${response.status} responseKeys=${keys}`);
+    throw internalError("InfinitePay respondeu, mas nao retornou link de pagamento.");
   }
 
   return {
     checkoutUrl,
-    providerReference: raw?.invoice_slug ?? input.orderNumber,
+    providerReference,
     requestPayload: {
       ...payload,
       unsupportedControls: Object.keys(unsupportedControls).length > 0 ? unsupportedControls : undefined,

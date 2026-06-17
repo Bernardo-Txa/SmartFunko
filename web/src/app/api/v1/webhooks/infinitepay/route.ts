@@ -5,6 +5,10 @@ import { handleApi, jsonOk } from "@/server/http/responses";
 import { verifyInfinitePayWebhook } from "@/server/payments/infinitepay-client";
 import { RaffleService } from "@/server/raffles/raffle-service";
 
+function isRaffleOrderNsu(orderNsu: string) {
+  return orderNsu.toUpperCase().startsWith("RAFFLE-") || orderNsu.toUpperCase().startsWith("RF-");
+}
+
 export async function POST(request: Request) {
   return handleApi(async () => {
     if (env.infinitePayWebhookEnabled === "false") {
@@ -29,7 +33,7 @@ export async function POST(request: Request) {
       payload && typeof payload === "object" && "order_nsu" in payload
         ? String((payload as { order_nsu?: unknown }).order_nsu ?? "")
         : "";
-    const result = orderNsu.startsWith("RAFFLE-")
+    const result = isRaffleOrderNsu(orderNsu)
       ? await new RaffleService().handleInfinitePayWebhook(payload)
       : await new AssistedCheckoutService().handleInfinitePayWebhook(payload);
     return jsonOk(result);

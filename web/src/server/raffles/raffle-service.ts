@@ -128,6 +128,7 @@ type RaffleOrderRow = {
   payment_provider?: string | null;
   payment_provider_reference?: string | null;
   payment_status?: string | null;
+  provider_payload?: unknown;
   quantity: number;
   raffle_campaign_id: string;
   receipt_url?: string | null;
@@ -143,6 +144,7 @@ type RaffleOrderRow = {
   } | null;
   raffle_campaigns?: {
     code?: string | null;
+    prize_title?: string | null;
     slug?: string | null;
     title?: string | null;
   } | null;
@@ -246,8 +248,79 @@ function normalizeQueryText(value: string) {
   return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_").trim();
 }
 
-function raffleOrderNsu(orderId: string) {
+function legacyRaffleOrderNsu(orderId: string) {
   return `RAFFLE-${orderId}`;
+}
+
+function raffleOrderNsu(order: Pick<RaffleOrderRow, "id" | "order_number">) {
+  return order.order_number?.trim() || legacyRaffleOrderNsu(order.id);
+}
+
+function providerPayloadOrderNsu(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const request = (payload as { request?: unknown }).request;
+
+  if (!request || typeof request !== "object" || Array.isArray(request)) {
+    return null;
+  }
+
+  const orderNsu = (request as { order_nsu?: unknown }).order_nsu;
+  return typeof orderNsu === "string" && orderNsu.trim() ? orderNsu.trim() : null;
+}
+
+function rafflePaymentCheckOrderNsu(order: RaffleOrderRow) {
+  return providerPayloadOrderNsu(order.provider_payload) ?? raffleOrderNsu(order);
+}
+
+function moneyToCents(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    const cents = Math.round(value * 100);
+    return Number.isInteger(cents) && cents > 0 ? cents : null;
+  }
+
+  const raw = value.trim().replace(/[^\d,.-]/g, "");
+
+  if (!raw) {
+    return null;
+  }
+
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  let normalized = raw;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalSeparator = lastComma > lastDot ? "," : ".";
+    const thousandsSeparator = decimalSeparator === "," ? "." : ",";
+    normalized = raw.replaceAll(thousandsSeparator, "").replace(decimalSeparator, ".");
+  } else if (lastComma >= 0) {
+    normalized = raw.replaceAll(".", "").replace(",", ".");
+  }
+
+  const parsed = Number(normalized);
+
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  const cents = Math.round(parsed * 100);
+  return Number.isInteger(cents) && cents > 0 ? cents : null;
+}
+
+function rafflePaymentDescription(order: RaffleOrderRow) {
+  const title =
+    order.raffle_campaigns?.prize_title?.trim() ||
+    order.raffle_campaigns?.title?.trim() ||
+    order.raffle_campaigns?.code?.trim() ||
+    "SmartFunko";
+
+  return `Rifa SmartFunko - ${title}`.slice(0, 255);
 }
 
 function centsToCurrency(cents: number | null) {
@@ -844,7 +917,7 @@ export class RaffleService {
       "order.payment_link_generated",
       {
         orderId: raffleOrderId,
-        orderNsu: raffleOrderNsu(raffleOrderId),
+        orderNsu: raffleOrderNsu(order),
         providerReference: result.providerReference,
       },
       actorProfileId,
@@ -1107,11 +1180,12 @@ export class RaffleService {
       return { paid: true, status: "ignored", reason: "Pedido de rifa ja pago" };
     }
 
+    const orderNsu = rafflePaymentCheckOrderNsu(order);
     const check = await checkInfinitePayPaymentStatus({
-      orderNumber: raffleOrderNsu(order.id),
+      orderNumber: orderNsu,
       slug:
         options.slug ??
-        (order.payment_provider_reference && order.payment_provider_reference !== raffleOrderNsu(order.id)
+        (order.payment_provider_reference && order.payment_provider_reference !== orderNsu
           ? order.payment_provider_reference
           : null),
       transactionNsu: options.transactionNsu ?? order.transaction_nsu ?? null,
@@ -1158,25 +1232,30 @@ export class RaffleService {
       throw conflict("Configure INFINITEPAY_HANDLE antes de gerar link de pagamento");
     }
 
-    const labels = (order.raffle_numbers ?? []).map((number) => number.label).join(", ");
-    const campaignCode = order.raffle_campaigns?.code ?? order.raffle_campaign_id;
     const paymentRules = getRafflePaymentRules();
+    const amountCents = moneyToCents(order.total_amount);
+    const orderNsu = raffleOrderNsu(order);
+
+    if (amountCents === null) {
+      throw conflict("Reserva de rifa com valor invalido para pagamento.");
+    }
 
     return createInfinitePayCheckout({
-      amountCents: Math.round(Number(order.total_amount) * 100),
+      amountCents,
       customerEmail: order.customers?.email ?? null,
       customerName: order.customers?.name ?? "Cliente Smart Funkos",
       customerPhone: order.customers?.phone ?? null,
       feeMode: paymentRules.feeMode,
       items: [
         {
-          name: `Rifa ${campaignCode} - numeros ${labels || order.quantity}`,
+          name: rafflePaymentDescription(order),
           quantity: 1,
-          unitAmountCents: Math.round(Number(order.total_amount) * 100),
+          unitAmountCents: amountCents,
         },
       ],
+      kind: "raffle",
       maxInstallments: paymentRules.maxInstallments,
-      orderNumber: raffleOrderNsu(order.id),
+      orderNumber: orderNsu,
       redirectUrl: `${baseUrl}/conta/rifas/${order.id}`,
       webhookUrl: `${baseUrl}/api/v1/webhooks/infinitepay`,
     });
@@ -1187,6 +1266,7 @@ export class RaffleService {
       ? normalized.orderNumber.replace(/^RAFFLE-/, "")
       : null;
     const references = [
+      normalized.orderNumber,
       orderId,
       normalized.providerReference,
       normalized.invoiceSlug,
@@ -1197,6 +1277,7 @@ export class RaffleService {
       const filters = [
         `payment_provider_reference.eq.${reference}`,
         `transaction_nsu.eq.${reference}`,
+        `order_number.eq.${reference}`,
         ...(isUuid(reference) ? [`id.eq.${reference}`] : []),
       ];
       const { data, error } = await this.supabase
