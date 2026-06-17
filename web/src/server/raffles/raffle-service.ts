@@ -1242,6 +1242,7 @@ export class RaffleService {
 
     return createInfinitePayCheckout({
       amountCents,
+      debugOrderId: order.id,
       customerEmail: order.customers?.email ?? null,
       customerName: order.customers?.name ?? "Cliente Smart Funkos",
       customerPhone: order.customers?.phone ?? null,

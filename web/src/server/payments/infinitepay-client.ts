@@ -13,6 +13,7 @@ export type InfinitePayCheckoutItem = {
 export type InfinitePayCheckoutKind = "order" | "raffle";
 
 export type CreateInfinitePayCheckoutInput = {
+  debugOrderId?: string;
   orderNumber: string;
   customerName: string;
   customerEmail?: string | null;
@@ -251,6 +252,7 @@ export async function createInfinitePayCheckout(
 
   const items = normalizeCheckoutItems(input.items);
   const kind = input.kind ?? "order";
+  const url = `${env.infinitePayApiBaseUrl.replace(/\/$/, "")}/links`;
   const payload = {
     customer: {
       email: input.customerEmail ?? undefined,
@@ -263,6 +265,7 @@ export async function createInfinitePayCheckout(
     redirect_url: input.redirectUrl,
     webhook_url: input.webhookUrl,
   };
+  const firstItem = payload.items[0];
   const unsupportedControls: Record<string, unknown> = {};
 
   if (input.maxInstallments) {
@@ -286,33 +289,55 @@ export async function createInfinitePayCheckout(
     headers.authorization = `Bearer ${env.infinitePayApiKey}`;
   }
 
-  console.info(`[InfinitePay] create link kind=${kind} orderNsu=${payload.order_nsu} amount=${input.amountCents}`);
-  console.info(`[InfinitePay] payload keys=${Object.keys(payload).sort().join(",")}`);
+  console.error("[IP_RAFFLE_DEBUG_REQUEST]", {
+    orderId: input.debugOrderId ?? input.orderNumber,
+    url,
+    orderNsu: payload?.order_nsu,
+    handleLength: payload.handle?.length ?? 0,
+    handlePresent: Boolean(payload.handle),
+    redirectUrl: payload?.redirect_url,
+    webhookUrl: payload?.webhook_url,
+    itemCount: payload.items?.length ?? 0,
+    firstItem: firstItem
+      ? {
+          quantity: firstItem.quantity,
+          price: firstItem.price,
+          priceType: typeof firstItem.price,
+          descriptionPresent: Boolean(firstItem.description),
+          descriptionLength: firstItem.description.length,
+        }
+      : null,
+  });
 
-  const response = await fetch(`${env.infinitePayApiBaseUrl.replace(/\/$/, "")}/links`, {
+  const response = await fetch(url, {
     body: JSON.stringify(payload),
     headers,
     method: "POST",
   });
 
-  let raw: unknown = null;
+  const responseText = await response.text();
+  let parsedBody: unknown = responseText;
 
   try {
-    raw = await response.json();
+    parsedBody = JSON.parse(responseText);
   } catch {
-    raw = null;
+    parsedBody = responseText;
   }
 
-  const checkoutUrl = parseInfinitePayLinkResponse(raw);
-  const rawResponse = raw as InfinitePayLinkResponse | null;
+  const checkoutUrl = parseInfinitePayLinkResponse(parsedBody);
+  const rawResponse = parsedBody as InfinitePayLinkResponse | null;
   const providerReference =
     firstNonEmptyString(rawResponse?.invoice_slug, rawResponse?.data?.invoice_slug, rawResponse?.slug) ??
     payload.order_nsu;
-  const keys = responseKeys(raw);
+  const keys = responseKeys(parsedBody);
 
-  console.info(`[InfinitePay] response status=${response.status}`);
-  console.info(`[InfinitePay] response keys=${keys}`);
-  console.info(`[InfinitePay] parsed url present=${Boolean(checkoutUrl)}`);
+  console.error("[IP_RAFFLE_DEBUG_RESPONSE]", {
+    status: response.status,
+    ok: response.ok,
+    statusText: response.statusText,
+    contentType: response.headers.get("content-type"),
+    body: parsedBody,
+  });
 
   if (!response.ok) {
     console.error(`[InfinitePay] create link failed kind=${kind} orderNsu=${payload.order_nsu} status=${response.status} responseKeys=${keys}`);
@@ -331,7 +356,7 @@ export async function createInfinitePayCheckout(
       ...payload,
       unsupportedControls: Object.keys(unsupportedControls).length > 0 ? unsupportedControls : undefined,
     },
-    raw,
+    raw: parsedBody,
   };
 }
 

@@ -384,6 +384,7 @@ export class AssistedCheckoutService {
 
     const result = await createInfinitePayCheckout({
       amountCents,
+      debugOrderId: orderId,
       customerEmail: order.customers?.email ?? null,
       customerName: order.customers?.name ?? "Cliente Smart Funkos",
       customerPhone: order.customers?.phone ?? null,
