@@ -305,6 +305,19 @@ export async function createInfinitePayCheckout(
           priceType: typeof firstItem.price,
           descriptionPresent: Boolean(firstItem.description),
           descriptionLength: firstItem.description.length,
+      }
+      : null,
+  });
+  console.error("[IP_RAFFLE_DEBUG_ITEM]", {
+    item: firstItem
+      ? {
+          quantity: firstItem.quantity,
+          quantityType: typeof firstItem.quantity,
+          price: firstItem.price,
+          priceType: typeof firstItem.price,
+          description: firstItem.description,
+          descriptionLength: firstItem.description?.length ?? 0,
+          keys: Object.keys(firstItem),
         }
       : null,
   });
@@ -330,6 +343,7 @@ export async function createInfinitePayCheckout(
     firstNonEmptyString(rawResponse?.invoice_slug, rawResponse?.data?.invoice_slug, rawResponse?.slug) ??
     payload.order_nsu;
   const keys = responseKeys(parsedBody);
+  const parsedErrors = isRecord(parsedBody) ? (parsedBody as { errors?: unknown }).errors : undefined;
 
   console.error("[IP_RAFFLE_DEBUG_RESPONSE]", {
     status: response.status,
@@ -338,6 +352,12 @@ export async function createInfinitePayCheckout(
     contentType: response.headers.get("content-type"),
     body: parsedBody,
   });
+
+  if (parsedErrors !== undefined) {
+    console.error("[IP_RAFFLE_DEBUG_ERRORS]", {
+      errors: JSON.stringify(parsedErrors, null, 2),
+    });
+  }
 
   if (!response.ok) {
     console.error(`[InfinitePay] create link failed kind=${kind} orderNsu=${payload.order_nsu} status=${response.status} responseKeys=${keys}`);

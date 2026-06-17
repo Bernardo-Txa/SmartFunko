@@ -314,13 +314,7 @@ function moneyToCents(value: number | string | null | undefined) {
 }
 
 function rafflePaymentDescription(order: RaffleOrderRow) {
-  const title =
-    order.raffle_campaigns?.prize_title?.trim() ||
-    order.raffle_campaigns?.title?.trim() ||
-    order.raffle_campaigns?.code?.trim() ||
-    "SmartFunko";
-
-  return `Rifa SmartFunko - ${title}`.slice(0, 255);
+  return `Rifa SmartFunko - ${order.order_number}`.slice(0, 255);
 }
 
 function centsToCurrency(cents: number | null) {
@@ -1239,6 +1233,11 @@ export class RaffleService {
     if (amountCents === null) {
       throw conflict("Reserva de rifa com valor invalido para pagamento.");
     }
+
+    console.error("[IP_RAFFLE_AMOUNT_DEBUG]", {
+      amountInCents: amountCents,
+      rawTotalAmount: order.total_amount,
+    });
 
     return createInfinitePayCheckout({
       amountCents,
