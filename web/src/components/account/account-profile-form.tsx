@@ -91,7 +91,7 @@ export function AccountProfileForm({
         <div>
           <h2 className="text-lg font-bold text-[var(--foreground)]">Cadastro</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            E-mail de login somente leitura. Para alterar o e-mail, fale com a Smart Funkos.
+            E-mail de login somente leitura aqui. Para alterar, use Segurança da conta.
           </p>
         </div>
         {!editing ? (
