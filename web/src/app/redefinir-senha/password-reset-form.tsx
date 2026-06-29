@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, KeyRound } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
-import { SmartButtonLoading } from "@/components/ui/smart-loading";
+import { SmartButtonLoading, SmartInlineLoading } from "@/components/ui/smart-loading";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const EXPIRED_LINK_MESSAGE =
@@ -13,35 +13,38 @@ const WEAK_PASSWORD_MESSAGE = "Use uma senha mais forte.";
 const GENERIC_ERROR_MESSAGE =
   "Não foi possível alterar sua senha. Solicite um novo link e tente novamente.";
 
+type RecoveryStatus = "validating" | "ready" | "invalid" | "success";
+type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
+
 type RecoveryUrlState = {
   accessToken: string | null;
   code: string | null;
+  hasHash: boolean;
   hasRecoveryCallback: boolean;
   hasUrlError: boolean;
   refreshToken: string | null;
-  type: string | null;
 };
 
 function readRecoveryUrlState(): RecoveryUrlState {
-  const url = new URL(window.location.href);
-  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
+  const params = new URLSearchParams(window.location.search);
+  const rawHash = window.location.hash;
+  const hash = rawHash.startsWith("#") ? rawHash.slice(1) : rawHash;
   const hashParams = new URLSearchParams(hash);
-  const code = url.searchParams.get("code");
+  const code = params.get("code");
   const accessToken = hashParams.get("access_token");
   const refreshToken = hashParams.get("refresh_token");
-  const type = hashParams.get("type");
 
   return {
     accessToken,
     code,
-    hasRecoveryCallback: Boolean(code) || Boolean(accessToken && refreshToken && type === "recovery"),
+    hasHash: Boolean(hash),
+    hasRecoveryCallback: Boolean(code) || Boolean(accessToken && refreshToken),
     hasUrlError:
-      url.searchParams.has("error") ||
-      url.searchParams.has("error_description") ||
+      params.has("error") ||
+      params.has("error_description") ||
       hashParams.has("error") ||
       hashParams.has("error_description"),
     refreshToken,
-    type,
   };
 }
 
@@ -51,6 +54,13 @@ function cleanRecoveryUrl() {
 
 function getErrorText(error: AuthError) {
   return `${error.code ?? ""} ${error.message}`.toLowerCase();
+}
+
+function logPasswordResetInfo(
+  message: string,
+  details: Record<string, boolean | string | null>,
+) {
+  console.info(`[PASSWORD_RESET] ${message}`, details);
 }
 
 function isExpiredLinkError(error: AuthError) {
@@ -79,12 +89,11 @@ function isWeakPasswordError(error: AuthError) {
 }
 
 export function PasswordResetForm() {
+  const recoveryClientRef = useRef<SupabaseBrowserClient | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [status, setStatus] = useState<RecoveryStatus>("validating");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -96,16 +105,20 @@ export function PasswordResetForm() {
       isSingleton: false,
     });
     let isActive = true;
-    let sawPasswordRecoveryEvent = false;
+    recoveryClientRef.current = supabase;
+
+    logPasswordResetInfo("page loaded", {
+      hasCode: Boolean(recoveryUrlState.code),
+      hasHash: recoveryUrlState.hasHash,
+    });
 
     function markRecoverySessionReady() {
       if (!isActive) {
         return;
       }
 
-      setHasRecoverySession(true);
+      setStatus("ready");
       setError("");
-      setIsCheckingSession(false);
       cleanRecoveryUrl();
     }
 
@@ -114,16 +127,14 @@ export function PasswordResetForm() {
         return;
       }
 
-      setHasRecoverySession(false);
+      setStatus("invalid");
       setError(EXPIRED_LINK_MESSAGE);
-      setIsCheckingSession(false);
     }
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" && session) {
-        sawPasswordRecoveryEvent = true;
         markRecoverySessionReady();
       }
     });
@@ -134,17 +145,19 @@ export function PasswordResetForm() {
         return;
       }
 
-      if (
-        recoveryUrlState.accessToken &&
-        recoveryUrlState.refreshToken &&
-        recoveryUrlState.type === "recovery"
-      ) {
-        const { error: setSessionError } = await supabase.auth.setSession({
+      if (recoveryUrlState.accessToken && recoveryUrlState.refreshToken) {
+        const { data, error: setSessionError } = await supabase.auth.setSession({
           access_token: recoveryUrlState.accessToken,
           refresh_token: recoveryUrlState.refreshToken,
         });
 
-        if (setSessionError) {
+        logPasswordResetInfo("hash session result", {
+          errorMessage: setSessionError?.message ?? null,
+          hasSession: Boolean(data?.session),
+          hasUser: Boolean(data?.user),
+        });
+
+        if (setSessionError || !data.session) {
           markRecoverySessionInvalid();
           return;
         }
@@ -159,7 +172,13 @@ export function PasswordResetForm() {
           error: exchangeError,
         } = await supabase.auth.exchangeCodeForSession(recoveryUrlState.code);
 
-        if (exchangeError || !session || !sawPasswordRecoveryEvent) {
+        logPasswordResetInfo("exchange result", {
+          errorMessage: exchangeError?.message ?? null,
+          hasSession: Boolean(session),
+          hasUser: Boolean(session?.user),
+        });
+
+        if (exchangeError || !session) {
           await supabase.auth.signOut();
           markRecoverySessionInvalid();
           return;
@@ -176,6 +195,7 @@ export function PasswordResetForm() {
 
     return () => {
       isActive = false;
+      recoveryClientRef.current = null;
       subscription.unsubscribe();
     };
   }, []);
@@ -188,9 +208,8 @@ export function PasswordResetForm() {
     }
 
     setError("");
-    setMessage("");
 
-    if (!hasRecoverySession) {
+    if (status !== "ready") {
       setError(EXPIRED_LINK_MESSAGE);
       return;
     }
@@ -212,7 +231,7 @@ export function PasswordResetForm() {
 
     setIsSubmitting(true);
 
-    const supabase = createSupabaseBrowserClient();
+    const supabase = recoveryClientRef.current ?? createSupabaseBrowserClient();
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword,
     });
@@ -234,88 +253,124 @@ export function PasswordResetForm() {
       return;
     }
 
-    setMessage("Senha alterada com sucesso.");
+    setStatus("success");
+    setNewPassword("");
+    setConfirmPassword("");
     await supabase.auth.signOut();
 
     window.setTimeout(() => {
-      window.location.assign("/login");
+      window.location.assign("/login?passwordReset=success");
     }, 1800);
   }
-
-  const isSubmitDisabled = isCheckingSession || !hasRecoverySession || isSubmitting;
 
   return (
     <section className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
       <h1 className="text-2xl font-bold text-[var(--foreground)]">Redefinir senha</h1>
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        <label className="block">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Nova senha</span>
-          <input
-            name="newPassword"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            disabled={isCheckingSession || !hasRecoverySession || isSubmitting}
-            className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
-            placeholder="Digite a nova senha"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-semibold text-[var(--foreground)]">
-            Confirmar nova senha
-          </span>
-          <input
-            name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            disabled={isCheckingSession || !hasRecoverySession || isSubmitting}
-            className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
-            placeholder="Repita a nova senha"
-          />
-        </label>
 
-        {error ? (
+      {status === "validating" ? (
+        <div className="mt-6 rounded-md border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2">
+          <SmartInlineLoading
+            className="font-semibold text-[var(--foreground)]"
+            message="Validando link de recuperação..."
+          />
+        </div>
+      ) : null}
+
+      {status === "ready" ? (
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Nova senha</span>
+            <input
+              name="newPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              disabled={isSubmitting}
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="Digite a nova senha"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">
+              Confirmar nova senha
+            </span>
+            <input
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              disabled={isSubmitting}
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="Repita a nova senha"
+            />
+          </label>
+
+          {error ? (
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+              {error}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? (
+              <SmartButtonLoading message="Salvando..." />
+            ) : (
+              <>
+                <KeyRound size={17} aria-hidden="true" />
+                Alterar senha
+              </>
+            )}
+          </button>
+        </form>
+      ) : null}
+
+      {status === "invalid" ? (
+        <div className="mt-6 space-y-4">
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
-            {error}
+            {error || EXPIRED_LINK_MESSAGE}
           </p>
-        ) : null}
-        {message ? (
-          <p className="rounded-md border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
-            {message}
-          </p>
-        ) : null}
+          <Link
+            href="/esqueci-senha"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+          >
+            Solicitar novo link
+          </Link>
+        </div>
+      ) : null}
 
-        <button
-          type="submit"
-          disabled={isSubmitDisabled}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+      {status === "success" ? (
+        <div className="mt-6 space-y-4">
+          <p className="rounded-md border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
+            Senha alterada com sucesso.
+          </p>
+          <Link
+            href="/login?passwordReset=success"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
+          >
+            Entrar
+          </Link>
+        </div>
+      ) : null}
+
+      {status === "ready" ? (
+        <Link
+          href="/esqueci-senha"
+          className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)]"
         >
-          {isCheckingSession ? (
-            <SmartButtonLoading message="Validando link..." />
-          ) : isSubmitting ? (
-            <SmartButtonLoading message="Salvando..." />
-          ) : (
-            <>
-              <KeyRound size={17} aria-hidden="true" />
-              Alterar senha
-            </>
-          )}
-        </button>
-      </form>
-      <Link
-        href="/esqueci-senha"
-        className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)]"
-      >
-        <ArrowLeft size={16} aria-hidden="true" />
-        Solicitar novo link
-      </Link>
+          <ArrowLeft size={16} aria-hidden="true" />
+          Solicitar novo link
+        </Link>
+      ) : null}
     </section>
   );
 }

@@ -153,8 +153,8 @@ export function HeaderActions({ account, categories, franchises, links }: Header
               </Link>
               <form action="/api/v1/auth/logout" method="post">
                 <button
+                  type="submit"
                   className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-                  onClick={closeAccountMenu}
                 >
                   <LogOut size={16} aria-hidden="true" />
                   Sair
@@ -231,8 +231,8 @@ export function HeaderActions({ account, categories, franchises, links }: Header
               ) : (
                 <form action="/api/v1/auth/logout" method="post">
                   <button
+                    type="submit"
                     className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-bold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-                    onClick={closeMobileMenu}
                   >
                     <LogOut size={16} aria-hidden="true" />
                     Sair

@@ -15,6 +15,7 @@ Use antes de liberar um ambiente Production ou Preview para teste controlado.
 - Aplicar migrations com `npm run supabase:push` na raiz do repo.
 - Em Authentication -> URL Configuration, confirmar `Site URL=https://smartfunko.com.br`.
 - Em Authentication -> URL Configuration, confirmar Redirect URLs `https://smartfunko.com.br/**` e `https://smart-funko.vercel.app/**`.
+- Em Authentication -> Emails -> Reset password, confirmar que o botao usa `{{ .ConfirmationURL }}`.
 - Enviar e-mail de recuperacao de senha e confirmar que o link abre `/redefinir-senha` no dominio correto.
 - Conferir RLS habilitado nas tabelas principais.
 - Confirmar bucket `product-images` publico para leitura e restrito para escrita admin.
