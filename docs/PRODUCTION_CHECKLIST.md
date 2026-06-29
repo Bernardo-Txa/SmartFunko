@@ -13,6 +13,9 @@ Use antes de liberar um ambiente Production ou Preview para teste controlado.
 ## 2. Supabase
 
 - Aplicar migrations com `npm run supabase:push` na raiz do repo.
+- Em Authentication -> URL Configuration, confirmar `Site URL=https://smartfunko.com.br`.
+- Em Authentication -> URL Configuration, confirmar Redirect URLs `https://smartfunko.com.br/**` e `https://smart-funko.vercel.app/**`.
+- Enviar e-mail de recuperacao de senha e confirmar que o link abre `/redefinir-senha` no dominio correto.
 - Conferir RLS habilitado nas tabelas principais.
 - Confirmar bucket `product-images` publico para leitura e restrito para escrita admin.
 - Confirmar backups e acesso ao painel Supabase.
@@ -58,6 +61,7 @@ https://seu-dominio.com/api/v1/webhooks/infinitepay
 
 ## 6. Fluxos criticos
 
+- Cliente solicita recuperacao em `/esqueci-senha`, recebe mensagem generica e redefine senha via `/redefinir-senha`.
 - Cliente cria pedido pelo carrinho assistido.
 - Admin aprova pedido e gera link InfinitePay.
 - Webhook confirma pagamento e atualiza caixa/payment.

@@ -42,6 +42,8 @@ Copie `.env.example` para `.env.local` e preencha:
 - `/rifas/[slug]`
 - `/carrinho`
 - `/login`
+- `/esqueci-senha`
+- `/redefinir-senha`
 - `/cadastro`
 - `/conta`
 - `/conta/pedidos`

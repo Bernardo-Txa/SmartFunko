@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
@@ -190,6 +191,13 @@ export function AuthForm({
             placeholder={mode === "register" ? "Crie uma senha" : "Sua senha"}
           />
         </label>
+        {mode === "login" ? (
+          <div className="flex justify-end">
+            <Link href="/esqueci-senha" className="text-sm font-semibold text-[var(--accent)]">
+              Esqueci minha senha
+            </Link>
+          </div>
+        ) : null}
 
         {error ? (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
