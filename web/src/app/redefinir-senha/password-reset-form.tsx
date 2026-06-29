@@ -19,10 +19,10 @@ type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
 type RecoveryUrlState = {
   accessToken: string | null;
   code: string | null;
-  hasHash: boolean;
   hasRecoveryCallback: boolean;
   hasUrlError: boolean;
   refreshToken: string | null;
+  type: string | null;
 };
 
 function readRecoveryUrlState(): RecoveryUrlState {
@@ -33,11 +33,11 @@ function readRecoveryUrlState(): RecoveryUrlState {
   const code = params.get("code");
   const accessToken = hashParams.get("access_token");
   const refreshToken = hashParams.get("refresh_token");
+  const type = params.get("type") ?? hashParams.get("type");
 
   return {
     accessToken,
     code,
-    hasHash: Boolean(hash),
     hasRecoveryCallback: Boolean(code) || Boolean(accessToken && refreshToken),
     hasUrlError:
       params.has("error") ||
@@ -45,6 +45,7 @@ function readRecoveryUrlState(): RecoveryUrlState {
       hashParams.has("error") ||
       hashParams.has("error_description"),
     refreshToken,
+    type,
   };
 }
 
@@ -107,9 +108,12 @@ export function PasswordResetForm() {
     let isActive = true;
     recoveryClientRef.current = supabase;
 
-    logPasswordResetInfo("page loaded", {
+    logPasswordResetInfo("callback detected", {
+      hasAccessToken: Boolean(recoveryUrlState.accessToken),
       hasCode: Boolean(recoveryUrlState.code),
-      hasHash: recoveryUrlState.hasHash,
+      hasRefreshToken: Boolean(recoveryUrlState.refreshToken),
+      hasUrlError: recoveryUrlState.hasUrlError,
+      type: recoveryUrlState.type,
     });
 
     function markRecoverySessionReady() {
@@ -259,7 +263,7 @@ export function PasswordResetForm() {
     await supabase.auth.signOut();
 
     window.setTimeout(() => {
-      window.location.assign("/login?passwordReset=success");
+      window.location.assign("/login");
     }, 1800);
   }
 
@@ -354,7 +358,7 @@ export function PasswordResetForm() {
             Senha alterada com sucesso.
           </p>
           <Link
-            href="/login?passwordReset=success"
+            href="/login"
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110"
           >
             Entrar
