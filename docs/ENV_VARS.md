@@ -24,9 +24,30 @@
 
 Configure as variaveis em Production e Preview conforme o ambiente. Depois de alterar qualquer env, faca redeploy para o Next.js receber os novos valores.
 
+Para producao SmartFunko, configure:
+
+```txt
+NEXT_PUBLIC_SITE_URL=https://smartfunko.com.br
+```
+
 `INFINITEPAY_API_KEY`, `INFINITEPAY_HANDLE`, `INFINITEPAY_WEBHOOK_SECRET` e `SUPABASE_SERVICE_ROLE_KEY` nunca devem ser expostas como `NEXT_PUBLIC_*`.
 
 Variaveis `NEXT_PUBLIC_*` sao embutidas no bundle no build. Alterar essas variaveis na Vercel exige novo deploy para atualizar navegacao, SEO, Supabase anon client e feature flags publicas.
+
+## Supabase Auth URLs
+
+Em Supabase -> Authentication -> URL Configuration, configure:
+
+```txt
+Site URL:
+https://smartfunko.com.br
+
+Redirect URLs:
+https://smartfunko.com.br/**
+https://smart-funko.vercel.app/**
+```
+
+O e-mail de recuperacao de senha deve redirecionar para `/redefinir-senha` no dominio publico. O browser usa somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` para solicitar o reset e atualizar a senha depois que o link de recovery cria uma sessao valida.
 
 ## Feature flags
 
