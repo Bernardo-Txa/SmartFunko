@@ -15,7 +15,7 @@ O app mobile é um cliente Flutter para a área do cliente da Smart Funkos.
 
 O mobile autentica o usuário diretamente no Supabase Auth com `SUPABASE_URL` e `SUPABASE_ANON_KEY`. Depois disso, chamadas futuras às APIs Next.js devem enviar `Authorization: Bearer <access token>` pelo `ApiClient`.
 
-Pagamentos, rifas produtivas, pedidos e operações sensíveis continuam centralizados no backend web.
+Pagamentos, geração de links InfinitePay, webhooks, service role e operações administrativas continuam centralizados no backend web.
 
 ## Mobile 0.4.1: autenticação e locale
 
@@ -178,11 +178,11 @@ Status suportados no mobile:
 - `cancelled`: Cancelado.
 - `refunded`: Estornado.
 
-Limitacoes:
+Limites operacionais:
 
-- pagamento nativo InfinitePay fica para etapa futura;
+- pagamento direto InfinitePay não acontece no app;
 - pedido ainda passa por aprovacao/admin;
-- rifas reais entram na 0.4.
+- webhook e verificacao server-side continuam sendo a fonte da verdade de pagamento.
 
 ## Rifas Reais 0.4
 
@@ -265,13 +265,13 @@ Histórico:
 - `0.4`: rifas cliente.
 - `0.5`: Clube e perfil conectados a dados reais.
 - `0.6.x`: UI premium foi adiada; mobile voltou ao foco funcional.
-- Release prep: ícones, splash, screenshots, políticas e lojas.
+- Release prep: screenshots, políticas e lojas.
 
 ## Publicação
 
 Antes de Play Store e App Store:
 
-- Revisar nome, ícone e splash.
+- Validar branding nativo gerado: nome, ícone e splash.
 - Validar bundle/package `br.com.smartfunkos.app`.
 - Gerar screenshots por dispositivo.
 - Revisar privacy policy e termos.

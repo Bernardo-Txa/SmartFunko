@@ -1,8 +1,39 @@
 # SmartFunko Mobile
 
-App Flutter cliente da SmartFunko.
+## Estado atual
 
-## Requisitos
+O app mobile da SmartFunko é um MVP cliente Flutter funcional e em evolução.
+Ele é integrado ao web/backend da SmartFunko, consome APIs públicas e autenticadas do Next.js e usa Supabase Auth para autenticação.
+
+Domínio oficial:
+
+```txt
+https://smartfunko.com.br
+```
+
+O app não contém secrets, não executa rotinas administrativas e não confirma pagamentos por conta própria.
+
+## Escopo do app
+
+- Login e logout com Supabase Auth.
+- Recuperação de senha via fluxo web.
+- Home mobile como hub do cliente.
+- Catálogo.
+- Busca e filtros de catálogo.
+- Detalhe do produto por slug.
+- Carrinho local.
+- Checkout assistido com envio de pedido real ao backend.
+- Meus pedidos.
+- Detalhe do pedido.
+- Rifas.
+- Minhas rifas/reservas.
+- Perfil.
+- Branding mobile com ícone, splash e assets oficiais.
+- Estados visuais de loading, empty e error em evolução.
+
+## Como rodar
+
+Requisitos:
 
 - Flutter SDK estável.
 - Android Studio e Android SDK para Android.
@@ -15,43 +46,14 @@ Verifique o ambiente:
 flutter doctor -v
 ```
 
-## Instalação
+Instale as dependências:
 
 ```bash
 cd mobile
 flutter pub get
 ```
 
-## Variáveis permitidas no app
-
-O app usa apenas valores públicos via `--dart-define`:
-
-- `API_BASE_URL`
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-
-Exemplo:
-
-```bash
-flutter run -d chrome \
-  --dart-define=API_BASE_URL=https://smartfunko.com.br \
-  --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
-  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
-```
-
-## Variáveis proibidas no app
-
-Nunca embutir no Flutter:
-
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `INFINITEPAY_API_KEY`
-- `INFINITEPAY_WEBHOOK_SECRET`
-
-InfinitePay, service role e webhooks devem ficar somente no backend Next.js.
-
-## Como rodar
-
-Comando oficial Android:
+Android emulator:
 
 ```bash
 flutter run -d emulator-5554 \
@@ -60,84 +62,65 @@ flutter run -d emulator-5554 \
   --dart-define=SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
 ```
 
-Web:
+Dispositivo físico:
+
+```bash
+flutter devices
+
+flutter run -d ID_DO_DEVICE \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
+  --dart-define=SUPABASE_URL=https://sufppaxdxmxdcfkuvanm.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
+```
+
+Flutter Web local:
 
 ```bash
 flutter run -d chrome \
   --dart-define=API_BASE_URL=https://smartfunko.com.br \
-  --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
-  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
-```
-
-Web no Brave/Chromium:
-
-```bash
-flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 \
-  --dart-define=API_BASE_URL=https://smartfunko.com.br \
-  --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
-  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
-```
-
-Depois abra `http://127.0.0.1:8080` no Brave ou Chrome.
-
-O backend permite CORS para Flutter Web local em `http://localhost:*` e `http://127.0.0.1:*`. Em ambientes remotos, mantenha `NEXT_PUBLIC_SITE_URL` correto e use `CORS_ALLOWED_ORIGINS` no web se precisar autorizar origens adicionais. CORS nao substitui login: chamadas futuras para `/api/v1/me/*` continuam usando Bearer token.
-
-Imagens externas que nao suportam CORS no navegador passam pelo proxy seguro do backend no Flutter Web:
-
-```txt
-GET /api/v1/public/image-proxy?url=<encoded_url>
-```
-
-O proxy aceita apenas dominios em allowlist (`cdn.awsli.com.br`, `smartfunko.com.br`, `*.supabase.co`) e bloqueia hosts locais/privados.
-
-Android:
-
-```bash
-flutter run -d android \
-  --dart-define=API_BASE_URL=https://smartfunko.com.br \
-  --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
-  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
-```
-
-iOS:
-
-```bash
-flutter run -d ios \
-  --dart-define=API_BASE_URL=https://smartfunko.com.br \
-  --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
-  --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
+  --dart-define=SUPABASE_URL=https://sufppaxdxmxdcfkuvanm.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
 ```
 
 Sem as três variáveis, o app abre uma tela de erro clara em desenvolvimento.
 
-## Comandos de qualidade
+## Variáveis de ambiente
 
-```bash
-flutter analyze
-flutter test
-```
+Variáveis permitidas no app via `--dart-define`:
+
+- `API_BASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+Variáveis proibidas no app:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `INFINITEPAY_API_KEY`
+- `INFINITEPAY_WEBHOOK_SECRET`
+- `DATABASE_URL`
+- qualquer secret server-side
+
+O Flutter nunca deve chamar InfinitePay diretamente.
+Pagamentos, geração de links, webhooks e service role são responsabilidade do backend web.
 
 ## Branding mobile
 
-Assets usados pelo launcher icon e splash nativo:
+Assets oficiais usados no mobile:
 
 ```txt
-assets/branding/logo_horizontal_white.png
-assets/branding/logo_square.png
-assets/branding/logo_dark.png
-assets/branding/app_icon.png
-assets/branding/app_icon_foreground.png
-assets/branding/splash_android12.png
+mobile/assets/branding/app_icon.png
+mobile/assets/branding/app_icon_foreground.png
+mobile/assets/branding/logo_horizontal_white.png
+mobile/assets/branding/logo_dark.png
+mobile/assets/branding/logo_square.png
+mobile/assets/branding/splash_logo.png
 ```
 
-Os PNGs atuais usam a arte oficial da SmartFunko enviada pelo usuário:
+Asset adicional usado pela splash Android 12:
 
-- `logo_horizontal_white.png`: logo horizontal branca para hero, splash e fundos escuros.
-- `logo_square.png`: logo quadrada para badges pequenos e placeholders internos.
-- `logo_dark.png`: logo escura para fundos claros.
-- `app_icon.png`: ícone azul oficial usado no launcher Android/iOS/Web.
-- `app_icon_foreground.png`: foreground do adaptive icon Android.
-- `splash_android12.png`: ícone azul quadrado usado especificamente na splash Android 12.
+```txt
+mobile/assets/branding/splash_android12.png
+```
 
 Gerar ícones nativos e web:
 
@@ -145,10 +128,128 @@ Gerar ícones nativos e web:
 dart run flutter_launcher_icons
 ```
 
-Gerar splash nativo:
+Gerar splash nativa:
 
 ```bash
 dart run flutter_native_splash:create
+```
+
+Regras de uso:
+
+- O launcher icon usa o ícone azul oficial.
+- A splash usa fundo dark/navy.
+- A logo horizontal branca é usada em fundos escuros.
+- A logo escura é usada apenas em fundos claros.
+- `app_icon_foreground.png` é o foreground do adaptive icon Android.
+
+## Fluxos funcionais
+
+### Auth
+
+- Login com Supabase Auth.
+- Logout.
+- Recuperação de senha.
+- E-mail não confirmado recebe mensagem amigável quando retornado pelo Supabase.
+- Reset de senha direciona para o fluxo web em `https://smartfunko.com.br/redefinir-senha`.
+- Rotas protegidas sincronizam a sessão atual do Supabase antes de chamar `/api/v1/me/*`.
+
+### Catálogo
+
+- Lista produtos reais via API pública.
+- Busca por texto e filtros de status.
+- Cards de produto com preço, status, imagem e ação de carrinho.
+- Detalhe do produto por slug.
+- Compartilhamento usa `${API_BASE_URL}/produto/[slug]`.
+
+### Carrinho e checkout assistido
+
+- Cliente adiciona produtos ao carrinho local.
+- Cliente revisa itens e quantidades.
+- `Finalizar pedido` exige login.
+- App envia `variantId` e `quantity`; o backend recalcula preço, total e disponibilidade.
+- Backend cria pedido real em análise.
+- Pagamento não acontece direto no app.
+- Link de pagamento é liberado posteriormente pelo backend/admin.
+- Webhook e verificação server-side são a fonte da verdade de pagamento.
+
+### Pedidos
+
+- Lista pedidos reais do usuário.
+- Abre detalhe por número do pedido.
+- Mostra status, itens, total e datas.
+- Mostra link de pagamento quando o backend retornar um link disponível.
+
+### Rifas
+
+- Lista campanhas.
+- Abre detalhe da campanha por slug.
+- Carrega números.
+- Permite selecionar e reservar números quando o backend habilita o fluxo.
+- Lista minhas rifas/reservas.
+- Pagamento sempre passa pelo backend.
+- O app não sorteia, não confirma pagamento e não altera status financeiro localmente.
+
+### Perfil
+
+- Mostra dados básicos da conta.
+- Oferece atalhos para pedidos e minhas rifas.
+- Permite logout.
+
+## Fluxos experimentais/controlados
+
+Rifas existem no app, mas dependem das regras, flags e validações do backend.
+O app apenas consome o fluxo; não executa sorteio nem confirmação de pagamento.
+
+O checkout assistido cria pedidos em análise.
+A aprovação, geração de link InfinitePay, confirmação de pagamento e baixa financeira continuam no backend/admin.
+
+## O que não existe no mobile
+
+O mobile ainda não possui:
+
+- painel administrativo;
+- geração direta de pagamento InfinitePay;
+- service role;
+- marketplace;
+- scanner;
+- ranking;
+- comunidade;
+- coleção pessoal completa;
+- fluxo nativo completo de deep link para reset de senha;
+- publicação em loja.
+
+Rotas compatíveis ou telas internas fora da navegação principal não significam produto final publicado para o cliente.
+
+## Checklist manual
+
+1. Splash abre com branding correto.
+2. Login funciona.
+3. Logout funciona.
+4. Esqueci minha senha envia e-mail.
+5. Home carrega.
+6. Catálogo lista produtos.
+7. Busca/filtros funcionam.
+8. Produto abre.
+9. Produto adiciona ao carrinho.
+10. Carrinho mostra itens.
+11. Checkout cria pedido real.
+12. App direciona para pedido após checkout.
+13. Pedidos listam dados reais.
+14. Link de pagamento abre quando disponível.
+15. Rifas carregam.
+16. Reserva de rifa funciona quando habilitada.
+17. Minhas rifas carrega reservas reais.
+18. Perfil abre.
+19. Ícone do app está correto.
+20. Splash nativa está correta.
+21. Sem tela branca, overflow ou botão morto.
+
+## Comandos úteis
+
+```bash
+flutter pub get
+flutter analyze
+flutter test
 ```
 
 Build debug Android:
@@ -160,122 +261,6 @@ flutter build apk --debug \
   --dart-define=SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
 ```
 
-## Mobile Reset UX: foco e funcionalidade
-
-O mobile foi simplificado para priorizar fluxos reais e reduzir a superfície de protótipo. A navegação principal fica no bottom nav:
-
-- Home.
-- Catálogo.
-- Rifas.
-- Pedidos.
-- Perfil.
-
-Escopo disponível agora:
-
-- Login Supabase.
-- Home objetiva com saudação, ações principais, produtos em destaque reais e rifas ativas reais.
-- Catálogo público com busca por texto, filtros de status funcionais, preço, status e ação de carrinho.
-- Produto por slug com imagem, nome, preço, status, descrição, compartilhar e adicionar ao carrinho.
-- Carrinho local com quantidade, remoção, total e criação de pedido real para usuário logado.
-- Pedidos reais do cliente e detalhe por número.
-- Rifas reais experimentais, detalhe, seleção de números e minhas rifas.
-- Perfil simples com dados da conta, pedidos, minhas rifas e sair.
-
-Removido ou escondido do mobile:
-
-- Drawer complexo.
-- Fandom chips decorativos.
-- Visual e seções de drops como peça de descoberta.
-- Wishlist, favoritos e ranking sem persistência real.
-- Scanner, coleção, comunidade e marketplace.
-- Clube com pontuação ou benefícios demo.
-- Teasers e cards de roadmap dentro da experiência principal.
-
-Roadmap futuro, fora do escopo atual:
-
-- UI premium.
-- Wishlist real.
-- Alertas reais de estoque/pre-venda.
-- Coleção do usuário.
-- Scanner.
-- Comunidade/marketplace.
-
-Checklist manual sugerido:
-
-- Abrir Home, Catálogo, Produto, Carrinho, Pedidos, Rifas, Minhas rifas, Perfil, Login e Logout.
-- Adicionar produto ao carrinho e finalizar pedido sem voltar para Home.
-- Reservar rifa quando houver campanha aberta e link de pagamento retornado pelo backend.
-- Confirmar que não há botão morto, seção falsa ou overflow visível.
-
-## Mobile MVP Cliente 0.2
-
-O app consome endpoints públicos do backend web em `API_BASE_URL`:
-
-- `GET /api/v1/public/products`
-- `GET /api/v1/public/products/[slug]`
-
-Validacao CORS de preflight:
-
-```bash
-curl -i -X OPTIONS \
-  "https://smartfunko.com.br/api/v1/public/products?page=1&pageSize=24&sort=specials_first" \
-  -H "Origin: http://localhost:33539" \
-  -H "Access-Control-Request-Method: GET"
-```
-
-Validacao do proxy de imagem:
-
-```bash
-curl -I "https://smartfunko.com.br/api/v1/public/image-proxy?url=https%3A%2F%2Fcdn.awsli.com.br%2F800x800%2F84%2F84034%2Fproduto%2F161912510%2Ffunko-pop--disney-classics-dumbo-1195-exclusivo-a-1--800-5ixl3unfcx.jpg" \
-  -H "Origin: http://localhost:36883"
-```
-
-Fluxos para testar:
-
-- Home: abre com hero Smart Funkos, CTAs, destaques reais ou estado de erro.
-- Catálogo: busca produtos reais, permite busca por texto, pull to refresh, card premium e adicionar ao carrinho.
-- Produto: abre por slug, mostra galeria, preço, badges, descrição, adicionar ao carrinho e compartilhar `${API_BASE_URL}/produto/[slug]`.
-- Carrinho: lista itens locais, altera quantidade, remove, limpa e calcula total estimado.
-
-Limitações assumidas:
-
-- Criação real de pedido entra na sprint `0.3`.
-- Rifa real entra na sprint `0.4`.
-- Clube real entra na sprint `0.5`.
-- O carrinho `0.2` é local em memória e não persiste ao reiniciar o app.
-
-## Mobile MVP Cliente 0.3
-
-Fluxo de pedido real:
-
-- Carrinho usa produtos reais do catalogo e guarda `variantId`.
-- `Finalizar pedido` exige login.
-- `/checkout` revisa itens, total estimado e observacoes.
-- `POST /api/v1/me/orders` cria o pedido em analise.
-- `/pedidos` lista pedidos reais.
-- `/pedidos/[orderNumber]` mostra status, itens, total e link de pagamento se o backend liberar.
-
-O app nao envia preco como fonte da verdade. O backend recalcula totais e valida produtos pelo token do usuario.
-
-## Mobile MVP Cliente 0.4
-
-Rifas reais experimentais:
-
-- `/rifas` lista campanhas abertas via `GET /api/v1/public/raffles`.
-- `/rifas/:slug` carrega detalhe e numeros via endpoints publicos.
-- Cliente seleciona numeros disponiveis e reserva com `POST /api/v1/me/raffles/[slug]/reserve`.
-- `/minhas-rifas` lista reservas pelo endpoint `GET /api/v1/me/raffles/orders`.
-
-O backend continua definindo cliente pelo Bearer token e validando disponibilidade/total. Pagamento nativo nao e confirmado pelo app.
-
-## Mobile 0.4.1
-
-- `/api/v1/me/*` usa `Authorization: Bearer <access_token>` obtido da sessão atual do Supabase.
-- O interceptor tenta renovar sessão expirada antes de enviar endpoints autenticados e não loga o token completo.
-- Telas autenticadas mostram CTA de login e não disparam `/me` sem sessão.
-- `/minhas-rifas` usa `GET /api/v1/me/raffles`; `/api/v1/me/raffles/orders` fica como compatibilidade no backend.
-- Datas em `pt_BR` são inicializadas com `initializeDateFormatting('pt_BR', null)` antes de `runApp`.
-
 Teste rápido de CORS/autenticação:
 
 ```bash
@@ -285,30 +270,14 @@ curl -i -X OPTIONS "https://smartfunko.com.br/api/v1/me/orders" \
   -H "Access-Control-Request-Headers: Authorization, Content-Type"
 ```
 
-## Mobile 0.4.2
+## Pendências reais
 
-- `AuthController` sincroniza o estado com `Supabase.instance.client.auth.currentSession`.
-- Checkout e rifa chamam `syncSession()` antes de decidir se enviam o usuário para login.
-- `/login` aceita `from` e `redirect` para voltar ao checkout, rifa, pedidos ou minhas rifas.
-- O interceptor lança erro controlado antes de chamar `/api/v1/me/*` quando não há token.
-
-## Estrutura
-
-- `lib/app`: app, router e tema.
-- `lib/core`: configuração, auth, rede e utilitários.
-- `lib/shared/widgets`: widgets reutilizáveis.
-- `lib/features`: telas do MVP cliente.
-
-## Identificadores
-
-- Android package: `br.com.smartfunkos.app`
-- iOS bundle id: `br.com.smartfunkos.app`
-- Nome de exibição: `SmartFunko`
-
-## Pendências de loja
-
-- Substituir os placeholders de ícone/splash pela arte oficial final.
-- Preparar screenshots.
-- Publicar privacy policy e termos.
-- Configurar Play Console.
-- Configurar App Store Connect.
+- Testar fluxo completo em dispositivo físico.
+- Revisar deep links nativos, especialmente reset de senha.
+- Preparar Play Store/App Store.
+- Publicar ou revisar política de privacidade.
+- Publicar ou revisar termos de uso.
+- Gerar screenshots para loja.
+- Avaliar crash reporting/analytics.
+- Melhorar acessibilidade fina.
+- Ampliar testes automatizados.

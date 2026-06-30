@@ -6,7 +6,7 @@
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`: numero usado nos CTAs de WhatsApp.
 - `NEXT_PUBLIC_SUPABASE_URL`: URL publica do Supabase.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: anon key publica do Supabase.
-- `NEXT_PUBLIC_ENABLE_RAFFLES`: ativa Rifas DEV 1.1 quando `true`.
+- `NEXT_PUBLIC_ENABLE_RAFFLES`: ativa Rifas quando `true`.
 - `NEXT_PUBLIC_ENABLE_REWARDS`: ativa Clube Smart Funkos, pontos, niveis e ranking mensal quando `true`.
 - `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT`: ativa envio do carrinho para analise quando diferente de `false`.
 
@@ -85,7 +85,7 @@ O browser usa somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KE
 - Nao registrar secrets em logs.
 - CORS permite Flutter Web local em `http://localhost:*` e `http://127.0.0.1:*`, `NEXT_PUBLIC_SITE_URL`, `https://smartfunko.com.br` e origens extras em `CORS_ALLOWED_ORIGINS`.
 - CORS nao substitui autenticacao: endpoints `/api/v1/me/*` continuam exigindo Bearer token/sessao valida.
-- `/api/v1/admin/*` nao e liberado para mobile nesta sprint.
+- `/api/v1/admin/*` nao e liberado para mobile.
 - O proxy publico `/api/v1/public/image-proxy` aceita apenas URLs de imagem em allowlist: `cdn.awsli.com.br`, `smartfunko.com.br` e hosts terminando exatamente em `.supabase.co`. Nao adicione dominios sem revisar SSRF e tipo de conteudo.
 
 ## Webhook InfinitePay
