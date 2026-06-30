@@ -15,7 +15,7 @@ const blockedHostnames = new Set([
 ]);
 const allowedExactHostnames = new Set([
   "cdn.awsli.com.br",
-  "smart-funko.vercel.app",
+  "smartfunko.com.br",
 ]);
 
 type ParseImageUrlResult =

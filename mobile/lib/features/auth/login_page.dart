@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/auth/auth_state.dart';
+import '../../shared/branding/smart_funko_brand.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/smart_card.dart';
@@ -61,10 +62,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.toys_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 44,
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: SmartFunkoLogo(height: 64),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -116,8 +116,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     },
                     onFieldSubmitted: (_) => _submit(),
                   ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: auth.isLoading
+                          ? null
+                          : () => context.go('/esqueci-senha'),
+                      child: const Text('Esqueci minha senha'),
+                    ),
+                  ),
                   if (auth.isError && errorMessage != null) ...[
-                    const SizedBox(height: 12),
                     Text(
                       errorMessage,
                       style: theme.textTheme.bodyMedium?.copyWith(

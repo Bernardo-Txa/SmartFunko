@@ -20,14 +20,21 @@ enum ProductStatus {
   String get label {
     return switch (this) {
       ProductStatus.available => 'Pronta-entrega',
-      ProductStatus.orderOnly => 'Encomenda',
+      ProductStatus.orderOnly => 'Sob encomenda',
       ProductStatus.preorder => 'Pré-venda',
       ProductStatus.soldOut => 'Esgotado',
       ProductStatus.unknown => 'Sob consulta',
     };
   }
 
-  bool get isAvailable => this != ProductStatus.soldOut;
+  bool get isAvailable {
+    return switch (this) {
+      ProductStatus.available ||
+      ProductStatus.orderOnly ||
+      ProductStatus.preorder => true,
+      ProductStatus.soldOut || ProductStatus.unknown => false,
+    };
+  }
 }
 
 class ProductPrice {
@@ -84,9 +91,13 @@ class ProductSummary {
     this.category,
     this.special = false,
     this.supplierName,
+    this.supplierSlug,
     this.isAvailable = true,
     this.source,
     this.variantId,
+    this.sku,
+    this.code,
+    this.funkoNumber,
     this.badges = const [],
   });
 
@@ -99,10 +110,17 @@ class ProductSummary {
   final String? category;
   final bool special;
   final String? supplierName;
+  final String? supplierSlug;
   final bool isAvailable;
   final String? source;
   final String? variantId;
+  final String? sku;
+  final String? code;
+  final String? funkoNumber;
   final List<String> badges;
+
+  bool get canAddToCart =>
+      isAvailable && (variantId?.trim().isNotEmpty ?? false);
 
   factory ProductSummary.fromJson(Map<String, dynamic> json) {
     final status = ProductStatus.fromJson(
@@ -120,13 +138,37 @@ class ProductSummary {
       'supplierName',
       'supplier_name',
     ]);
+    final supplierSlug = _readNullableString(json, [
+      'supplierSlug',
+      'supplier_slug',
+    ]);
     final source = _readNullableString(json, ['source']);
     final variantId = _readNullableString(json, ['variantId', 'variant_id']);
+    final sku = _readNullableString(json, ['sku']);
+    final code = _readNullableString(json, [
+      'code',
+      'externalCatalogCode',
+      'external_catalog_code',
+    ]);
+    final funkoNumber = _readNullableString(json, [
+      'funkoNumber',
+      'funko_number',
+    ]);
+    final isSpecial =
+        _readBool(json, ['isSpecial', 'special']) ||
+        specialLabel != null ||
+        tags.isNotEmpty ||
+        (type != null && type != 'Comum');
     final badges = [
       status.label,
       if (specialLabel != null) specialLabel,
       if (type != null && type != 'Comum') type,
       ...tags.take(2),
+      if (isSpecial &&
+          specialLabel == null &&
+          tags.isEmpty &&
+          (type == null || type == 'Comum'))
+        'Special',
     ];
 
     return ProductSummary(
@@ -139,17 +181,17 @@ class ProductSummary {
       imageUrl: imageUrl.isEmpty ? null : imageUrl,
       status: status,
       category: category,
-      special:
-          _readBool(json, ['isSpecial', 'special']) ||
-          specialLabel != null ||
-          tags.isNotEmpty ||
-          (type != null && type != 'Comum'),
+      special: isSpecial,
       supplierName: supplierName,
+      supplierSlug: supplierSlug,
       isAvailable:
           _readNullableBool(json, ['isAvailable', 'available']) ??
           status.isAvailable,
       source: source,
       variantId: variantId,
+      sku: sku,
+      code: code,
+      funkoNumber: funkoNumber,
       badges: badges.toSet().where((badge) => badge.trim().isNotEmpty).toList(),
     );
   }

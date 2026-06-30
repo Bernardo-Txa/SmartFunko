@@ -1,6 +1,6 @@
-# Smart Funkos Mobile
+# SmartFunko Mobile
 
-App Flutter cliente da Smart Funkos.
+App Flutter cliente da SmartFunko.
 
 ## Requisitos
 
@@ -34,7 +34,7 @@ Exemplo:
 
 ```bash
 flutter run -d chrome \
-  --dart-define=API_BASE_URL=https://smart-funko.vercel.app \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
   --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
   --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
 ```
@@ -51,11 +51,20 @@ InfinitePay, service role e webhooks devem ficar somente no backend Next.js.
 
 ## Como rodar
 
+Comando oficial Android:
+
+```bash
+flutter run -d emulator-5554 \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
+  --dart-define=SUPABASE_URL=https://sufppaxdxmxdcfkuvanm.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
+```
+
 Web:
 
 ```bash
 flutter run -d chrome \
-  --dart-define=API_BASE_URL=https://smart-funko.vercel.app \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
   --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
   --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
 ```
@@ -64,7 +73,7 @@ Web no Brave/Chromium:
 
 ```bash
 flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 \
-  --dart-define=API_BASE_URL=https://smart-funko.vercel.app \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
   --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
   --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
 ```
@@ -79,13 +88,13 @@ Imagens externas que nao suportam CORS no navegador passam pelo proxy seguro do 
 GET /api/v1/public/image-proxy?url=<encoded_url>
 ```
 
-O proxy aceita apenas dominios em allowlist (`cdn.awsli.com.br`, `smart-funko.vercel.app`, `*.supabase.co`) e bloqueia hosts locais/privados.
+O proxy aceita apenas dominios em allowlist (`cdn.awsli.com.br`, `smartfunko.com.br`, `*.supabase.co`) e bloqueia hosts locais/privados.
 
 Android:
 
 ```bash
 flutter run -d android \
-  --dart-define=API_BASE_URL=https://smart-funko.vercel.app \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
   --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
   --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
 ```
@@ -94,7 +103,7 @@ iOS:
 
 ```bash
 flutter run -d ios \
-  --dart-define=API_BASE_URL=https://smart-funko.vercel.app \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
   --dart-define=SUPABASE_URL=SUA_URL_SUPABASE \
   --dart-define=SUPABASE_ANON_KEY=SUA_ANON_KEY
 ```
@@ -106,6 +115,43 @@ Sem as três variáveis, o app abre uma tela de erro clara em desenvolvimento.
 ```bash
 flutter analyze
 flutter test
+```
+
+## Branding mobile
+
+Assets usados pelo launcher icon e splash nativo:
+
+```txt
+assets/branding/logo_horizontal_white.png
+assets/branding/logo_square.png
+assets/branding/logo_dark.png
+```
+
+Os PNGs atuais usam a arte oficial da SmartFunko enviada pelo usuário:
+
+- `logo_horizontal_white.png`: logo horizontal branca para hero, splash e fundos escuros.
+- `logo_square.png`: logo quadrada para launcher icon, adaptive icon e badges pequenos.
+- `logo_dark.png`: logo escura para fundos claros.
+
+Gerar ícones nativos e web:
+
+```bash
+dart run flutter_launcher_icons
+```
+
+Gerar splash nativo:
+
+```bash
+dart run flutter_native_splash:create
+```
+
+Build debug Android:
+
+```bash
+flutter build apk --debug \
+  --dart-define=API_BASE_URL=https://smartfunko.com.br \
+  --dart-define=SUPABASE_URL=https://sufppaxdxmxdcfkuvanm.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
 ```
 
 ## Mobile Reset UX: foco e funcionalidade
@@ -166,7 +212,7 @@ Validacao CORS de preflight:
 
 ```bash
 curl -i -X OPTIONS \
-  "https://smart-funko.vercel.app/api/v1/public/products?page=1&pageSize=24&sort=specials_first" \
+  "https://smartfunko.com.br/api/v1/public/products?page=1&pageSize=24&sort=specials_first" \
   -H "Origin: http://localhost:33539" \
   -H "Access-Control-Request-Method: GET"
 ```
@@ -174,7 +220,7 @@ curl -i -X OPTIONS \
 Validacao do proxy de imagem:
 
 ```bash
-curl -I "https://smart-funko.vercel.app/api/v1/public/image-proxy?url=https%3A%2F%2Fcdn.awsli.com.br%2F800x800%2F84%2F84034%2Fproduto%2F161912510%2Ffunko-pop--disney-classics-dumbo-1195-exclusivo-a-1--800-5ixl3unfcx.jpg" \
+curl -I "https://smartfunko.com.br/api/v1/public/image-proxy?url=https%3A%2F%2Fcdn.awsli.com.br%2F800x800%2F84%2F84034%2Fproduto%2F161912510%2Ffunko-pop--disney-classics-dumbo-1195-exclusivo-a-1--800-5ixl3unfcx.jpg" \
   -H "Origin: http://localhost:36883"
 ```
 
@@ -227,7 +273,7 @@ O backend continua definindo cliente pelo Bearer token e validando disponibilida
 Teste rápido de CORS/autenticação:
 
 ```bash
-curl -i -X OPTIONS "https://smart-funko.vercel.app/api/v1/me/orders" \
+curl -i -X OPTIONS "https://smartfunko.com.br/api/v1/me/orders" \
   -H "Origin: http://localhost:36883" \
   -H "Access-Control-Request-Method: GET" \
   -H "Access-Control-Request-Headers: Authorization, Content-Type"
@@ -251,12 +297,11 @@ curl -i -X OPTIONS "https://smart-funko.vercel.app/api/v1/me/orders" \
 
 - Android package: `br.com.smartfunkos.app`
 - iOS bundle id: `br.com.smartfunkos.app`
-- Nome de exibição: `Smart Funkos`
+- Nome de exibição: `SmartFunko`
 
 ## Pendências de loja
 
-- Criar ícone final.
-- Criar splash real.
+- Substituir os placeholders de ícone/splash pela arte oficial final.
 - Preparar screenshots.
 - Publicar privacy policy e termos.
 - Configurar Play Console.

@@ -26,7 +26,7 @@ Telas autenticadas não devem chamar `/api/v1/me/*` sem sessão. `/pedidos`, `/m
 Para testar um token real:
 
 ```bash
-curl -i "https://smart-funko.vercel.app/api/v1/me/orders" \
+curl -i "https://smartfunko.com.br/api/v1/me/orders" \
   -H "Origin: http://localhost:36883" \
   -H "Authorization: Bearer TOKEN_VALIDO"
 ```
@@ -115,14 +115,14 @@ Origens permitidas no backend:
 
 - `http://localhost:*`.
 - `http://127.0.0.1:*`.
-- `https://smart-funko.vercel.app`.
+- `https://smartfunko.com.br`.
 - `NEXT_PUBLIC_SITE_URL`, quando configurado.
 - `CORS_ALLOWED_ORIGINS`, lista opcional separada por virgula.
 
 Exemplo:
 
 ```txt
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:33539,https://smart-funko.vercel.app
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:33539,https://smartfunko.com.br
 ```
 
 CORS nao libera acesso anonimo a APIs autenticadas: `/api/v1/me/*` segue exigindo Bearer token. `/api/v1/admin/*` nao foi liberado para mobile.
@@ -138,7 +138,7 @@ GET /api/v1/public/image-proxy?url=<encoded_url>
 O proxy aplica CORS, cache publico e valida seguranca antes de buscar a imagem. Allowlist inicial:
 
 - `cdn.awsli.com.br`.
-- `smart-funko.vercel.app`.
+- `smartfunko.com.br`.
 - `*.supabase.co`, validado por sufixo exato `.supabase.co`.
 
 Bloqueios importantes:

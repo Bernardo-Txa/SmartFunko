@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../shared/theme/app_colors.dart';
 import '../shared/theme/app_radius.dart';
@@ -27,6 +28,13 @@ class SmartFunkosTheme {
         foregroundColor: AppColors.textPrimary,
         centerTitle: false,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: AppColors.darkBackground,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: AppColors.darkBackground,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
       ),
       cardColor: AppColors.darkSurface,
       navigationBarTheme: NavigationBarThemeData(
@@ -73,6 +81,13 @@ class SmartFunkosTheme {
         foregroundColor: Color(0xFF102033),
         centerTitle: false,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: AppColors.darkBackground,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+          systemNavigationBarColor: AppColors.darkBackground,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
       ),
       cardColor: AppColors.lightSurface,
       navigationBarTheme: NavigationBarThemeData(
@@ -156,12 +171,32 @@ class SmartFunkosTheme {
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.brightness == Brightness.dark
+            ? AppColors.darkSurfaceElevated
+            : scheme.inverseSurface,
         contentTextStyle: TextStyle(color: scheme.onSurface),
         actionTextColor: scheme.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: scheme.brightness == Brightness.dark
+            ? AppColors.darkSurfaceElevated
+            : scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.brightness == Brightness.dark
+            ? AppColors.darkSurface
+            : scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
         ),
       ),
       dividerTheme: DividerThemeData(

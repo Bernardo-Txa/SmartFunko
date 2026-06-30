@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 const allowedMethods = "GET,POST,PATCH,PUT,DELETE,OPTIONS";
 const allowedHeaders = "Content-Type, Authorization, X-Requested-With";
 const maxAge = "86400";
-const productionOrigin = "https://smart-funko.vercel.app";
+const productionOrigin = "https://smartfunko.com.br";
 
 function normalizeOrigin(value: string | undefined) {
   if (!value) {

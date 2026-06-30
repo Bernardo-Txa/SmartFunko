@@ -20,7 +20,6 @@ class ProfilePage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Perfil',
-      showAppBar: false,
       body: auth.isLoading
           ? const LoadingState(message: 'Verificando sua sessão...')
           : auth.isAuthenticated && user != null

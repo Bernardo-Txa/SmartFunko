@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/network/image_url_resolver.dart';
+import '../../../shared/branding/smart_funko_brand.dart';
 import '../../catalog/data/product_models.dart';
 
 class ProductImageGallery extends StatefulWidget {
@@ -88,10 +89,13 @@ class _ImageFrame extends StatelessWidget {
     final theme = Theme.of(context);
     final fallback = ColoredBox(
       color: theme.colorScheme.primary.withValues(alpha: 0.1),
-      child: Icon(
-        Icons.toys_rounded,
-        color: theme.colorScheme.primary,
-        size: iconSize,
+      child: Center(
+        child: SmartFunkoLogo(
+          variant: SmartFunkoLogoVariant.square,
+          width: iconSize,
+          height: iconSize,
+          excludeFromSemantics: true,
+        ),
       ),
     );
 

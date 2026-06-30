@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../features/cart/data/cart_controller.dart';
+import '../branding/smart_funko_brand.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_shadows.dart';
@@ -45,6 +46,9 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
     final showBrand =
         !normalizedTitle.contains('smart funkos') &&
         !normalizedTitle.contains('smartfunkos');
+    final brandVariant = theme.brightness == Brightness.dark
+        ? SmartFunkoLogoVariant.horizontalWhite
+        : SmartFunkoLogoVariant.dark;
 
     return SafeArea(
       bottom: false,
@@ -105,10 +109,13 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
                       color: colorScheme.primary.withValues(alpha: 0.24),
                     ),
                   ),
-                  child: Icon(
-                    Icons.toys_rounded,
-                    color: colorScheme.primary,
-                    size: 22,
+                  child: const Center(
+                    child: SmartFunkoLogo(
+                      variant: SmartFunkoLogoVariant.square,
+                      width: 34,
+                      height: 34,
+                      excludeFromSemantics: true,
+                    ),
                   ),
                 ),
               const SizedBox(width: 12),
@@ -118,14 +125,16 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (showBrand && !showBackButton) ...[
-                      Text(
-                        'SmartFunko',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0,
+                      SizedBox(
+                        height: 28,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: SmartFunkoLogo(
+                            variant: brandVariant,
+                            height: 28,
+                            excludeFromSemantics: true,
+                            alignment: Alignment.centerLeft,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 2),

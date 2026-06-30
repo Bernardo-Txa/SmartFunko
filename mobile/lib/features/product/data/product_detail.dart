@@ -13,7 +13,11 @@ class ProductDetail {
     this.subcategory,
     this.special = false,
     this.supplierName,
+    this.supplierSlug,
     this.variantId,
+    this.sku,
+    this.code,
+    this.funkoNumber,
     this.badges = const [],
     this.source,
   });
@@ -29,9 +33,16 @@ class ProductDetail {
   final String? subcategory;
   final bool special;
   final String? supplierName;
+  final String? supplierSlug;
   final String? variantId;
+  final String? sku;
+  final String? code;
+  final String? funkoNumber;
   final List<String> badges;
   final String? source;
+
+  bool get canAddToCart =>
+      status.isAvailable && (variantId?.trim().isNotEmpty ?? false);
 
   factory ProductDetail.fromJson(Map<String, dynamic> json) {
     final summary = ProductSummary.fromJson(json);
@@ -56,7 +67,11 @@ class ProductDetail {
       subcategory: subcategory,
       special: summary.special,
       supplierName: summary.supplierName,
+      supplierSlug: summary.supplierSlug,
       variantId: summary.variantId,
+      sku: summary.sku,
+      code: summary.code,
+      funkoNumber: summary.funkoNumber,
       badges: summary.badges,
       source: summary.source,
     );
@@ -73,7 +88,11 @@ class ProductDetail {
       category: category,
       special: special,
       supplierName: supplierName,
+      supplierSlug: supplierSlug,
       variantId: variantId,
+      sku: sku,
+      code: code,
+      funkoNumber: funkoNumber,
       isAvailable: status.isAvailable,
       source: source,
       badges: badges,
