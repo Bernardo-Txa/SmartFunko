@@ -123,18 +123,25 @@ class _HomeHero extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: SmartFunkoLogo(
-                variant: SmartFunkoLogoVariant.horizontalWhite,
-                width: 188,
+            SizedBox(
+              height: 64,
+              width: double.infinity,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Transform.translate(
+                  offset: const Offset(-5, 0),
+                  child: const SmartFunkoLogo(
+                    variant: SmartFunkoLogoVariant.horizontalWhite,
+                    width: 198,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 16),
             Text(
               greeting,
               style: const TextStyle(

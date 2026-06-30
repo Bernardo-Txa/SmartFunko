@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../branding/smart_funko_brand.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import 'smart_card.dart';
 import 'smart_progress.dart';
 
 class SmartLoading extends StatelessWidget {
-  const SmartLoading({this.message = 'Carregando...', super.key});
+  const SmartLoading({
+    this.message = 'Carregando...',
+    this.showLogo = false,
+    this.logoWidth = 206,
+    super.key,
+  });
 
   final String message;
+  final bool showLogo;
+  final double logoWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +27,22 @@ class SmartLoading extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 420),
         child: SmartCard(
           expand: false,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+          padding: EdgeInsets.fromLTRB(24, showLogo ? 26 : 22, 24, 22),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (showLogo) ...[
+                SizedBox(
+                  height: 74,
+                  child: Center(
+                    child: SmartFunkoLogo(
+                      variant: SmartFunkoLogoVariant.horizontalWhite,
+                      width: logoWidth,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
               Container(
                 height: 58,
                 width: 58,
@@ -54,12 +74,17 @@ class SmartLoading extends StatelessWidget {
 }
 
 class LoadingState extends StatelessWidget {
-  const LoadingState({this.message = 'Carregando...', super.key});
+  const LoadingState({
+    this.message = 'Carregando...',
+    this.showLogo = false,
+    super.key,
+  });
 
   final String message;
+  final bool showLogo;
 
   @override
   Widget build(BuildContext context) {
-    return SmartLoading(message: message);
+    return SmartLoading(message: message, showLogo: showLogo);
   }
 }

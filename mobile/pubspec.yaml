@@ -1,5 +1,5 @@
 name: smart_funkos
-description: Smart Funkos mobile client.
+description: SmartFunko mobile client.
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -43,12 +43,12 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: assets/branding/logo_square.png
+  image_path: assets/branding/app_icon.png
   adaptive_icon_background: "#020817"
-  adaptive_icon_foreground: assets/branding/logo_square.png
+  adaptive_icon_foreground: assets/branding/app_icon_foreground.png
   web:
     generate: true
-    image_path: assets/branding/logo_square.png
+    image_path: assets/branding/app_icon.png
     background_color: "#020817"
     theme_color: "#020817"
 
@@ -60,4 +60,4 @@ flutter_native_splash:
   web: true
   android_12:
     color: "#020817"
-    image: assets/branding/logo_horizontal_white.png
+    image: assets/branding/splash_android12.png

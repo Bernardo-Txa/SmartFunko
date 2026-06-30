@@ -125,13 +125,19 @@ Assets usados pelo launcher icon e splash nativo:
 assets/branding/logo_horizontal_white.png
 assets/branding/logo_square.png
 assets/branding/logo_dark.png
+assets/branding/app_icon.png
+assets/branding/app_icon_foreground.png
+assets/branding/splash_android12.png
 ```
 
 Os PNGs atuais usam a arte oficial da SmartFunko enviada pelo usuário:
 
 - `logo_horizontal_white.png`: logo horizontal branca para hero, splash e fundos escuros.
-- `logo_square.png`: logo quadrada para launcher icon, adaptive icon e badges pequenos.
+- `logo_square.png`: logo quadrada para badges pequenos e placeholders internos.
 - `logo_dark.png`: logo escura para fundos claros.
+- `app_icon.png`: ícone azul oficial usado no launcher Android/iOS/Web.
+- `app_icon_foreground.png`: foreground do adaptive icon Android.
+- `splash_android12.png`: ícone azul quadrado usado especificamente na splash Android 12.
 
 Gerar ícones nativos e web:
 
