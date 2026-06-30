@@ -46,7 +46,16 @@ Redirect URLs:
 https://smartfunko.com.br/**
 ```
 
-O e-mail de recuperacao de senha deve redirecionar para `/redefinir-senha` no dominio publico. O browser usa somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` para solicitar o reset e atualizar a senha depois que o link de recovery cria uma sessao valida.
+Os templates de e-mail do Supabase devem manter `{{ .ConfirmationURL }}`. Nao substitua por URLs manuais no HTML do template.
+
+Fluxos de Auth usados pelo web:
+
+- cadastro e reenvio de confirmacao redirecionam para `/auth/confirmado`;
+- troca de e-mail autenticada redireciona a confirmacao para `/auth/confirmado`;
+- recuperacao de senha redireciona para `/redefinir-senha`;
+- magic link redireciona para `/conta` e o proxy troca o `code` por sessao antes do guard.
+
+O browser usa somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` para solicitar esses fluxos e atualizar senha/e-mail com a sessao do usuario autenticado.
 
 ## Feature flags
 

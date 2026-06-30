@@ -17,6 +17,12 @@ export default function RegisterPage() {
             Entrar
           </Link>
         </p>
+        <p className="mt-3 text-sm text-[var(--muted)]">
+          Não recebeu o e-mail de confirmação?{" "}
+          <Link href="/reenviar-confirmacao" className="font-semibold text-[var(--accent)]">
+            Reenviar confirmação
+          </Link>
+        </p>
       </div>
     </div>
   );

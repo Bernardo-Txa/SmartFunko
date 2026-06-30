@@ -42,9 +42,12 @@ Copie `.env.example` para `.env.local` e preencha:
 - `/rifas/[slug]`
 - `/carrinho`
 - `/login`
+- `/login/magic-link`
 - `/esqueci-senha`
 - `/redefinir-senha`
 - `/cadastro`
+- `/reenviar-confirmacao`
+- `/auth/confirmado`
 - `/conta`
 - `/conta/pedidos`
 - `/conta/wishlist`

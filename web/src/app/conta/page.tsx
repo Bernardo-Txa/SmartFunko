@@ -7,6 +7,7 @@ import { getOrderPendingAmount } from "@/lib/orders/payable";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderService } from "@/server/orders/order-service";
 import { AccountProfileForm } from "@/components/account/account-profile-form";
+import { AccountSecurityForm } from "@/components/account/account-security-form";
 
 export const metadata: Metadata = {
   title: "Minha conta",
@@ -23,27 +24,29 @@ type AccountOrder = {
 };
 
 export default async function AccountPage() {
-  const { customer, profile } = await requireUserPage("/conta");
+  const { authUser, customer, profile } = await requireUserPage("/conta");
   const orders = customer
     ? ((await new OrderService().getCustomerOrders(customer.id)) as unknown as AccountOrder[])
     : [];
   const totalOpen = orders.reduce((sum, order) => sum + getOrderPendingAmount(order), 0);
+  const accountEmail = authUser.email ?? customer?.email ?? profile.email;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[var(--foreground)]">Minha conta</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          {profile.name} · {profile.email}
+          {profile.name} · {accountEmail}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <AccountProfileForm
           customer={customer}
-          email={customer?.email ?? profile.email}
+          email={accountEmail}
           fallbackName={profile.name}
         />
+        <AccountSecurityForm currentEmail={accountEmail} />
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <Package className="text-[var(--pink)]" size={24} />
           <strong className="mt-4 block text-sm">{orders.length} pedidos</strong>

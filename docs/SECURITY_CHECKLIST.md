@@ -25,6 +25,8 @@ Customer:
 - `/api/v1/me/raffles/orders/[id]` filtra por `customer.id` autenticado.
 - `/api/v1/me/wishlist` usa customer autenticado.
 - `/api/v1/me` nao aceita `customerId` do client para decidir acesso.
+- Alteracao de senha/e-mail em `/conta` usa Supabase Auth client com a sessao do usuario, sem service role.
+- Reenvio de confirmacao e magic link retornam mensagens genericas para nao revelar existencia ou estado de e-mail.
 
 Publico:
 

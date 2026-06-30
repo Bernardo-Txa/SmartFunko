@@ -12,12 +12,18 @@ export const metadata: Metadata = {
 type Props = {
   searchParams?: Promise<{
     next?: string;
+    passwordChanged?: string;
+    passwordReset?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: Props) {
   const params = await searchParams;
   const nextPath = sanitizeNextPath(params?.next);
+  const initialMessage =
+    params?.passwordChanged === "success" || params?.passwordReset === "success"
+      ? "Senha alterada com sucesso. Entre com sua nova senha."
+      : undefined;
   const currentUser = await getCurrentUser();
 
   if (currentUser) {
@@ -27,7 +33,7 @@ export default async function LoginPage({ searchParams }: Props) {
   return (
     <div className="mx-auto flex max-w-7xl justify-center px-4 py-10 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
-        <AuthForm mode="login" nextPath={nextPath} />
+        <AuthForm initialMessage={initialMessage} mode="login" nextPath={nextPath} />
         <p className="mt-5 text-sm text-[var(--muted)]">
           Novo por aqui?{" "}
           <Link href="/cadastro" className="font-semibold text-[var(--accent)]">
