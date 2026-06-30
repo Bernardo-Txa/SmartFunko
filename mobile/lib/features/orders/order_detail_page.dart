@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/url/open_payment_url.dart';
 import '../../core/utils/date_formatter.dart';
+import '../../shared/branding/smart_funko_brand.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_state.dart';
@@ -188,7 +189,14 @@ class _OrderItemTile extends StatelessWidget {
               color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.toys_rounded, color: theme.colorScheme.primary),
+            child: const Center(
+              child: SmartFunkoLogo(
+                variant: SmartFunkoLogoVariant.square,
+                width: 34,
+                height: 34,
+                excludeFromSemantics: true,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

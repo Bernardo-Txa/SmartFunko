@@ -26,7 +26,6 @@ class RafflesPage extends ConsumerWidget {
 
     return AppScaffold(
       title: 'Rifas',
-      showAppBar: false,
       onRefresh: () async {
         ref.read(rafflesRepositoryProvider).invalidateRaffles();
         ref.invalidate(rafflesListProvider);
@@ -71,9 +70,9 @@ class _RafflesContent extends StatelessWidget {
     if (raffles.isEmpty) {
       return const EmptyState(
         icon: Icons.confirmation_number_outlined,
-        title: 'Nenhuma rifa aberta',
+        title: 'Nenhuma rifa ativa',
         message:
-            'As campanhas experimentais aparecerão aqui quando estiverem disponíveis.',
+            'Novas campanhas aparecerão aqui quando estiverem disponíveis.',
       );
     }
 

@@ -90,7 +90,8 @@ class _OrdersContent extends StatelessWidget {
       return EmptyState(
         icon: Icons.receipt_long_outlined,
         title: 'Nenhum pedido ainda',
-        message: 'Você ainda não tem pedidos.',
+        message:
+            'Quando você enviar um carrinho, seus pedidos aparecerão aqui.',
         actionLabel: 'Ver catálogo',
         onAction: () => context.go('/catalogo'),
       );

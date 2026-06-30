@@ -30,7 +30,7 @@ class SmartFunkosApp extends ConsumerWidget {
     });
 
     return MaterialApp.router(
-      title: 'Smart Funkos',
+      title: 'SmartFunko',
       debugShowCheckedModeBanner: false,
       theme: SmartFunkosTheme.light,
       darkTheme: SmartFunkosTheme.dark,

@@ -21,6 +21,7 @@ class SmartAppShell extends StatelessWidget {
     this.actions = const [],
     this.onRefresh,
     this.padding,
+    this.floatingActionButton,
     super.key,
   });
 
@@ -37,6 +38,7 @@ class SmartAppShell extends StatelessWidget {
   final List<Widget> actions;
   final Future<void> Function()? onRefresh;
   final EdgeInsetsGeometry? padding;
+  final Widget? floatingActionButton;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +59,7 @@ class SmartAppShell extends StatelessWidget {
               actions: actions,
             )
           : null,
+      floatingActionButton: floatingActionButton,
       bottomNavigationBar: showBottomNavigation
           ? const _SmartBottomNavigation()
           : null,
@@ -183,7 +186,9 @@ class _SmartBottomNavigation extends StatelessWidget {
     if (location.startsWith('/catalogo') || location.startsWith('/produto')) {
       return 1;
     }
-    if (location.startsWith('/rifas')) return 2;
+    if (location.startsWith('/rifas') || location.startsWith('/minhas-rifas')) {
+      return 2;
+    }
     if (location.startsWith('/pedidos')) return 3;
     if (location.startsWith('/perfil') || location.startsWith('/wishlist')) {
       return 4;

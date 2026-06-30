@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/network/image_url_resolver.dart';
+import '../../../shared/branding/smart_funko_brand.dart';
 import '../../../shared/theme/app_radius.dart';
 import '../../../shared/widgets/app_scaffold.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -14,6 +15,7 @@ import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/loading_state.dart';
 import '../../../shared/widgets/price_tag.dart';
 import '../../../shared/widgets/primary_button.dart';
+import '../../../shared/widgets/smart_progress.dart';
 import '../../../shared/widgets/smart_card.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../application/wishlist_controller.dart';
@@ -243,7 +245,8 @@ class _WishlistProductCard extends ConsumerWidget {
                             child: isUpdating
                                 ? const SizedBox.square(
                                     dimension: 18,
-                                    child: CircularProgressIndicator(
+                                    child: SmartSpinner(
+                                      size: 18,
                                       strokeWidth: 2,
                                     ),
                                   )
@@ -296,11 +299,12 @@ class _WishlistImage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
       ),
-      child: Center(
-        child: Icon(
-          Icons.toys_rounded,
-          color: Theme.of(context).colorScheme.primary,
-          size: 44,
+      child: const Center(
+        child: SmartFunkoLogo(
+          variant: SmartFunkoLogoVariant.square,
+          width: 44,
+          height: 44,
+          excludeFromSemantics: true,
         ),
       ),
     );

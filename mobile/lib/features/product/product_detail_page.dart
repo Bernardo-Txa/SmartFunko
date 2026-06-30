@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/config/app_config.dart';
@@ -59,7 +60,8 @@ class _ProductDetailContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final shareUrl = '${AppConfig.apiBaseUrl}/produto/${product.slug}';
+    final shareUrl =
+        '${AppConfig.normalizedApiBaseUrl}/produto/${product.slug}';
     final auth = ref.watch(authControllerProvider);
     final wishlist = ref.watch(wishlistControllerProvider);
     final isWishlisted = wishlist.isWishlisted(product.id);
@@ -94,6 +96,8 @@ class _ProductDetailContent extends ConsumerWidget {
             ProductBadges(badges: product.badges),
             const SizedBox(height: 16),
             ProductPriceBlock(price: product.price, status: product.status),
+            const SizedBox(height: 16),
+            _ProductFacts(product: product),
             const SizedBox(height: 16),
             SmartCard(
               child: Column(
@@ -130,27 +134,31 @@ class _ProductDetailContent extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             PrimaryButton(
-              label: 'Adicionar ao carrinho',
-              icon: Icons.add_shopping_cart_rounded,
+              label: product.canAddToCart
+                  ? 'Adicionar ao carrinho'
+                  : 'Tenho interesse',
+              icon: product.canAddToCart
+                  ? Icons.add_shopping_cart_rounded
+                  : Icons.open_in_new_rounded,
               fullWidth: true,
-              onPressed: product.status.isAvailable
+              onPressed: product.canAddToCart
                   ? () {
                       ref
                           .read(cartControllerProvider.notifier)
                           .addProduct(product.toSummary());
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            '${product.name} adicionado ao carrinho.',
+                          content: const Text(
+                            'Produto adicionado ao carrinho.',
                           ),
                           action: SnackBarAction(
-                            label: 'Ver',
+                            label: 'Ver carrinho',
                             onPressed: () => context.go('/carrinho'),
                           ),
                         ),
                       );
                     }
-                  : null,
+                  : () => _openProductOnWeb(context),
             ),
             const SizedBox(height: 10),
             PrimaryButton(
@@ -189,6 +197,34 @@ class _ProductDetailContent extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _openProductOnWeb(BuildContext context) async {
+    final url = '${AppConfig.normalizedApiBaseUrl}/produto/${product.slug}';
+    final uri = Uri.tryParse(url);
+
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o produto.')),
+      );
+      return;
+    }
+
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível abrir o produto.')),
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o produto.')),
+      );
+    }
   }
 
   Future<void> _toggleWishlist(
@@ -233,6 +269,72 @@ class _ProductDetailContent extends ConsumerWidget {
       );
     }
   }
+}
+
+class _ProductFacts extends StatelessWidget {
+  const _ProductFacts({required this.product});
+
+  final ProductDetail product;
+
+  @override
+  Widget build(BuildContext context) {
+    final facts = [
+      _ProductFact(label: 'Status', value: product.status.label),
+      if (product.sku != null) _ProductFact(label: 'SKU', value: product.sku!),
+      if (product.code != null)
+        _ProductFact(label: 'Código', value: product.code!),
+      if (product.funkoNumber != null)
+        _ProductFact(label: 'Número', value: '#${product.funkoNumber}'),
+      if (product.source != null)
+        _ProductFact(label: 'Origem', value: product.source!),
+    ];
+
+    if (facts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+
+    return SmartCard(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          for (final fact in facts)
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 128),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    fact.label,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    fact.value,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductFact {
+  const _ProductFact({required this.label, required this.value});
+
+  final String label;
+  final String value;
 }
 
 extension on String {

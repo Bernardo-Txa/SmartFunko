@@ -4,18 +4,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../core/auth/auth_state.dart';
 import '../../core/network/image_url_resolver.dart';
+import '../../shared/theme/app_colors.dart';
+import '../../shared/theme/app_radius.dart';
+import '../../shared/branding/smart_funko_brand.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/widgets/cart_floating_button.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/section_header.dart';
-import '../../shared/widgets/smart_card.dart';
+import '../../shared/widgets/smart_progress.dart';
 import '../../shared/widgets/status_badge.dart';
+import '../cart/data/cart_controller.dart';
 import '../catalog/data/catalog_repository.dart';
 import '../catalog/data/product_models.dart';
+import '../orders/data/order_models.dart';
+import '../orders/data/orders_repository.dart';
+import '../orders/domain/order_status_mapper.dart';
 import '../raffles/data/raffle_models.dart';
 import '../raffles/data/raffles_repository.dart';
 import '../raffles/domain/raffle_status_mapper.dart';
+import 'widgets/home_shortcut_card.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -23,22 +34,25 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
+    final cart = ref.watch(cartControllerProvider);
+    final orders = ref.watch(ordersProvider);
     final featuredProducts = ref.watch(featuredProductsProvider);
     final raffles = ref.watch(rafflesListProvider);
 
     return AppScaffold(
       title: 'SmartFunko',
-      subtitle: 'Colecionáveis, rifas e pedidos em um só lugar.',
       showAppBar: false,
-      showSearch: true,
+      floatingActionButton: const CartFloatingButton(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _IntroCard(
-            displayName: auth.isAuthenticated ? auth.displayName : null,
-          ),
-          const SizedBox(height: 16),
-          const _MainActions(),
+          _HomeHero(auth: auth),
+          const SizedBox(height: 22),
+          _ShortcutGrid(cart: cart),
+          const SizedBox(height: 24),
+          _AccountStatus(authenticated: auth.isAuthenticated, orders: orders),
+          const SizedBox(height: 24),
+          const _HowItWorks(),
           const SizedBox(height: 24),
           featuredProducts.when(
             data: (products) => _FeaturedProducts(products: products),
@@ -55,16 +69,21 @@ class HomePage extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 24),
           raffles.when(
             data: (items) => _ActiveRaffles(raffles: items),
-            loading: () => const _SectionLoading(title: 'Rifas ativas'),
-            error: (error, stackTrace) => ErrorState(
-              message: 'Não foi possível carregar as rifas ativas.',
-              onRetry: () {
-                ref.read(rafflesRepositoryProvider).invalidateRaffles();
-                ref.invalidate(rafflesListProvider);
-              },
+            loading: () => const Padding(
+              padding: EdgeInsets.only(top: 24),
+              child: _SectionLoading(title: 'Rifas ativas'),
+            ),
+            error: (error, stackTrace) => Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: ErrorState(
+                message: 'Não foi possível carregar as rifas ativas.',
+                onRetry: () {
+                  ref.read(rafflesRepositoryProvider).invalidateRaffles();
+                  ref.invalidate(rafflesListProvider);
+                },
+              ),
             ),
           ),
         ],
@@ -73,122 +92,607 @@ class HomePage extends ConsumerWidget {
   }
 }
 
-class _IntroCard extends StatelessWidget {
-  const _IntroCard({this.displayName});
+class _HomeHero extends StatelessWidget {
+  const _HomeHero({required this.auth});
 
-  final String? displayName;
+  final AuthState auth;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isAuthenticated = auth.isAuthenticated == true;
+    final greeting = isAuthenticated
+        ? 'Olá, ${auth.displayName}'
+        : 'Bem-vindo à SmartFunko';
 
-    return SmartCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (displayName != null) ...[
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF101D33), Color(0xFF07101F)],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.darkBorder),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.12),
+            blurRadius: 28,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: SmartFunkoLogo(
+                variant: SmartFunkoLogoVariant.horizontalWhite,
+                width: 188,
+              ),
+            ),
+            const SizedBox(height: 22),
             Text(
-              'Olá, $displayName',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w800,
+              greeting,
+              style: const TextStyle(
+                color: AppColors.primarySoft,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 8),
+            const Text(
+              'Sua coleção começa aqui',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 27,
+                height: 1.06,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Funkos, colecionáveis, pré-vendas e rifas em um só lugar, com pedido em análise e pagamento por link.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final inline = constraints.maxWidth >= 520;
+                final primaryButton = PrimaryButton(
+                  label: 'Ver catálogo',
+                  icon: Icons.manage_search_rounded,
+                  fullWidth: true,
+                  onPressed: () => context.go('/catalogo'),
+                );
+                final secondaryButton = PrimaryButton(
+                  label: 'Meus pedidos',
+                  icon: Icons.receipt_long_rounded,
+                  variant: PrimaryButtonVariant.outlined,
+                  fullWidth: true,
+                  onPressed: () => context.go('/pedidos'),
+                );
+
+                if (inline) {
+                  return Row(
+                    children: [
+                      Expanded(child: primaryButton),
+                      const SizedBox(width: 10),
+                      Expanded(child: secondaryButton),
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    primaryButton,
+                    const SizedBox(height: 10),
+                    secondaryButton,
+                  ],
+                );
+              },
+            ),
           ],
-          Text(
-            'SmartFunko',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Colecionáveis, rifas e pedidos em um só lugar.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _MainActions extends StatelessWidget {
-  const _MainActions();
+class _ShortcutGrid extends StatelessWidget {
+  const _ShortcutGrid({required this.cart});
+
+  final CartState cart;
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: MediaQuery.sizeOf(context).width >= 520 ? 4 : 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.45,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    final cartBadge = cart.totalQuantity > 0 ? '${cart.totalQuantity}' : null;
+    final items = [
+      _ShortcutItem(
+        title: 'Catálogo',
+        subtitle: 'Ver produtos',
+        icon: Icons.inventory_2_outlined,
+        route: '/catalogo',
+        highlighted: true,
+      ),
+      _ShortcutItem(
+        title: 'Carrinho',
+        subtitle: 'Seu pedido',
+        icon: Icons.shopping_cart_outlined,
+        route: '/carrinho',
+        badgeText: cartBadge,
+      ),
+      const _ShortcutItem(
+        title: 'Meus pedidos',
+        subtitle: 'Acompanhe status',
+        icon: Icons.receipt_long_outlined,
+        route: '/pedidos',
+      ),
+      const _ShortcutItem(
+        title: 'Rifas',
+        subtitle: 'Campanhas ativas',
+        icon: Icons.local_activity_outlined,
+        route: '/rifas',
+      ),
+      const _ShortcutItem(
+        title: 'Minhas rifas',
+        subtitle: 'Reservas e números',
+        icon: Icons.confirmation_number_outlined,
+        route: '/minhas-rifas',
+      ),
+      const _ShortcutItem(
+        title: 'Perfil',
+        subtitle: 'Sua conta',
+        icon: Icons.person_outline_rounded,
+        route: '/perfil',
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _ActionCard(
-          label: 'Ver catálogo',
-          icon: Icons.manage_search_rounded,
-          onTap: () => context.go('/catalogo'),
+        const SectionHeader(
+          title: 'Acesse rapidamente',
+          subtitle: 'Atalhos reais para as principais áreas do app.',
         ),
-        _ActionCard(
-          label: 'Ver rifas',
-          icon: Icons.confirmation_number_rounded,
-          onTap: () => context.go('/rifas'),
-        ),
-        _ActionCard(
-          label: 'Meus pedidos',
-          icon: Icons.receipt_long_rounded,
-          onTap: () => context.go('/pedidos'),
-        ),
-        _ActionCard(
-          label: 'Meu perfil',
-          icon: Icons.person_rounded,
-          onTap: () => context.go('/perfil'),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 720 ? 3 : 2;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: items.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                mainAxisExtent: 150,
+              ),
+              itemBuilder: (context, index) {
+                final item = items[index];
+
+                return HomeShortcutCard(
+                  title: item.title,
+                  subtitle: item.subtitle,
+                  icon: item.icon,
+                  badgeText: item.badgeText,
+                  highlighted: item.highlighted,
+                  onTap: () => context.go(item.route),
+                );
+              },
+            );
+          },
         ),
       ],
     );
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.label,
+class _ShortcutItem {
+  const _ShortcutItem({
+    required this.title,
+    required this.subtitle,
     required this.icon,
-    required this.onTap,
+    required this.route,
+    this.badgeText,
+    this.highlighted = false,
   });
 
-  final String label;
+  final String title;
+  final String subtitle;
   final IconData icon;
-  final VoidCallback onTap;
+  final String route;
+  final String? badgeText;
+  final bool highlighted;
+}
+
+class _AccountStatus extends StatelessWidget {
+  const _AccountStatus({required this.authenticated, required this.orders});
+
+  final bool authenticated;
+  final AsyncValue<List<OrderSummary>> orders;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    if (!authenticated) {
+      return const _VisitorPrompt();
+    }
 
-    return SmartCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(
+          title: 'Sua conta agora',
+          subtitle: 'Resumo real dos seus pedidos vinculados à conta.',
+        ),
+        const SizedBox(height: 12),
+        orders.when(
+          data: (items) => _OrdersSnapshot(orders: items),
+          loading: () => const _DarkInfoPanel(
+            child: SizedBox(
+              height: 64,
+              child: Center(child: SmartSpinner(size: 26, strokeWidth: 2.4)),
+            ),
+          ),
+          error: (error, stackTrace) => _DarkInfoPanel(
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: AppColors.danger,
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Não foi possível carregar seus pedidos agora.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => context.go('/pedidos'),
+                  child: const Text('Abrir'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VisitorPrompt extends StatelessWidget {
+  const _VisitorPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    return _DarkInfoPanel(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: theme.colorScheme.primary),
-          const SizedBox(height: 8),
+          const Icon(Icons.lock_outline_rounded, color: AppColors.primary),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Entre para acompanhar tudo',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Pedidos, rifas e dados da conta ficam vinculados ao seu login.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          TextButton(
+            onPressed: () => context.go('/login?from=/'),
+            child: const Text('Entrar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrdersSnapshot extends StatelessWidget {
+  const _OrdersSnapshot({required this.orders});
+
+  final List<OrderSummary> orders;
+
+  @override
+  Widget build(BuildContext context) {
+    final ongoing = orders.where(_isOngoingOrder).length;
+    final latest = orders.isEmpty ? null : orders.first;
+    final latestStatus = latest == null
+        ? null
+        : mapOrderStatus(
+            context,
+            status: latest.status,
+            reviewStatus: latest.reviewStatus,
+          );
+
+    return _DarkInfoPanel(
+      onTap: () => context.go('/pedidos'),
+      child: Row(
+        children: [
+          _SnapshotMetric(
+            label: 'Pedidos',
+            value: '${orders.length}',
+            icon: Icons.receipt_long_rounded,
+          ),
+          const SizedBox(width: 10),
+          _SnapshotMetric(
+            label: 'Em andamento',
+            value: '$ongoing',
+            icon: Icons.timelapse_rounded,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Último status',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      latestStatus?.icon ?? Icons.inbox_outlined,
+                      color: latestStatus?.color ?? AppColors.textSecondary,
+                      size: 17,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        latestStatus?.label ?? 'Nenhum pedido',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isOngoingOrder(OrderSummary order) {
+    final status = order.reviewStatus.isNotEmpty
+        ? order.reviewStatus
+        : order.status;
+
+    return !{'paid', 'rejected', 'cancelled', 'refunded'}.contains(status);
+  }
+}
+
+class _SnapshotMetric extends StatelessWidget {
+  const _SnapshotMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 84,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColors.primary, size: 20),
+          const SizedBox(height: 7),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           Text(
             label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w900,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _HowItWorks extends StatelessWidget {
+  const _HowItWorks();
+
+  static const _steps = [
+    _StepItem(
+      number: '1',
+      title: 'Escolha o produto',
+      text:
+          'Use o catálogo único para encontrar pronta-entrega, pré-venda e encomendas.',
+    ),
+    _StepItem(
+      number: '2',
+      title: 'Envie seu carrinho',
+      text: 'O pedido entra em análise para validação da equipe SmartFunko.',
+    ),
+    _StepItem(
+      number: '3',
+      title: 'Receba o link',
+      text: 'Depois da aprovação, o pagamento seguro é liberado por link.',
+    ),
+    _StepItem(
+      number: '4',
+      title: 'Acompanhe pela conta',
+      text: 'O status fica visível em Meus pedidos durante o atendimento.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: 'Como funciona'),
+        const SizedBox(height: 8),
+        const Text(
+          'A SmartFunko trabalha com atendimento assistido: você monta o pedido, nossa equipe valida a disponibilidade e libera o pagamento com segurança.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            height: 1.45,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 620 ? 4 : 2;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _steps.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                mainAxisExtent: 132,
+              ),
+              itemBuilder: (context, index) {
+                return _StepCard(step: _steps[index]);
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _StepCard extends StatelessWidget {
+  const _StepCard({required this.step});
+
+  final _StepItem step;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DarkInfoPanel(
+      padding: const EdgeInsets.all(13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 28,
+            width: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.accent,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: Text(
+              step.number,
+              style: const TextStyle(
+                color: Color(0xFF07111F),
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            step.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            step.text,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepItem {
+  const _StepItem({
+    required this.number,
+    required this.title,
+    required this.text,
+  });
+
+  final String number;
+  final String title;
+  final String text;
 }
 
 class _FeaturedProducts extends StatelessWidget {
@@ -206,76 +710,101 @@ class _FeaturedProducts extends StatelessWidget {
       );
     }
 
-    final visibleProducts = products.take(4).toList();
+    final visibleProducts = products.take(8).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
           title: 'Produtos em destaque',
+          subtitle: 'Itens reais do catálogo SmartFunko.',
           actionLabel: 'Ver catálogo',
           onAction: () => context.go('/catalogo'),
         ),
         const SizedBox(height: 12),
-        for (final product in visibleProducts)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _ProductListItem(product: product),
+        SizedBox(
+          height: 232,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: visibleProducts.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              return _FeaturedProductCard(product: visibleProducts[index]);
+            },
           ),
+        ),
       ],
     );
   }
 }
 
-class _ProductListItem extends StatelessWidget {
-  const _ProductListItem({required this.product});
+class _FeaturedProductCard extends StatelessWidget {
+  const _FeaturedProductCard({required this.product});
 
   final ProductSummary product;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SmartCard(
-      onTap: () => context.go('/produto/${product.slug}'),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              height: 72,
-              width: 72,
-              child: _NetworkThumb(imageUrl: product.imageUrl),
+    return SizedBox(
+      width: 168,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: () => context.go('/produto/${product.slug}'),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: AppColors.darkSurfaceElevated,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: product.special
+                    ? AppColors.accent.withValues(alpha: 0.42)
+                    : AppColors.darkBorder.withValues(alpha: 0.72),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: SizedBox(
+                      height: 104,
+                      width: double.infinity,
+                      child: _NetworkThumb(imageUrl: product.imageUrl),
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  StatusBadge(label: product.status.label),
+                  const SizedBox(height: 7),
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      height: 1.18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    product.price.formatted,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  product.price.formatted,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                StatusBadge(label: product.status.label),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded),
-        ],
+        ),
       ),
     );
   }
@@ -289,28 +818,28 @@ class _ActiveRaffles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (raffles.isEmpty) {
-      return const EmptyState(
-        icon: Icons.confirmation_number_outlined,
-        title: 'Nenhuma rifa ativa',
-        message: 'Rifas abertas aparecerão aqui quando estiverem disponíveis.',
-      );
+      return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader(
-          title: 'Rifas ativas',
-          actionLabel: 'Ver rifas',
-          onAction: () => context.go('/rifas'),
-        ),
-        const SizedBox(height: 12),
-        for (final raffle in raffles.take(3))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _RaffleListItem(raffle: raffle),
+    return Padding(
+      padding: const EdgeInsets.only(top: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+            title: 'Rifas ativas',
+            subtitle: 'Campanhas reais disponíveis no momento.',
+            actionLabel: 'Ver rifas',
+            onAction: () => context.go('/rifas'),
           ),
-      ],
+          const SizedBox(height: 12),
+          for (final raffle in raffles.take(3))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _RaffleListItem(raffle: raffle),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -322,18 +851,17 @@ class _RaffleListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final status = mapRaffleStatus(context, raffle.status);
 
-    return SmartCard(
+    return _DarkInfoPanel(
       onTap: () => context.go('/rifas/${raffle.slug}'),
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             child: SizedBox(
-              height: 72,
-              width: 72,
+              height: 64,
+              width: 64,
               child: _NetworkThumb(
                 imageUrl: raffle.imageUrl,
                 fallbackIcon: Icons.confirmation_number_rounded,
@@ -349,15 +877,20 @@ class _RaffleListItem extends StatelessWidget {
                   raffle.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '${raffle.pricePerNumber.formatted} por número',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.secondary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -370,7 +903,11 @@ class _RaffleListItem extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded),
+          const SizedBox(width: 8),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textSecondary,
+          ),
         ],
       ),
     );
@@ -378,17 +915,25 @@ class _RaffleListItem extends StatelessWidget {
 }
 
 class _NetworkThumb extends StatelessWidget {
-  const _NetworkThumb({this.imageUrl, this.fallbackIcon = Icons.toys_rounded});
+  const _NetworkThumb({this.imageUrl, this.fallbackIcon});
 
   final String? imageUrl;
-  final IconData fallbackIcon;
+  final IconData? fallbackIcon;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final fallback = ColoredBox(
-      color: theme.colorScheme.primary.withValues(alpha: 0.10),
-      child: Icon(fallbackIcon, color: theme.colorScheme.primary, size: 30),
+      color: AppColors.primary.withValues(alpha: 0.10),
+      child: Center(
+        child: fallbackIcon == null
+            ? const SmartFunkoLogo(
+                variant: SmartFunkoLogoVariant.square,
+                width: 34,
+                height: 34,
+                excludeFromSemantics: true,
+              )
+            : Icon(fallbackIcon, color: AppColors.primary, size: 30),
+      ),
     );
     final resolvedUrl = resolveImageUrl(imageUrl);
 
@@ -399,10 +944,57 @@ class _NetworkThumb extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: resolvedUrl,
       fit: BoxFit.cover,
-      memCacheWidth: 180,
-      memCacheHeight: 180,
+      memCacheWidth: 240,
+      memCacheHeight: 240,
       placeholder: (context, url) => fallback,
       errorWidget: (context, url, error) => fallback,
+    );
+  }
+}
+
+class _DarkInfoPanel extends StatelessWidget {
+  const _DarkInfoPanel({
+    required this.child,
+    this.onTap,
+    this.padding = const EdgeInsets.all(14),
+  });
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final decoration = BoxDecoration(
+      color: AppColors.darkSurfaceElevated,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      border: Border.all(color: AppColors.darkBorder.withValues(alpha: 0.72)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.18),
+          blurRadius: 16,
+          offset: const Offset(0, 10),
+        ),
+      ],
+    );
+
+    if (onTap == null) {
+      return DecoratedBox(
+        decoration: decoration,
+        child: Padding(padding: padding, child: child),
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        onTap: onTap,
+        child: Ink(
+          decoration: decoration,
+          child: Padding(padding: padding, child: child),
+        ),
+      ),
     );
   }
 }
@@ -419,11 +1011,11 @@ class _SectionLoading extends StatelessWidget {
       children: [
         SectionHeader(title: title),
         const SizedBox(height: 12),
-        const SmartCard(
+        const _DarkInfoPanel(
           child: Center(
             child: Padding(
               padding: EdgeInsets.all(8),
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: SmartSpinner(size: 26, strokeWidth: 2.4),
             ),
           ),
         ),

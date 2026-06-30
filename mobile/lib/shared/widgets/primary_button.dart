@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
+import 'pressable_scale.dart';
+import 'smart_progress.dart';
 
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
@@ -31,7 +33,7 @@ class PrimaryButton extends StatelessWidget {
               key: ValueKey('loading'),
               height: 20,
               width: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: SmartSpinner(size: 20, strokeWidth: 2.2),
             )
           : Row(
               key: const ValueKey('content'),
@@ -68,17 +70,22 @@ class PrimaryButton extends StatelessWidget {
       },
     );
 
+    final scaledButton = PressableScale(
+      enabled: effectiveOnPressed != null,
+      child: button,
+    );
+
     if (!fullWidth) {
-      return button;
+      return scaledButton;
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         if (!constraints.hasBoundedWidth) {
-          return button;
+          return scaledButton;
         }
 
-        return SizedBox(width: double.infinity, child: button);
+        return SizedBox(width: double.infinity, child: scaledButton);
       },
     );
   }

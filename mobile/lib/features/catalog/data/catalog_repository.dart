@@ -5,6 +5,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_error.dart';
 import '../../product/data/product_detail.dart';
 import 'product_models.dart';
+import 'supplier_models.dart';
 
 final catalogRepositoryProvider = Provider<CatalogRepository>(
   (ref) => CatalogRepository(
@@ -20,6 +21,12 @@ final catalogProductsProvider =
 
 final featuredProductsProvider = FutureProvider<List<ProductSummary>>((ref) {
   return ref.watch(catalogRepositoryProvider).getFeaturedProducts();
+});
+
+final catalogSuppliersProvider = FutureProvider<List<CatalogSupplierSummary>>((
+  ref,
+) {
+  return ref.watch(catalogRepositoryProvider).getSuppliers();
 });
 
 final productDetailProvider = FutureProvider.family<ProductDetail, String>((
@@ -41,6 +48,7 @@ class CatalogRepository {
 
   static const Duration _productsTtl = Duration(minutes: 3);
   static const Duration _productDetailTtl = Duration(minutes: 5);
+  static const Duration _suppliersTtl = Duration(minutes: 15);
 
   Future<List<ProductSummary>> getProducts(
     CatalogRequest request, {
@@ -79,6 +87,24 @@ class CatalogRepository {
     );
   }
 
+  Future<List<CatalogSupplierSummary>> getSuppliers({
+    bool forceRefresh = false,
+  }) {
+    return _cache.getOrLoad<List<CatalogSupplierSummary>>(
+      key: 'public:suppliers',
+      debugLabel: 'GET /api/v1/public/suppliers',
+      ttl: _suppliersTtl,
+      forceRefresh: forceRefresh,
+      loader: () async {
+        final response = await _apiClient.get<Map<String, dynamic>>(
+          '/api/v1/public/suppliers',
+        );
+
+        return _readSupplierList(response.data);
+      },
+    );
+  }
+
   Future<ProductDetail> getProductBySlug(String slug) async {
     try {
       return await _cache.getOrLoad<ProductDetail>(
@@ -113,6 +139,10 @@ class CatalogRepository {
 
   void invalidateProductBySlug(String slug) {
     _cache.invalidate(_productDetailCacheKey(slug));
+  }
+
+  void invalidateSuppliers() {
+    _cache.invalidate('public:suppliers');
   }
 
   String _productsCacheKey(CatalogRequest request) {
@@ -153,6 +183,32 @@ class CatalogRepository {
     }
 
     return null;
+  }
+
+  List<CatalogSupplierSummary> _readSupplierList(Map<String, dynamic>? body) {
+    final rawData = body?['data'] ?? body?['suppliers'] ?? body;
+
+    if (rawData is List) {
+      return rawData
+          .whereType<Map<String, dynamic>>()
+          .map(CatalogSupplierSummary.fromJson)
+          .where((supplier) => supplier.slug.isNotEmpty)
+          .toList();
+    }
+
+    if (rawData is Map<String, dynamic>) {
+      final nested =
+          rawData['data'] ?? rawData['items'] ?? rawData['suppliers'];
+      if (nested is List) {
+        return nested
+            .whereType<Map<String, dynamic>>()
+            .map(CatalogSupplierSummary.fromJson)
+            .where((supplier) => supplier.slug.isNotEmpty)
+            .toList();
+      }
+    }
+
+    throw const CatalogShapeException();
   }
 
   String? _filterForStatus(String? status) {

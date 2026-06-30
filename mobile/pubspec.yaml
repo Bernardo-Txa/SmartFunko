@@ -31,6 +31,33 @@ dev_dependencies:
   freezed: ^2.5.8
   json_serializable: ^6.8.0
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.3
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: assets/branding/logo_square.png
+  adaptive_icon_background: "#020817"
+  adaptive_icon_foreground: assets/branding/logo_square.png
+  web:
+    generate: true
+    image_path: assets/branding/logo_square.png
+    background_color: "#020817"
+    theme_color: "#020817"
+
+flutter_native_splash:
+  color: "#020817"
+  image: assets/branding/logo_horizontal_white.png
+  android: true
+  ios: true
+  web: true
+  android_12:
+    color: "#020817"
+    image: assets/branding/logo_horizontal_white.png

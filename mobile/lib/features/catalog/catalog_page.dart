@@ -3,11 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/config/app_config.dart';
+import '../../shared/theme/app_colors.dart';
+import '../../shared/theme/app_radius.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
-import '../../shared/widgets/list_skeleton.dart';
+import '../../shared/widgets/smart_skeleton.dart';
 import '../cart/data/cart_controller.dart';
 import '../../core/auth/auth_controller.dart';
 import '../wishlist/application/wishlist_controller.dart';
@@ -33,7 +37,8 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
   static const _statusFilters = [
     _CatalogFilter(label: 'Pronta-entrega', value: 'available'),
     _CatalogFilter(label: 'Pré-venda', value: 'preorder'),
-    _CatalogFilter(label: 'Encomenda', value: 'order_only'),
+    _CatalogFilter(label: 'Sob encomenda', value: 'order_only'),
+    _CatalogFilter(label: 'Specials', value: 'specials'),
   ];
 
   @override
@@ -75,8 +80,7 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
 
     return AppScaffold(
       title: 'Catálogo',
-      subtitle: 'Produtos disponíveis para pedido',
-      showAppBar: false,
+      subtitle: 'Busca, filtros e produtos reais',
       showSearch: true,
       onRefresh: () async {
         ref.read(catalogRepositoryProvider).invalidateProducts(request);
@@ -85,23 +89,15 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
+          const _CatalogHero(),
+          const SizedBox(height: 16),
+          _CatalogSearchField(
             controller: _searchController,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: 'Buscar por personagem, franquia ou SKU',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: _search.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: 'Limpar busca',
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _search = '');
-                      },
-                    ),
-            ),
+            search: _search,
+            onClear: () {
+              _searchController.clear();
+              setState(() => _search = '');
+            },
             onSubmitted: (value) => _applySearch(value),
             onChanged: (value) {
               _searchDebounce?.cancel();
@@ -126,8 +122,9 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
               search: _search,
               status: _status,
               onAddToCart: _addToCart,
+              onConsult: _openProductOnWeb,
             ),
-            loading: () => const ListSkeleton(itemCount: 6, imageSize: 88),
+            loading: () => const _CatalogSkeletonGrid(),
             error: (error, stackTrace) => ErrorState(
               message: 'Não foi possível carregar o catálogo.',
               onRetry: () {
@@ -142,16 +139,49 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
   }
 
   void _addToCart(ProductSummary product) {
+    if (!product.canAddToCart) {
+      _openProductOnWeb(product);
+      return;
+    }
+
     ref.read(cartControllerProvider.notifier).addProduct(product);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${product.name} adicionado ao carrinho.'),
+        content: const Text('Produto adicionado ao carrinho.'),
         action: SnackBarAction(
-          label: 'Ver',
+          label: 'Ver carrinho',
           onPressed: () => context.go('/carrinho'),
         ),
       ),
     );
+  }
+
+  Future<void> _openProductOnWeb(ProductSummary product) async {
+    final url = '${AppConfig.normalizedApiBaseUrl}/produto/${product.slug}';
+    final uri = Uri.tryParse(url);
+
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o produto.')),
+      );
+      return;
+    }
+
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível abrir o produto.')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o produto.')),
+      );
+    }
   }
 
   void _applySearch(String value) {
@@ -177,34 +207,121 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
   }
 }
 
+class _CatalogHero extends StatelessWidget {
+  const _CatalogHero();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF101D33), Color(0xFF07101F)],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.darkBorder),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Icon(Icons.storefront_rounded, color: AppColors.primary, size: 34),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Catálogo único',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    'Funkos, pré-vendas, encomendas e specials no mesmo lugar.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CatalogSearchField extends StatelessWidget {
+  const _CatalogSearchField({
+    required this.controller,
+    required this.search,
+    required this.onClear,
+    required this.onSubmitted,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String search;
+  final VoidCallback onClear;
+  final ValueChanged<String> onSubmitted;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Buscar Funko, anime, personagem...',
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: search.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Limpar busca',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: onClear,
+              ),
+      ),
+      onSubmitted: onSubmitted,
+      onChanged: onChanged,
+    );
+  }
+}
+
 class _CatalogContent extends ConsumerWidget {
   const _CatalogContent({
     required this.products,
     required this.search,
     required this.status,
     required this.onAddToCart,
+    required this.onConsult,
   });
 
   final List<ProductSummary> products;
   final String search;
   final String? status;
   final ValueChanged<ProductSummary> onAddToCart;
+  final ValueChanged<ProductSummary> onConsult;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final auth = ref.watch(authControllerProvider);
     final wishlist = ref.watch(wishlistControllerProvider);
 
     if (products.isEmpty) {
       return EmptyState(
         icon: Icons.manage_search_rounded,
-        title: search.isEmpty && status == null
-            ? 'Nenhum produto disponível'
-            : 'Nada encontrado',
-        message: search.isEmpty && status == null
-            ? 'O catálogo público não retornou produtos agora.'
-            : 'Tente outro status ou termo de busca.',
+        title: 'Nenhum produto encontrado.',
+        message: 'Tente buscar por outro nome ou remover filtros.',
       );
     }
 
@@ -212,11 +329,17 @@ class _CatalogContent extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          search.isEmpty
-              ? 'Produtos Smart Funkos'
-              : 'Resultados para "$search"',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w900,
+          search.isEmpty ? 'Produtos SmartFunko' : 'Resultados para "$search"',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${products.length} produto(s) exibido(s)',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 12),
@@ -225,11 +348,18 @@ class _CatalogContent extends ConsumerWidget {
             final width = constraints.maxWidth;
             final columns = width >= 900
                 ? 4
-                : width >= 640
+                : width >= 620
                 ? 3
-                : width >= 430
+                : width >= 360
                 ? 2
                 : 1;
+            final itemExtent = columns == 1
+                ? 410.0
+                : columns == 2
+                ? 392.0
+                : columns == 3
+                ? 374.0
+                : 356.0;
 
             return GridView.builder(
               shrinkWrap: true,
@@ -239,18 +369,15 @@ class _CatalogContent extends ConsumerWidget {
                 crossAxisCount: columns,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: columns == 1
-                    ? 0.58
-                    : columns == 2
-                    ? 0.40
-                    : 0.46,
+                mainAxisExtent: itemExtent,
               ),
               itemBuilder: (context, index) {
                 final product = products[index];
                 return ProductCard(
                   product: product,
-                  onDetails: () => context.go('/produto/${product.slug}'),
+                  onDetails: () => context.push('/produto/${product.slug}'),
                   onAddToCart: () => onAddToCart(product),
+                  onConsult: () => onConsult(product),
                   isWishlisted: wishlist.isWishlisted(product.id),
                   isWishlistUpdating: wishlist.isUpdating(product.id),
                   onToggleWishlist: () => _toggleWishlist(
@@ -339,10 +466,23 @@ class _CatalogFilters extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
+              ChoiceChip(
+                label: const Text('Todos'),
+                avatar: const Icon(Icons.apps_rounded, size: 18),
+                showCheckmark: false,
+                selected: status == null,
+                onSelected: (_) {
+                  if (status != null) {
+                    onStatusTap(status!);
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
               for (final filter in statusFilters) ...[
-                FilterChip(
+                ChoiceChip(
                   label: Text(filter.label),
                   avatar: const Icon(Icons.sell_rounded, size: 18),
+                  showCheckmark: false,
                   selected: status == filter.value,
                   onSelected: (_) => onStatusTap(filter.value),
                 ),
@@ -367,4 +507,38 @@ class _CatalogFilter {
 
   final String label;
   final String value;
+}
+
+class _CatalogSkeletonGrid extends StatelessWidget {
+  const _CatalogSkeletonGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 620
+            ? 3
+            : constraints.maxWidth >= 360
+            ? 2
+            : 1;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: columns * 3,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: columns == 1
+                ? 410
+                : columns == 2
+                ? 392
+                : 374,
+          ),
+          itemBuilder: (context, index) => const ProductCardSkeleton(),
+        );
+      },
+    );
+  }
 }

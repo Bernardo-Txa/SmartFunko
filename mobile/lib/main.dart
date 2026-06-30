@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +9,16 @@ import 'core/config/app_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Color(0xFF020817),
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: Color(0xFF020817),
+      systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarDividerColor: Color(0xFF020817),
+    ),
+  );
   await initializeDateFormatting('pt_BR', null);
 
   if (AppConfig.isComplete) {
@@ -27,6 +38,7 @@ class SmartFunkosBootstrap extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!AppConfig.isComplete) {
       return MaterialApp(
+        title: 'SmartFunko',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,

@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/auth/auth_controller.dart';
 import '../core/auth/auth_state.dart';
+import '../features/auth/forgot_password_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/catalog/catalog_page.dart';
@@ -47,26 +49,47 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-      GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(
+        path: '/splash',
+        pageBuilder: (context, state) =>
+            _buildPage(state, const SplashPage(), slide: false),
+      ),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (context, state) => _buildPage(state, const LoginPage()),
+      ),
+      GoRoute(
+        path: '/esqueci-senha',
+        pageBuilder: (context, state) =>
+            _buildPage(state, const ForgotPasswordPage()),
+      ),
+      GoRoute(
+        path: '/',
+        pageBuilder: (context, state) => _buildPage(state, const HomePage()),
+      ),
       GoRoute(
         path: '/catalogo',
-        builder: (context, state) => const CatalogPage(),
+        pageBuilder: (context, state) => _buildPage(state, const CatalogPage()),
       ),
       GoRoute(
         path: '/produto/:slug',
-        builder: (context, state) =>
-            ProductDetailPage(slug: state.pathParameters['slug'] ?? 'demo'),
+        pageBuilder: (context, state) => _buildPage(
+          state,
+          ProductDetailPage(slug: state.pathParameters['slug'] ?? 'demo'),
+        ),
       ),
-      GoRoute(path: '/carrinho', builder: (context, state) => const CartPage()),
+      GoRoute(
+        path: '/carrinho',
+        pageBuilder: (context, state) => _buildPage(state, const CartPage()),
+      ),
       GoRoute(
         path: '/checkout',
-        builder: (context, state) => const CheckoutReviewPage(),
+        pageBuilder: (context, state) =>
+            _buildPage(state, const CheckoutReviewPage()),
       ),
       GoRoute(
         path: '/pedidos',
-        builder: (context, state) => const OrdersPage(),
+        pageBuilder: (context, state) => _buildPage(state, const OrdersPage()),
       ),
       GoRoute(
         path: '/pedidos/:orderNumber',
@@ -74,29 +97,75 @@ final routerProvider = Provider<GoRouter>((ref) {
           final orderNumber = state.pathParameters['orderNumber']?.trim();
           return orderNumber == null || orderNumber.isEmpty ? '/pedidos' : null;
         },
-        builder: (context, state) => OrderDetailPage(
-          orderNumber: state.pathParameters['orderNumber'] ?? '',
+        pageBuilder: (context, state) => _buildPage(
+          state,
+          OrderDetailPage(
+            orderNumber: state.pathParameters['orderNumber'] ?? '',
+          ),
         ),
       ),
-      GoRoute(path: '/rifas', builder: (context, state) => const RafflesPage()),
+      GoRoute(
+        path: '/rifas',
+        pageBuilder: (context, state) => _buildPage(state, const RafflesPage()),
+      ),
       GoRoute(
         path: '/minhas-rifas',
-        builder: (context, state) => const MyRafflesPage(),
+        pageBuilder: (context, state) =>
+            _buildPage(state, const MyRafflesPage()),
       ),
       GoRoute(
         path: '/rifas/:slug',
-        builder: (context, state) =>
-            RaffleDetailPage(slug: state.pathParameters['slug'] ?? 'demo'),
+        pageBuilder: (context, state) => _buildPage(
+          state,
+          RaffleDetailPage(slug: state.pathParameters['slug'] ?? 'demo'),
+        ),
       ),
-      GoRoute(path: '/clube', builder: (context, state) => const ClubPage()),
+      GoRoute(
+        path: '/clube',
+        pageBuilder: (context, state) => _buildPage(state, const ClubPage()),
+      ),
       GoRoute(
         path: '/perfil',
-        builder: (context, state) => const ProfilePage(),
+        pageBuilder: (context, state) => _buildPage(state, const ProfilePage()),
       ),
       GoRoute(
         path: '/wishlist',
-        builder: (context, state) => const WishlistPage(),
+        pageBuilder: (context, state) =>
+            _buildPage(state, const WishlistPage()),
       ),
     ],
   );
 });
+
+CustomTransitionPage<void> _buildPage(
+  GoRouterState state,
+  Widget child, {
+  bool slide = true,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 140),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+
+      final faded = FadeTransition(opacity: curved, child: child);
+      if (!slide) {
+        return faded;
+      }
+
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0.02, 0.012),
+          end: Offset.zero,
+        ).animate(curved),
+        child: faded,
+      );
+    },
+  );
+}
