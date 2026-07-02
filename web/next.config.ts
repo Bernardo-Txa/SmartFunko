@@ -3,6 +3,7 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   images: {
+    unoptimized: true,
     qualities: [72, 75],
     remotePatterns: [
       {

@@ -37,6 +37,7 @@ export function SafeProductImage({
         priority={priority}
         quality={72}
         sizes={sizes}
+        unoptimized
         className={`object-contain ${imageClassName}`}
         onError={() => setHasError(true)}
       />
