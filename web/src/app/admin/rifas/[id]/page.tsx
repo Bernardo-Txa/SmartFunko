@@ -8,7 +8,7 @@ import {
   RaffleExpireReservationsButton,
   RaffleOrderActions,
 } from "@/components/admin/raffle-admin-actions";
-import type { RaffleCampaign, RaffleNumber, RaffleOrder } from "@/components/raffles/raffle-types";
+import type { RaffleCampaign, RaffleDrawWinner, RaffleNumber, RaffleOrder } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge, RaffleNumberStatusBadge, RaffleOrderStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -89,7 +89,7 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
     notFound();
   }
 
-  const [ordersResult, numbersResult] = await Promise.all([
+  const [ordersResult, numbersResult, drawWinnersResult] = await Promise.all([
     service.listRaffleOrders(id)
       .then((data) => ({ data: Array.isArray(data) ? data : [], failed: false }))
       .catch((error) => {
@@ -102,13 +102,22 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
         console.error("[AdminRaffleDetailPage] failed to load raffle numbers", { error, raffleId: id });
         return { data: [], failed: true };
       }),
+    service.getRaffleDrawWinners(id)
+      .then((data) => ({ data, failed: false }))
+      .catch((error) => {
+        console.error("[AdminRaffleDetailPage] failed to load raffle draw winners", { error, raffleId: id });
+        return { data: [], failed: true };
+      }),
   ]);
   const orders = ordersResult.data as unknown as RaffleOrder[];
   const numbers = numbersResult.data as unknown as RaffleNumber[];
+  const drawWinners = drawWinnersResult.data as RaffleDrawWinner[];
   const winnerNumber = numbers.find((number) => number.status === "winner");
   const stats = getStats(campaign);
   const pendingRevenue = stats.pending * numericAmount(campaign.price_per_number);
   const drawMethod = getRaffleDrawMethodMeta(campaign.draw_method);
+  const paidOrders = orders.filter((order) => order.status === "paid");
+  const eligibleCustomers = new Set(paidOrders.map((order) => order.customer_id)).size;
 
   return (
     <AdminShell title={campaign.title} description="Detalhe operacional da campanha de rifa.">
@@ -187,20 +196,52 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                 Nao foi possivel carregar numeros da rifa. O restante da campanha segue disponivel.
               </p>
             ) : null}
-            <dl className="mt-4 grid gap-3 text-sm">
-              <div>
-                <dt className="font-semibold text-[var(--foreground)]">Numero vencedor</dt>
-                <dd className="mt-1 flex items-center gap-2 text-[var(--muted)]">
-                  {winnerNumber ? (
-                    <>
-                      <span className="font-bold text-[var(--foreground)]">{winnerNumber.label}</span>
-                      <RaffleNumberStatusBadge status={winnerNumber.status} />
-                    </>
-                  ) : (
-                    "Ainda nao registrado"
-                  )}
-                </dd>
+            {drawWinnersResult.failed ? (
+              <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
+                Nao foi possivel carregar os colocados do sorteio.
+              </p>
+            ) : null}
+            {drawWinners.length > 0 ? (
+              <div className="mt-4 grid gap-2">
+                {drawWinners.map((winner) => (
+                  <div key={`${winner.placement}-${winner.raffleNumberId ?? winner.customerId}`} className="rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--muted)]">{winner.placement}o lugar</p>
+                        <p className="mt-1 font-bold text-[var(--foreground)]">{winner.customerName}</p>
+                        <p className="text-xs text-[var(--muted)]">{winner.customerEmail ?? winner.customerPhone ?? "Cliente sem contato"}</p>
+                      </div>
+                      <div className="text-right text-sm">
+                        <p className="font-bold text-[var(--foreground)]">Numero {winner.numberLabel ?? winner.number ?? "-"}</p>
+                        <p className="text-xs text-[var(--muted)]">{winner.prizeLabel}</p>
+                      </div>
+                    </div>
+                    {winner.couponCode ? (
+                      <p className="mt-3 inline-flex rounded-md border border-yellow-300/40 bg-yellow-300/10 px-2 py-1 text-xs font-black text-yellow-100">
+                        Cupom: {winner.couponCode}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
               </div>
+            ) : (
+              <dl className="mt-4 grid gap-3 text-sm">
+                <div>
+                  <dt className="font-semibold text-[var(--foreground)]">Numero vencedor</dt>
+                  <dd className="mt-1 flex items-center gap-2 text-[var(--muted)]">
+                    {winnerNumber ? (
+                      <>
+                        <span className="font-bold text-[var(--foreground)]">{winnerNumber.label}</span>
+                        <RaffleNumberStatusBadge status={winnerNumber.status} />
+                      </>
+                    ) : (
+                      "Ainda nao registrado"
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            )}
+            <dl className="mt-4 grid gap-3 text-sm">
               <div>
                 <dt className="font-semibold text-[var(--foreground)]">Registrado em</dt>
                 <dd className="text-[var(--muted)]">{formatDateTime(campaign.drawn_at)}</dd>
@@ -219,7 +260,9 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
 
         <RaffleDrawForm
           campaignId={campaign.id}
-          disabled={!["closed", "sold_out"].includes(campaign.status) || Boolean(winnerNumber)}
+          disabled={!["closed", "sold_out"].includes(campaign.status) || Boolean(winnerNumber) || stats.sold === 0}
+          eligibleCustomers={eligibleCustomers}
+          soldNumbers={stats.sold}
         />
 
         <section className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">

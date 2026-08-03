@@ -72,6 +72,7 @@ export const cashEntryTypeOptions = [
 
 export const cashEntryCategoryOptions = [
   { label: "Venda", value: "sale" },
+  { label: "Assinatura", value: "subscription" },
   { label: "Rifa", value: "raffle" },
   { label: "Compra de fornecedor", value: "supplier_purchase" },
   { label: "Frete", value: "shipping" },
@@ -218,6 +219,7 @@ const cashEntryCategoryMeta = {
   raffle: createMeta("Rifa", "cyan"),
   refund: createMeta("Reembolso", "red"),
   sale: createMeta("Venda", "green"),
+  subscription: createMeta("Assinatura", "violet"),
   shipping: createMeta("Frete", "cyan"),
   supplier_purchase: createMeta("Compra de fornecedor", "violet"),
 } satisfies Record<string, StatusMeta>;

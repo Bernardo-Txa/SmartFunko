@@ -4,6 +4,7 @@ import { badRequest, conflict, notFound } from "@/server/http/errors";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
+import { normalizeProductType } from "@/lib/product-types";
 
 export const productStatusSchema = z.enum(["active", "inactive", "archived"]);
 
@@ -84,6 +85,7 @@ const optionalSpecialTagsSchema = z.preprocess(
 export const createProductSchema = z.object({
   name: z.string().trim().min(2),
   slug: optionalTrimmedText(2),
+  productType: z.string().trim().optional().transform((value) => normalizeProductType(value)),
   franchiseId: z.string().uuid().optional().nullable(),
   supplierId: z.string().uuid().optional().nullable(),
   funkoNumber: nullableTrimmedText(),
@@ -146,9 +148,11 @@ type EntityWithId = {
 };
 
 type ProductRelation = {
+  external_catalog_code?: string | null;
   id: string;
   name: string;
   slug: string;
+  supplier_id?: string | null;
 };
 
 type VariantSearchRow = {
@@ -157,11 +161,13 @@ type VariantSearchRow = {
   sku: string;
   source: CreateProductVariantInput["source"];
   sale_price: number;
+  special_tags?: string[] | null;
   status: CreateProductVariantInput["status"];
   products?: ProductRelation | ProductRelation[] | null;
 };
 
 type ProductSearchRow = {
+  external_catalog_code?: string | null;
   id: string;
   name: string;
   slug: string;
@@ -170,7 +176,16 @@ type ProductSearchRow = {
     sku: string;
     source: CreateProductVariantInput["source"];
     sale_price: number;
+    special_tags?: string[] | null;
     status: CreateProductVariantInput["status"];
+  }> | null;
+};
+
+type ProductRareScopeRow = {
+  external_catalog_code?: string | null;
+  product_variants?: Array<{
+    sku?: string | null;
+    special_tags?: string[] | null;
   }> | null;
 };
 
@@ -220,9 +235,27 @@ function createQuickSku(name: string) {
   return `SFQ-${prefix || "PROD"}-${Date.now().toString(36).toUpperCase()}`;
 }
 
+function isRareCode(value: string | null | undefined) {
+  return /^(ACERVO|RARO)-/i.test(value?.trim() ?? "");
+}
+
+function isRareTag(value: string | null | undefined) {
+  const normalized = slugify(value ?? "");
+  return normalized === "acervo-raro";
+}
+
+function isRareCollectibleVariant(variant: { sku?: string | null; special_tags?: string[] | null }) {
+  return isRareCode(variant.sku) || (variant.special_tags ?? []).some(isRareTag);
+}
+
+function isRareCollectibleProduct(product: ProductRareScopeRow | null | undefined) {
+  return isRareCode(product?.external_catalog_code) ||
+    (product?.product_variants ?? []).some(isRareCollectibleVariant);
+}
+
 function productSelect() {
   return `
-    id,name,slug,franchise_id,supplier_id,funko_number,description,main_image_url,status,created_at,updated_at,
+    id,name,slug,franchise_id,supplier_id,product_type,funko_number,description,main_image_url,status,created_at,updated_at,
     category_name,subcategory_name,external_catalog_code,
     franchises(id,name,slug),
     suppliers(id,name,slug),
@@ -272,16 +305,20 @@ export class ProductService {
       .from("products")
       .select(productSelect())
       .eq("status", "active")
+      .not("external_catalog_code", "ilike", "ACERVO-%")
+      .not("external_catalog_code", "ilike", "RARO-%")
       .order("name", { ascending: true });
 
     if (error) {
       throwQueryError(error, "Falha ao listar produtos publicos");
     }
 
-    return data ?? [];
+    const products = (data ?? []) as ProductRareScopeRow[];
+
+    return products.filter((product) => !isRareCollectibleProduct(product));
   }
 
-  async listAdminProducts(options: { limit?: number; page?: number; search?: string } = {}) {
+  async listAdminProducts(options: { limit?: number; page?: number; search?: string; supplierId?: string | null } = {}) {
     const limit = Math.min(500, Math.max(1, options.limit ?? 150));
     const page = Math.max(1, options.page ?? 1);
     const from = (page - 1) * limit;
@@ -290,6 +327,8 @@ export class ProductService {
     let query = this.supabase
       .from("products")
       .select(productSelect())
+      .not("external_catalog_code", "ilike", "ACERVO-%")
+      .not("external_catalog_code", "ilike", "RARO-%")
       .order("created_at", { ascending: false })
       .range(from, to);
 
@@ -298,13 +337,20 @@ export class ProductService {
       query = query.or(`name.ilike.%${search}%,slug.ilike.%${search}%,external_catalog_code.ilike.%${search}%`);
     }
 
+    if (options.supplierId === null) {
+      query = query.is("supplier_id", null);
+    } else if (options.supplierId) {
+      query = query.eq("supplier_id", options.supplierId);
+    }
+
     const { data, error } = await query;
 
     if (error) {
       throwQueryError(error, "Falha ao listar produtos");
     }
 
-    return data ?? [];
+    return ((data ?? []) as ProductRareScopeRow[])
+      .filter((product) => !isRareCollectibleProduct(product));
   }
 
   async listProductsBySupplierId(supplierId: string) {
@@ -439,6 +485,7 @@ export class ProductService {
       funkoNumber: null,
       mainImageUrl: input.imageUrl ?? null,
       name: input.name,
+      productType: "other",
       slug,
       status: "active",
       subcategoryName: input.subcategory ?? null,
@@ -506,7 +553,7 @@ export class ProductService {
     };
   }
 
-  async searchAdminProductVariants(options: { limit?: number; search: string }) {
+  async searchAdminProductVariants(options: { limit?: number; search: string; supplierId?: string | null }) {
     const search = options.search.trim();
 
     if (search.length < 2) {
@@ -516,22 +563,35 @@ export class ProductService {
     const limit = Math.min(30, Math.max(1, options.limit ?? 20));
     const productLimit = Math.min(12, limit);
     const safeSearch = escapeSearch(search);
-    const productVariantSelect = "id,sku,source,sale_price,status";
+    const productVariantSelect = "id,sku,source,sale_price,status,special_tags";
+
+    let productQuery = this.supabase
+      .from("products")
+      .select(`id,name,slug,external_catalog_code,product_variants(${productVariantSelect})`)
+      .eq("status", "active")
+      .not("external_catalog_code", "ilike", "ACERVO-%")
+      .not("external_catalog_code", "ilike", "RARO-%")
+      .or(`name.ilike.%${safeSearch}%,slug.ilike.%${safeSearch}%,external_catalog_code.ilike.%${safeSearch}%`)
+      .order("name", { ascending: true })
+      .limit(productLimit);
+    let skuQuery = this.supabase
+      .from("product_variants")
+      .select(`id,product_id,sku,source,sale_price,status,special_tags,products!inner(id,name,slug,supplier_id,external_catalog_code)`)
+      .ilike("sku", `%${safeSearch}%`)
+      .order("sku", { ascending: true })
+      .limit(limit);
+
+    if (options.supplierId === null) {
+      productQuery = productQuery.is("supplier_id", null);
+      skuQuery = skuQuery.is("products.supplier_id", null);
+    } else if (options.supplierId) {
+      productQuery = productQuery.eq("supplier_id", options.supplierId);
+      skuQuery = skuQuery.eq("products.supplier_id", options.supplierId);
+    }
 
     const [productResult, skuResult] = await Promise.all([
-      this.supabase
-        .from("products")
-        .select(`id,name,slug,product_variants(${productVariantSelect})`)
-        .eq("status", "active")
-        .or(`name.ilike.%${safeSearch}%,slug.ilike.%${safeSearch}%,external_catalog_code.ilike.%${safeSearch}%`)
-        .order("name", { ascending: true })
-        .limit(productLimit),
-      this.supabase
-        .from("product_variants")
-        .select(`id,product_id,sku,source,sale_price,status,products!inner(id,name,slug)`)
-        .ilike("sku", `%${safeSearch}%`)
-        .order("sku", { ascending: true })
-        .limit(limit),
+      productQuery,
+      skuQuery,
     ]);
 
     if (productResult.error) {
@@ -545,8 +605,12 @@ export class ProductService {
     const results = new Map<string, ProductVariantSearchResult>();
 
     for (const product of (productResult.data ?? []) as unknown as ProductSearchRow[]) {
+      if (isRareCollectibleProduct(product)) {
+        continue;
+      }
+
       for (const variant of product.product_variants ?? []) {
-        if (variant.status === "hidden" || results.size >= limit) {
+        if (variant.status === "hidden" || isRareCollectibleVariant(variant) || results.size >= limit) {
           continue;
         }
 
@@ -564,13 +628,16 @@ export class ProductService {
     }
 
     for (const variant of (skuResult.data ?? []) as unknown as VariantSearchRow[]) {
-      if (variant.status === "hidden" || results.has(variant.id) || results.size >= limit) {
+      if (variant.status === "hidden" || isRareCollectibleVariant(variant) || results.has(variant.id) || results.size >= limit) {
         continue;
       }
 
       const product = firstRelation(variant.products);
 
-      if (!product) {
+      if (!product || isRareCollectibleProduct({
+        external_catalog_code: product.external_catalog_code,
+        product_variants: [variant],
+      })) {
         continue;
       }
 
@@ -641,6 +708,7 @@ export class ProductService {
         funko_number: input.funkoNumber ?? null,
         main_image_url: input.mainImageUrl ?? null,
         name: input.name,
+        product_type: input.productType ?? "funko_pop",
         slug,
         status: input.status,
         subcategory_name: input.subcategoryName ?? null,
@@ -676,6 +744,7 @@ export class ProductService {
       funko_number: input.funkoNumber,
       main_image_url: input.mainImageUrl,
       name: input.name,
+      product_type: input.productType,
       slug: input.slug ? slugify(input.slug) : undefined,
       status: input.status,
       subcategory_name: input.subcategoryName,

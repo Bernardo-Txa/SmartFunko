@@ -22,6 +22,28 @@ export type BrandCatalogProfile = {
 };
 
 const brandCatalogProfiles: Record<string, Omit<BrandCatalogProfile, "name">> = {
+  "nba-brasil": {
+    catalogTitle: "Catalogo NBA Brasil: basquete e cultura pop",
+    emptyState: "Ainda nao ha itens NBA Brasil cadastrados para este catalogo especial.",
+    headline: "Produtos oficiais de basquete para colecionar por time, jogador e temporada.",
+    highlights: ["Times NBA", "Basquete", "Produtos oficiais"],
+    sellingNotes: [
+      "Time, jogador, temporada e licenca oficial precisam aparecer com clareza.",
+      "Produtos por franquia e linha ajudam o cliente a navegar por interesse esportivo.",
+      "Itens de drop ou lote curto devem ter destaque de disponibilidade.",
+    ],
+    slug: "nba-brasil",
+    story:
+      "A NBA Brasil funciona como uma vitrine esportiva: leitura rapida por time, apelo de presente e curadoria ligada a momentos da liga.",
+    tabLabel: "NBA Brasil",
+    theme: {
+      accentClassName: "text-sky-100",
+      activeTabClassName: "border-sky-300 bg-sky-300 text-slate-950",
+      bandClassName: "smart-brand-band-nba border-sky-300/30",
+      badgeClassName: "bg-sky-300 text-slate-950",
+      heroClassName: "smart-brand-hero-nba border-sky-300/35",
+    },
+  },
   copag: {
     catalogTitle: "Catalogo Copag: mesa, cartas e nostalgia",
     emptyState: "Ainda nao ha itens Copag cadastrados para este catalogo especial.",

@@ -1,37 +1,28 @@
 import Link from "next/link";
 import {
-  Boxes,
   BadgePercent,
-  ChartNoAxesColumn,
-  CreditCard,
+  BarChart3,
+  Clapperboard,
   Gem,
-  Handshake,
-  HeartPulse,
   LayoutDashboard,
-  PackageSearch,
   Package,
   ReceiptText,
   Ticket,
   Users,
 } from "lucide-react";
-import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
+import { isRafflesEnabled } from "@/lib/env";
 
 function getNavItems() {
   return [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/demanda", label: "Demanda", icon: HeartPulse },
-    { href: "/admin/produtos", label: "Produtos", icon: Package },
-    { href: "/admin/fornecedores", label: "Fornecedores", icon: Handshake },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
-    { href: "/admin/pedidos", label: "Pedidos", icon: ReceiptText },
+    { href: "/admin/produtos", label: "Produtos", icon: Package },
+    { href: "/admin/acervo-raro", label: "Acervo Raro", icon: Gem },
+    { href: "/admin/v2/pedidos", label: "Pedidos", icon: ReceiptText },
+    { href: "/admin/popflix", label: "PopFlix", icon: Clapperboard },
     { href: "/admin/cupons", label: "Cupons", icon: BadgePercent },
-    ...(isRewardsEnabled() ? [{ href: "/admin/clube", label: "Smart Clube", icon: Gem }] : []),
     ...(isRafflesEnabled() ? [{ href: "/admin/rifas", label: "Rifas", icon: Ticket }] : []),
-    { href: "/admin/lotes", label: "Lotes", icon: PackageSearch },
-    { href: "/admin/estoque", label: "Estoque", icon: Boxes },
-    { href: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
-    { href: "/admin/caixa", label: "Caixa", icon: ChartNoAxesColumn },
-    { href: "/admin/bi", label: "BI / Relatorios", icon: ChartNoAxesColumn },
+    { href: "/admin/relatorios/fechamento", label: "Relatorios", icon: BarChart3 },
   ];
 }
 

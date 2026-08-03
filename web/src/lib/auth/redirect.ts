@@ -1,4 +1,4 @@
-const DEFAULT_CUSTOMER_PATH = "/conta/pedidos";
+const DEFAULT_CUSTOMER_PATH = "/conta/pedidos-v2";
 const DEFAULT_OWNER_PATH = "/admin/dashboard";
 
 type AuthRole = "customer" | "admin" | "owner";

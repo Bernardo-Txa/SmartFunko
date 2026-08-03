@@ -42,6 +42,7 @@ type Props = {
   onSelect: (option: ProductVariantSearchOption | null) => void;
   placeholder?: string;
   selected: ProductVariantSearchOption | null;
+  supplierId?: string | null;
 };
 
 function formatOptionLabel(option: ProductVariantSearchOption) {
@@ -56,6 +57,7 @@ export function ProductVariantSearchSelect({
   onSelect,
   placeholder = "Buscar por nome ou SKU",
   selected,
+  supplierId,
 }: Props) {
   const inputId = useId();
   const [draftQuery, setDraftQuery] = useState("");
@@ -90,8 +92,19 @@ export function ProductVariantSearchSelect({
       setError("");
 
       try {
+        const params = new URLSearchParams({
+          limit: "20",
+          q: term,
+        });
+
+        if (supplierId === null) {
+          params.set("supplierId", "general");
+        } else if (supplierId) {
+          params.set("supplierId", supplierId);
+        }
+
         const response = await fetch(
-          `/api/v1/admin/product-variants/search?q=${encodeURIComponent(term)}&limit=20`,
+          `/api/v1/admin/product-variants/search?${params.toString()}`,
           { signal: controller.signal },
         );
         const payload = (await response.json()) as ApiResponse;
@@ -117,7 +130,7 @@ export function ProductVariantSearchSelect({
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [draftQuery, isOpen, selected]);
+  }, [draftQuery, isOpen, selected, supplierId]);
 
   function clearSelection() {
     onSelect(null);

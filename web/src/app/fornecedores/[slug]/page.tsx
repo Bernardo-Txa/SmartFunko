@@ -19,6 +19,7 @@ type Props = {
     category?: string;
     franchise?: string;
     page?: string;
+    productType?: string;
     q?: string;
     sort?: CatalogProductSort;
     subcategory?: string;
@@ -99,19 +100,21 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
 
   const queryParams = await searchParams;
   const page = Number(queryParams?.page ?? 1);
+  const productType = queryParams?.productType ?? "";
   const category = queryParams?.category ?? "";
   const franchise = queryParams?.franchise ?? "";
   const query = queryParams?.q ?? "";
   const sort = queryParams?.sort ?? "relevance";
   const subcategory = queryParams?.subcategory ?? "";
   const [categories, franchises, productPage] = await Promise.all([
-    getCatalogCategories(),
-    getCatalogFranchises(),
+    getCatalogCategories({ supplier: slug }),
+    getCatalogFranchises({ supplier: slug }),
     getCatalogProductsPage({
       category,
       franchise,
       page,
       pageSize: 24,
+      productType,
       query,
       sort,
       subcategory,
@@ -123,6 +126,7 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
     category,
     franchise,
     page,
+    productType,
     q: query,
     sort,
     subcategory,
@@ -217,6 +221,7 @@ export default async function SupplierDetailPage({ params, searchParams }: Props
           currentSort={sort}
           currentSubcategory={subcategory}
           currentSupplier={supplier.slug}
+          currentProductType={productType}
           franchises={franchises}
           pathname={`/fornecedores/${supplier.slug}`}
           query={query}

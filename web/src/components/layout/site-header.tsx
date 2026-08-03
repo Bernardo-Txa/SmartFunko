@@ -4,7 +4,7 @@ import { HeaderActions } from "@/components/layout/header-actions";
 import { HeaderNavLink } from "@/components/layout/header-nav-link";
 import { MegaMenu } from "@/components/storefront/mega-menu";
 import { getCatalogCategories, getCatalogFranchises } from "@/lib/catalog";
-import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
+import { isRafflesEnabled } from "@/lib/env";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 
 export async function SiteHeader() {
@@ -17,15 +17,13 @@ export async function SiteHeader() {
   const accountLabel = currentUser
     ? currentUser.profile.name || currentUser.profile.email || currentUser.authUser.email || "Minha conta"
     : "";
-  const ordersHref = currentUser ? "/conta/pedidos" : "/login?next=/conta/pedidos";
+  const ordersHref = currentUser ? "/conta/pedidos-v2" : "/login?next=/conta/pedidos-v2";
   const links: Array<{ href: string; label: string }> = [
     { href: "/fornecedores", label: "Collabs" },
+    { href: "/acervo-raro", label: "Acervo Raro" },
+    { href: "/popflix", label: "PopFlix" },
     ...(isRafflesEnabled() ? [{ href: "/rifas", label: "Rifas" }] : []),
-    { href: "/#como-funciona", label: "Como funciona" },
     { href: ordersHref, label: "Meus pedidos" },
-    ...(isRewardsEnabled()
-      ? [{ href: currentUser ? "/conta/clube" : "/login?next=/conta/clube", label: "Smart Clube" }]
-      : []),
   ];
 
   if (currentUser) {
@@ -41,20 +39,20 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)] backdrop-blur-xl shadow-[0_14px_34px_var(--shadow-blue)]">
-      <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3 rounded-full text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
+      <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <Link href="/" className="flex shrink-0 items-center gap-3 rounded-full text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
           <Image
             src="/brand/SmartFunko.png"
             alt="Smart Funkos"
-            width={160}
-            height={56}
+            width={400}
+            height={140}
             preload
-            className="h-10 w-auto drop-shadow-[0_0_18px_rgba(34,211,238,0.36)] sm:h-12"
+            className="h-10 w-auto shrink-0 object-contain drop-shadow-[0_0_18px_rgba(34,211,238,0.36)] sm:h-12"
           />
         </Link>
 
         <nav
-          className="hidden items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--background)]/50 p-1 shadow-[0_0_22px_var(--shadow-blue)] lg:flex"
+          className="hidden shrink-0 items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--background)]/50 p-1 shadow-[0_0_22px_var(--shadow-blue)] xl:flex"
           aria-label="Principal"
         >
           <MegaMenu categories={categories} franchises={franchises} />

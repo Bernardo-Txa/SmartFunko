@@ -28,6 +28,8 @@ export type Product = {
   marketPrice?: number;
   name: string;
   price: number;
+  productType?: string;
+  productTypeLabel?: string;
   sku: string;
   slug: string;
   specialLabel?: string;

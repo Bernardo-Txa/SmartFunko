@@ -86,6 +86,10 @@ export function HeaderActions({ account, categories, franchises, links }: Header
       return pathname.startsWith("/fornecedores") || pathname.startsWith("/collabs");
     }
 
+    if (normalizedHref === "/acervo-raro") {
+      return pathname.startsWith("/acervo-raro") || pathname.startsWith("/specials");
+    }
+
     return pathname.startsWith(normalizedHref);
   }
 
@@ -118,7 +122,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
                 <p className="truncate text-xs text-[var(--muted)]">{account.email}</p>
               </div>
               <Link
-                href="/conta/pedidos"
+                href="/conta/pedidos-v2"
                 onClick={closeAccountMenu}
                 className="mt-2 flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
               >
@@ -173,7 +177,7 @@ export function HeaderActions({ account, categories, franchises, links }: Header
         </Link>
       )}
 
-      <div ref={mobileMenuRef} className="relative lg:hidden">
+      <div ref={mobileMenuRef} className="relative xl:hidden">
         <button
           type="button"
           aria-expanded={isMobileOpen}

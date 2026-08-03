@@ -24,20 +24,11 @@ type CustomerOption = {
   status: string;
 };
 
-type InventoryOption = {
-  id: string;
-  product_variant_id: string;
-  sku: string;
-  status: string;
-  location: string | null;
-};
-
 type DraftItem = {
   key: string;
   productVariantId: string;
   selectedVariant: ProductVariantSearchOption | null;
   source: OrderItemSource;
-  inventoryItemId: string;
   quantity: number;
   unitPrice: number;
 };
@@ -60,7 +51,6 @@ function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftIt
 
 function emptyItem(): DraftItem {
   return {
-    inventoryItemId: "",
     key: crypto.randomUUID(),
     productVariantId: "",
     quantity: 1,
@@ -72,10 +62,8 @@ function emptyItem(): DraftItem {
 
 export function OrderCreateForm({
   customers,
-  inventory,
 }: {
   customers: CustomerOption[];
-  inventory: InventoryOption[];
 }) {
   const router = useRouter();
   const [customerMode, setCustomerMode] = useState<"existing" | "new">("existing");
@@ -101,11 +89,6 @@ export function OrderCreateForm({
         }
 
         const next = { ...item, ...patch };
-
-        if (patch.source && patch.source !== "stock") {
-          next.inventoryItemId = "";
-        }
-
         return next;
       }),
     );
@@ -117,7 +100,6 @@ export function OrderCreateForm({
         item.key === key
           ? {
               ...item,
-              inventoryItemId: "",
               productVariantId: variant?.id ?? "",
               selectedVariant: variant,
               source: variant ? mapVariantSource(variant.source) : item.source,
@@ -175,7 +157,7 @@ export function OrderCreateForm({
           discount,
           internalNotes: internalNotes || null,
           items: validItems.map((item) => ({
-            inventoryItemId: item.source === "stock" ? item.inventoryItemId || null : null,
+            inventoryItemId: null,
             productVariantId: item.productVariantId,
             quantity: item.quantity,
             source: item.source,
@@ -302,12 +284,7 @@ export function OrderCreateForm({
         </div>
 
         <div className="mt-4 grid gap-4">
-          {items.map((item, index) => {
-            const availableInventory = inventory.filter(
-              (entry) => entry.product_variant_id === item.productVariantId && entry.status === "available",
-            );
-
-            return (
+          {items.map((item, index) => (
               <div key={item.key} className="rounded-lg border border-[var(--border)] p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <strong className="text-sm text-[var(--foreground)]">Item {index + 1}</strong>
@@ -324,7 +301,6 @@ export function OrderCreateForm({
                 </div>
                 <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
                   <ProductVariantSearchSelect
-                    allowQuickCreate
                     selected={item.selectedVariant}
                     onSelect={(variant) => updateItemVariant(item.key, variant)}
                   />
@@ -364,26 +340,8 @@ export function OrderCreateForm({
                     />
                   </label>
                 </div>
-                {item.source === "stock" ? (
-                  <label className="mt-4 block">
-                    <span className="text-sm font-semibold text-[var(--foreground)]">Unidade de estoque</span>
-                    <select
-                      value={item.inventoryItemId}
-                      onChange={(event) => updateItem(item.key, { inventoryItemId: event.target.value })}
-                      className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-                    >
-                      <option value="">Sem reserva automatica</option>
-                      {availableInventory.map((entry) => (
-                        <option key={entry.id} value={entry.id}>
-                          {entry.sku} {entry.location ? `- ${entry.location}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
               </div>
-            );
-          })}
+          ))}
         </div>
       </section>
 

@@ -50,6 +50,20 @@ export type RaffleNumber = {
   status: string;
 };
 
+export type RaffleDrawWinner = {
+  couponCode?: string | null;
+  customerEmail?: string | null;
+  customerId: string | null;
+  customerName: string;
+  customerPhone?: string | null;
+  placement: number;
+  prizeLabel: string;
+  prizeType: "main_prize" | "coupon_10";
+  raffleNumberId: string | null;
+  number: number | null;
+  numberLabel: string | null;
+};
+
 export type RaffleOrder = {
   cancelled_at: string | null;
   capture_method?: string | null;

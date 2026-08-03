@@ -414,18 +414,20 @@ export function RaffleExpireReservationsButton() {
 export function RaffleDrawForm({
   campaignId,
   disabled,
+  eligibleCustomers,
+  soldNumbers,
 }: {
   campaignId: string;
   disabled: boolean;
+  eligibleCustomers: number;
+  soldNumbers: number;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function submitDraw(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+  async function submitDraw() {
     setError("");
     setMessage("");
     setIsSubmitting(true);
@@ -433,82 +435,72 @@ export function RaffleDrawForm({
     try {
       const response = await fetch(`/api/v1/admin/raffles/${campaignId}/draw`, {
         body: JSON.stringify({
-          drawNotes: String(formData.get("drawNotes") ?? "").trim() || null,
-          drawReference: String(formData.get("drawReference") ?? "").trim(),
+          drawNotes: null,
+          drawReference: "Sorteio interno SmartFunko",
           drawnAt: new Date().toISOString(),
-          winnerNumber: Number(formData.get("winnerNumber") ?? 0),
+          mode: "internal_random",
         }),
         headers: { "content-type": "application/json" },
         method: "POST",
       });
       await parseActionResult(response);
-      setMessage("Ganhador registrado.");
-      event.currentTarget.reset();
+      setMessage("Sorteio interno registrado.");
       router.refresh();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Falha ao registrar ganhador");
+      setError(requestError instanceof Error ? requestError.message : "Falha ao sortear rifa");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={submitDraw} className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-      <div>
-        <h2 className="text-lg font-bold text-[var(--foreground)]">Sorteio manual</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Registre o numero vencedor depois de fechar a campanha.
-        </p>
+    <section className="grid gap-4 rounded-lg border border-yellow-300/40 bg-yellow-300/10 p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-200">Sorteio interno</p>
+          <h2 className="mt-2 text-xl font-black text-[var(--foreground)]">Premiacao automatica sem comprador repetido</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+            O app sorteia ate 5 colocados entre cotas pagas. Depois que um cliente ganha, ele fica fora das proximas posicoes.
+          </p>
+        </div>
+        <div className="grid min-w-52 grid-cols-2 gap-2 text-sm">
+          <div className="rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
+            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[var(--muted)]">Cotas pagas</span>
+            <strong className="mt-1 block text-xl text-[var(--foreground)]">{soldNumbers}</strong>
+          </div>
+          <div className="rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
+            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-[var(--muted)]">Compradores</span>
+            <strong className="mt-1 block text-xl text-[var(--foreground)]">{eligibleCustomers}</strong>
+          </div>
+        </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-[140px_1fr]">
-        <label className="block">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Numero</span>
-          <input
-            name="winnerNumber"
-            type="number"
-            min={1}
-            required
-            disabled={disabled || isSubmitting}
-            className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Referencia</span>
-          <input
-            name="drawReference"
-            disabled={disabled || isSubmitting}
-            placeholder="Ex.: link ou ata do sorteio"
-            className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
-          />
-        </label>
+      <div className="grid gap-2 text-sm text-[var(--muted)] md:grid-cols-5">
+        <span className="rounded-md border border-yellow-300/30 bg-[var(--background)] px-3 py-2 font-semibold text-[var(--foreground)]">1o lugar: Funko</span>
+        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">2o lugar: 10%</span>
+        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">3o lugar: 10%</span>
+        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">4o lugar: 10%</span>
+        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">5o lugar: 10%</span>
       </div>
-      <label className="block">
-        <span className="text-sm font-semibold text-[var(--foreground)]">Notas</span>
-        <textarea
-          name="drawNotes"
-          disabled={disabled || isSubmitting}
-          className="mt-2 min-h-20 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
-        />
-      </label>
       <button
-        type="submit"
+        type="button"
+        onClick={submitDraw}
         disabled={disabled || isSubmitting}
         className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isSubmitting ? (
-          <SmartButtonLoading message="Registrando..." />
+          <SmartButtonLoading message="Sorteando..." />
         ) : (
           <>
             <Trophy size={16} aria-hidden="true" />
-            Registrar ganhador
+            Sortear no aplicativo
           </>
         )}
       </button>
       {disabled ? (
-        <p className="text-xs text-[var(--muted)]">Feche a rifa antes de registrar o ganhador.</p>
+        <p className="text-xs text-[var(--muted)]">Feche a rifa antes de sortear. Ela precisa ter cotas pagas e ainda nao pode ter resultado registrado.</p>
       ) : null}
       {message ? <p className="text-sm font-semibold text-emerald-200">{message}</p> : null}
       {error ? <p className="text-sm font-semibold text-red-300">{error}</p> : null}
-    </form>
+    </section>
   );
 }

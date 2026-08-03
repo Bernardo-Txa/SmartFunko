@@ -98,7 +98,7 @@ export function AssistedCart({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/v1/me/orders", {
+      const response = await fetch("/api/v1/me/orders-v2", {
         body: JSON.stringify({
           items: items.map((item) => ({
             quantity: item.quantity,
@@ -117,7 +117,7 @@ export function AssistedCart({
       }
 
       clearCart();
-      router.push(`/conta/pedidos/${payload.data.orderNumber}`);
+      router.push("/conta/pedidos-v2");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Falha ao enviar pedido para analise");
     } finally {

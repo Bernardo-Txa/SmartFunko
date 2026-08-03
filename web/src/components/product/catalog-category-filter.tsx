@@ -27,7 +27,7 @@ const filters: Array<{ label: string; value: CatalogProductFilter }> = [
   { label: "Pronta-entrega", value: "ready" },
   { label: "Pré-venda", value: "preorder" },
   { label: "Encomendas", value: "order" },
-  { label: "Especiais", value: "specials" },
+  { label: "Acervo Raro", value: "specials" },
   { label: "Novidades", value: "new" },
 ];
 
@@ -36,7 +36,7 @@ const sorts: Array<{ label: string; value: CatalogProductSort }> = [
   { label: "Novidades", value: "newest" },
   { label: "Menor preço", value: "price_asc" },
   { label: "Maior preço", value: "price_desc" },
-  { label: "Specials primeiro", value: "specials_first" },
+  { label: "Acervo primeiro", value: "specials_first" },
   { label: "Nome", value: "name" },
 ];
 

@@ -10,7 +10,7 @@ export type InfinitePayCheckoutItem = {
   unitAmountCents: number;
 };
 
-export type InfinitePayCheckoutKind = "order" | "raffle";
+export type InfinitePayCheckoutKind = "order" | "order_v2" | "popflix" | "raffle";
 
 export type CreateInfinitePayCheckoutInput = {
   debugOrderId?: string;

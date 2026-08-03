@@ -18,6 +18,7 @@ export type CommercialPageSearchParams = {
   franchise?: string;
   page?: string;
   q?: string;
+  productType?: string;
   sort?: CatalogProductSort;
   subcategory?: string;
   supplier?: string;
@@ -58,6 +59,7 @@ function hasActiveFilters({
   filter,
   franchise,
   query,
+  productType,
   subcategory,
   supplier,
 }: {
@@ -65,10 +67,11 @@ function hasActiveFilters({
   filter: CatalogProductFilter;
   franchise: string;
   query: string;
+  productType: string;
   subcategory: string;
   supplier: string;
 }) {
-  return Boolean(category || franchise || query || subcategory || supplier || filter !== "all");
+  return Boolean(category || franchise || query || productType || subcategory || supplier || filter !== "all");
 }
 
 export async function CommercialProductPage({
@@ -83,6 +86,7 @@ export async function CommercialProductPage({
   const filter = config.allowFilterParam ? params?.filter ?? config.filter : config.filter;
   const franchise = config.showFranchiseFilter === false ? "" : params?.franchise ?? "";
   const page = Number(params?.page ?? 1);
+  const productType = params?.productType ?? "";
   const query = params?.q ?? "";
   const sort = params?.sort ?? config.sort ?? "relevance";
   const subcategory = config.showSubcategoryFilter ? params?.subcategory ?? "" : "";
@@ -98,6 +102,7 @@ export async function CommercialProductPage({
       franchise,
       page,
       pageSize: 24,
+      productType,
       query,
       sort,
       subcategory,
@@ -109,6 +114,7 @@ export async function CommercialProductPage({
     filter,
     franchise,
     query,
+    productType,
     subcategory,
     supplier,
   });
@@ -150,6 +156,7 @@ export async function CommercialProductPage({
           currentSort={sort}
           currentSubcategory={subcategory}
           currentSupplier={supplier}
+          currentProductType={productType}
           franchises={franchises}
           pathname={config.pathname}
           query={query}
@@ -181,6 +188,7 @@ export async function CommercialProductPage({
             filter: config.allowFilterParam ? filter : undefined,
             franchise,
             page: Math.max(1, productPage.meta.page - 1),
+            productType,
             q: query,
             sort,
             subcategory: config.showSubcategoryFilter ? subcategory : undefined,
@@ -201,6 +209,7 @@ export async function CommercialProductPage({
             filter: config.allowFilterParam ? filter : undefined,
             franchise,
             page: Math.min(productPage.meta.totalPages, productPage.meta.page + 1),
+            productType,
             q: query,
             sort,
             subcategory: config.showSubcategoryFilter ? subcategory : undefined,

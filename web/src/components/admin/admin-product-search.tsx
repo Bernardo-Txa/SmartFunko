@@ -6,10 +6,12 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { formatCurrency } from "@/lib/format";
+import { getProductTypeLabel } from "@/lib/product-types";
 import { ProductPublishStatusBadge, ProductVariantStatusBadge } from "@/components/ui/status-badge";
 
 type AdminProduct = {
   category_name?: string | null;
+  external_catalog_code?: string | null;
   id: string;
   main_image_url?: string | null;
   name: string;
@@ -39,6 +41,7 @@ type AdminProduct = {
     status: "available" | "order_only" | "preorder" | "sold_out" | "hidden";
     type?: "common" | "exclusive" | "chase" | "glow" | "special";
   }>;
+  product_type?: string | null;
 };
 
 type ApiResponse = {
@@ -64,7 +67,28 @@ function getAdminProductImageUrl(product: AdminProduct) {
   return product.main_image_url ?? firstGalleryImage?.image_url;
 }
 
-export function AdminProductSearch() {
+function normalizeToken(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function isRareCode(value: string | null | undefined) {
+  return /^(ACERVO|RARO)-/i.test(value?.trim() ?? "");
+}
+
+function isRareAdminProduct(product: AdminProduct) {
+  return isRareCode(product.external_catalog_code) ||
+    (product.product_variants ?? []).some((variant) =>
+      isRareCode(variant.sku) ||
+        (variant.special_tags ?? []).some((tag) => normalizeToken(tag) === "acervo-raro"),
+    );
+}
+
+export function AdminProductSearch({ supplierId }: { supplierId?: string | null }) {
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,9 +103,19 @@ export function AdminProductSearch() {
       setIsLoading(true);
 
       try {
-        const url = term.length >= 2
-          ? `/api/v1/admin/products?q=${encodeURIComponent(term)}&limit=50`
-          : "/api/v1/admin/products?limit=50";
+        const params = new URLSearchParams({ limit: "50" });
+
+        if (term.length >= 2) {
+          params.set("q", term);
+        }
+
+        if (supplierId === null) {
+          params.set("supplierId", "general");
+        } else if (supplierId) {
+          params.set("supplierId", supplierId);
+        }
+
+        const url = `/api/v1/admin/products?${params.toString()}`;
         const response = await fetch(url, { signal: controller.signal });
         const payload = (await response.json()) as ApiResponse;
 
@@ -89,7 +123,7 @@ export function AdminProductSearch() {
           throw new Error(payload.error?.message ?? "Falha ao buscar produtos");
         }
 
-        setProducts(payload.data ?? []);
+        setProducts((payload.data ?? []).filter((product) => !isRareAdminProduct(product)));
       } catch (requestError) {
         if (requestError instanceof DOMException && requestError.name === "AbortError") {
           return;
@@ -106,7 +140,7 @@ export function AdminProductSearch() {
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [query]);
+  }, [query, supplierId]);
 
   function updateQuery(value: string) {
     setQuery(value);
@@ -114,7 +148,7 @@ export function AdminProductSearch() {
   }
 
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+    <section className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
       <label className="block">
         <span className="text-sm font-semibold text-[var(--foreground)]">Buscar produto</span>
         <div className="relative mt-2">
@@ -144,7 +178,7 @@ export function AdminProductSearch() {
       ) : products.length === 0 && !isLoading ? (
         <p className="mt-4 text-sm text-[var(--muted)]">Nenhum produto encontrado.</p>
       ) : (
-        <div className="mt-5 overflow-hidden rounded-lg border border-[var(--border)]">
+        <div className="mt-5 min-w-0 overflow-x-auto rounded-lg border border-[var(--border)]">
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
               <tr>
@@ -152,6 +186,7 @@ export function AdminProductSearch() {
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Franquia</th>
                 <th className="px-4 py-3">Fornecedor</th>
+                <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3">Categoria</th>
                 <th className="px-4 py-3">Preco</th>
                 <th className="px-4 py-3">Produto</th>
@@ -206,6 +241,7 @@ export function AdminProductSearch() {
                     <td className="px-4 py-3 text-[var(--muted)]">{variant?.sku ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">{franchise?.name ?? "-"}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">{supplier?.name ?? "-"}</td>
+                    <td className="px-4 py-3 text-[var(--muted)]">{getProductTypeLabel(product.product_type)}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">
                       {product.category_name ?? "-"}
                       {product.subcategory_name ? ` / ${product.subcategory_name}` : ""}

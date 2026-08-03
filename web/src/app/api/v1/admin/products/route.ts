@@ -9,10 +9,13 @@ export async function GET(request: Request) {
     const searchParams = new URL(request.url).searchParams;
     const admin = await requireAdmin();
     const search = searchParams.get("q")?.trim() ?? "";
+    const supplierIdParam = searchParams.get("supplierId");
+    const supplierId = supplierIdParam === "general" ? null : supplierIdParam?.trim() || undefined;
     const products = await new ProductService(undefined, admin.profile.id).listAdminProducts({
       limit: Number(searchParams.get("limit") ?? 50),
       page: Number(searchParams.get("page") ?? 1),
       search: search.length >= 2 ? search : undefined,
+      supplierId,
     });
     return jsonOk(products);
   });

@@ -31,7 +31,7 @@ export default async function AdminCustomersPage() {
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {customers.map((customer) => (
-              <tr key={customer.email}>
+              <tr key={customer.id}>
                 <td className="px-4 py-3 font-semibold text-[var(--foreground)]">
                   {customer.name}
                 </td>

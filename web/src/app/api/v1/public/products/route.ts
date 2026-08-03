@@ -31,6 +31,7 @@ export async function GET(request: Request) {
     franchise: searchParams.get("franchise") ?? undefined,
     page: Number(searchParams.get("page") ?? 1),
     pageSize: Number(searchParams.get("pageSize") ?? 24),
+    productType: searchParams.get("productType") ?? undefined,
     query: searchParams.get("q") ?? undefined,
     sort: normalizeSort(searchParams.get("sort")),
     subcategory: searchParams.get("subcategory") ?? undefined,

@@ -2,11 +2,21 @@ import { AssistedCheckoutService } from "@/server/checkout/assisted-checkout-ser
 import { env } from "@/lib/env";
 import { badRequest, forbidden } from "@/server/http/errors";
 import { handleApi, jsonOk } from "@/server/http/responses";
+import { OrderV2Service } from "@/server/orders-v2/order-v2-service";
 import { verifyInfinitePayWebhook } from "@/server/payments/infinitepay-client";
+import { PopFlixSubscriptionService } from "@/server/popflix/popflix-subscription-service";
 import { RaffleService } from "@/server/raffles/raffle-service";
 
 function isRaffleOrderNsu(orderNsu: string) {
   return orderNsu.toUpperCase().startsWith("RAFFLE-") || orderNsu.toUpperCase().startsWith("RF-");
+}
+
+function isPopFlixOrderNsu(orderNsu: string) {
+  return orderNsu.toUpperCase().startsWith("PF-") || orderNsu.toUpperCase().startsWith("POPFLIX-");
+}
+
+function isOrderV2Nsu(orderNsu: string) {
+  return orderNsu.toUpperCase().startsWith("SFV2PAY-");
 }
 
 export async function POST(request: Request) {
@@ -33,9 +43,13 @@ export async function POST(request: Request) {
       payload && typeof payload === "object" && "order_nsu" in payload
         ? String((payload as { order_nsu?: unknown }).order_nsu ?? "")
         : "";
-    const result = isRaffleOrderNsu(orderNsu)
-      ? await new RaffleService().handleInfinitePayWebhook(payload)
-      : await new AssistedCheckoutService().handleInfinitePayWebhook(payload);
+    const result = isOrderV2Nsu(orderNsu)
+      ? await new OrderV2Service().handleInfinitePayWebhook(payload)
+      : isPopFlixOrderNsu(orderNsu)
+      ? await new PopFlixSubscriptionService().handleInfinitePayWebhook(payload)
+      : isRaffleOrderNsu(orderNsu)
+        ? await new RaffleService().handleInfinitePayWebhook(payload)
+        : await new AssistedCheckoutService().handleInfinitePayWebhook(payload);
     return jsonOk(result);
   });
 }

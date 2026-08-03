@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
+import { Filter, RotateCcw } from "lucide-react";
+import { AdminShell } from "@/components/admin/admin-shell";
 import {
   CashflowChart,
   PaymentMethodChart,
@@ -11,10 +11,18 @@ import {
   SalesBySellerChart,
   TopProductsChart,
 } from "@/components/admin/bi-charts";
+import {
+  ReportHero,
+  ReportKpiCard,
+  ReportNavigation,
+  ReportProgressBar,
+  ReportTableSection as TableSection,
+} from "@/components/admin/report-ui";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getOrderSellerLabel, orderSellerOptions } from "@/lib/order-labels";
 import { requireOwnerPage } from "@/server/auth/require-admin-page";
 import { BIService } from "@/server/bi/bi-service";
+import { getCompetenceRange, ReportCompetenceService } from "@/server/reports/report-competencies";
 
 export const metadata: Metadata = {
   title: "BI admin",
@@ -22,24 +30,14 @@ export const metadata: Metadata = {
 
 type Props = {
   searchParams?: Promise<{
+    competenceId?: string;
     from?: string;
     origin?: string;
     paymentMethod?: string;
-    period?: string;
     seller?: string;
     to?: string;
   }>;
 };
-
-const periodOptions = [
-  { label: "Hoje", value: "today" },
-  { label: "Ultimos 7 dias", value: "last7" },
-  { label: "Mes atual", value: "currentMonth" },
-  { label: "Ultimos 30 dias", value: "last30" },
-  { label: "Mes anterior", value: "previousMonth" },
-  { label: "Ano atual", value: "currentYear" },
-  { label: "Personalizado", value: "custom" },
-] as const;
 
 const paymentMethodOptions = [
   { label: "Manual", value: "manual" },
@@ -62,74 +60,6 @@ function getParam(value: string | undefined) {
   return value?.trim() ?? "";
 }
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function endOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
-}
-
-function toInputDate(date: Date) {
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
-
-function endOfDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T23:59:59.999Z` : value;
-}
-
-function getPeriodRange(period: string, fromParam: string, toParam: string) {
-  const now = new Date();
-  let from = new Date(now.getFullYear(), now.getMonth(), 1);
-  let to = endOfDay(now);
-
-  if (period === "last30") {
-    from = startOfDay(now);
-    from.setDate(from.getDate() - 29);
-  }
-
-  if (period === "today") {
-    from = startOfDay(now);
-    to = endOfDay(now);
-  }
-
-  if (period === "last7") {
-    from = startOfDay(now);
-    from.setDate(from.getDate() - 6);
-    to = endOfDay(now);
-  }
-
-  if (period === "previousMonth") {
-    from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    to = endOfDay(new Date(now.getFullYear(), now.getMonth(), 0));
-  }
-
-  if (period === "currentYear") {
-    from = new Date(now.getFullYear(), 0, 1);
-  }
-
-  if (period === "custom" && fromParam) {
-    from = startOfDay(new Date(`${fromParam}T12:00:00`));
-  }
-
-  if (period === "custom" && toParam) {
-    to = endOfDay(new Date(`${toParam}T12:00:00`));
-  }
-
-  const fromInput = toInputDate(from);
-  const toInput = toInputDate(to);
-
-  return {
-    from: fromInput,
-    fromInput,
-    label: `${formatDate(fromInput)} a ${formatDate(toInput)}`,
-    to: endOfDate(toInput),
-    toInput,
-  };
-}
-
 function sellerLabel(value: string | null | undefined) {
   if (!value || value === "unassigned") {
     return "Sem vendedor";
@@ -138,35 +68,31 @@ function sellerLabel(value: string | null | undefined) {
   return orderSellerOptions.some((option) => option.value === value) ? getOrderSellerLabel(value) : "Outros";
 }
 
-function TableSection({
-  children,
-  title,
-}: {
-  children: ReactNode;
-  title: string;
-}) {
-  return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-      <h2 className="text-lg font-bold text-[var(--foreground)]">{title}</h2>
-      <div className="mt-4 overflow-x-auto">{children}</div>
-    </section>
-  );
+function percent(value: number) {
+  return `${value.toFixed(1).replace(".", ",")}%`;
+}
+
+function getShare(value: number, total: number) {
+  return total > 0 ? (value / total) * 100 : 0;
 }
 
 export default async function AdminBiReportsPage({ searchParams }: Props) {
   await requireOwnerPage("/admin/relatorios");
   const params = await searchParams;
-  const period = getParam(params?.period) || "currentMonth";
+  const competenceId = getParam(params?.competenceId);
   const seller = getParam(params?.seller);
   const origin = getParam(params?.origin);
   const paymentMethod = getParam(params?.paymentMethod);
-  const range = getPeriodRange(period, getParam(params?.from), getParam(params?.to));
+  const competenceService = new ReportCompetenceService();
+  const competencies = await competenceService.listCompetencies();
+  const competence = competenceService.resolveSelected(competencies, competenceId);
+  const range = competence ? getCompetenceRange(competence) : null;
   const filters = {
-    from: range.from,
+    from: range?.from,
     origin: origin || undefined,
     paymentMethod: paymentMethod || undefined,
     seller: seller || undefined,
-    to: range.to,
+    to: range?.to,
   };
   const service = new BIService();
   const [
@@ -204,63 +130,85 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
     ...item,
     seller: sellerLabel(item.seller),
   }));
+  const opportunity = overview.confirmedRevenue + overview.pendingRevenue;
+  const confirmedShare = getShare(overview.confirmedRevenue, opportunity);
+  const pendingShare = getShare(overview.pendingRevenue, opportunity);
+  const attentionOrders = overview.underReviewOrders + overview.awaitingPaymentOrders;
+  const topCustomer = topCustomers[0];
+  const topProduct = topProducts[0];
+  const topCustomerShare = topCustomer ? getShare(topCustomer.amount, overview.confirmedRevenue) : 0;
+  const raffleShare = getShare(overview.raffleRevenue, overview.confirmedRevenue);
 
   return (
-    <AdminShell title="BI Smart Funkos" description={`Relatorios gerenciais e validacao BI 1.1: ${range.label}.`}>
+    <AdminShell title="Relatorios" description={`BI operacional por competencia: ${competence?.label ?? "sem competencia"}.`}>
       <div className="grid gap-6">
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/admin/relatorios"
-            className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--surface-strong)] px-3 text-sm font-semibold text-[var(--foreground)]"
-          >
-            Visao geral
-          </Link>
-          <Link
-            href="/admin/relatorios/financeiro"
-            className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-          >
-            Financeiro
-          </Link>
-          <Link
-            href="/admin/caixa"
-            className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-          >
-            Caixa
-          </Link>
-        </div>
+        <ReportNavigation active="bi" />
 
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 xl:grid-cols-[160px_145px_145px_140px_190px_160px_auto_auto] xl:items-end">
+        <ReportHero
+          eyebrow="Visao executiva"
+          title="Performance comercial"
+          description={`Receita, pendencias e canais da competencia ${competence?.label ?? "selecionada"}${competence ? ` (${formatDate(competence.starts_on)} a ${formatDate(competence.ends_on)})` : ""}.`}
+          actions={(
+            <>
+              <Link
+                href="/admin/relatorios/fechamento"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+              >
+                Fechamento
+              </Link>
+              <Link
+                href="/admin/v2/pedidos"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--accent)] px-3 text-sm font-black text-slate-950 hover:brightness-110"
+              >
+                Abrir pedidos
+              </Link>
+            </>
+          )}
+        >
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
+              <span className="text-xs font-black uppercase tracking-[0.12em] text-[var(--muted)]">Receita confirmada</span>
+              <strong className="mt-2 block text-3xl text-[var(--foreground)]">{formatCurrency(overview.confirmedRevenue)}</strong>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                {overview.paidOrders} pedido(s) pago(s), ticket medio de {formatCurrency(overview.averageTicket)}.
+              </p>
+              <div className="mt-5 grid gap-2">
+                <div className="flex justify-between gap-3 text-xs font-semibold text-[var(--muted)]">
+                  <span>Confirmado</span>
+                  <span>{percent(confirmedShare)}</span>
+                </div>
+                <ReportProgressBar value={confirmedShare} tone="emerald" />
+                <div className="flex justify-between gap-3 text-xs font-semibold text-[var(--muted)]">
+                  <span>Pendente</span>
+                  <span>{percent(pendingShare)}</span>
+                </div>
+                <ReportProgressBar value={pendingShare} tone="warning" />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ReportKpiCard label="A receber" value={formatCurrency(overview.pendingRevenue)} detail="Pedidos em aberto" tone="warning" />
+              <ReportKpiCard label="Atencao" value={`${attentionOrders}`} detail="Analise ou pagamento" tone={attentionOrders > 0 ? "danger" : "emerald"} />
+              <ReportKpiCard label="Rifas" value={formatCurrency(overview.raffleRevenue)} detail={`${percent(raffleShare)} da receita`} tone="violet" />
+              <ReportKpiCard label="Caixa liquido" value={formatCurrency(overview.cashflowNet)} detail="Entradas - saidas" tone={overview.cashflowNet >= 0 ? "emerald" : "danger"} />
+            </div>
+          </div>
+        </ReportHero>
+
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 xl:grid-cols-[minmax(220px,1fr)_140px_190px_160px_auto_auto] xl:items-end">
           <label className="block">
-            <span className="text-sm font-semibold text-[var(--foreground)]">Periodo</span>
+            <span className="text-sm font-semibold text-[var(--foreground)]">Competencia</span>
             <select
-              name="period"
-              defaultValue={period}
+              name="competenceId"
+              defaultValue={competence?.id ?? ""}
               className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
             >
-              {periodOptions.map(({ label, value }) => (
-                <option key={value} value={value}>
-                  {label}
+              {competencies.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label} - {formatDate(option.starts_on)} a {formatDate(option.ends_on)}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="block">
-            <span className="text-sm font-semibold text-[var(--foreground)]">Inicio</span>
-            <input
-              name="from"
-              type="date"
-              defaultValue={range.fromInput}
-              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-semibold text-[var(--foreground)]">Fim</span>
-            <input
-              name="to"
-              type="date"
-              defaultValue={range.toInput}
-              className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-            />
           </label>
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Vendedor</span>
@@ -307,28 +255,28 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
               ))}
             </select>
           </label>
-          <button className="h-10 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
+          <button className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
+            <Filter size={16} aria-hidden="true" />
             Filtrar
           </button>
           <Link
             href="/admin/relatorios"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
           >
+            <RotateCcw size={16} aria-hidden="true" />
             Limpar
           </Link>
         </form>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <MetricCard label="Receita confirmada" value={formatCurrency(overview.confirmedRevenue)} detail="Vendas pagas" />
-          <MetricCard label="Pedidos pagos" value={`${overview.paidOrders}`} detail="Com entrada de venda" />
-          <MetricCard label="Ticket medio" value={formatCurrency(overview.averageTicket)} detail="Receita / pedidos" />
-          <MetricCard label="Receita pendente" value={formatCurrency(overview.pendingRevenue)} detail="Pedidos em aberto" />
-          <MetricCard label="Em analise" value={`${overview.underReviewOrders}`} detail="Checkout assistido" />
-          <MetricCard label="Aguardando pagamento" value={`${overview.awaitingPaymentOrders}`} detail="Aprovados ou parciais" />
-          <MetricCard label="Receita de rifas" value={formatCurrency(overview.raffleRevenue)} detail="Fonte unica: raffle_orders" />
-          <MetricCard label="Caixa liquido" value={formatCurrency(overview.cashflowNet)} detail="Entradas - saidas + ajustes" />
-          <MetricCard label="Top vendedor" value={topSeller ? sellerLabel(topSeller.seller) : "-"} detail={topSeller ? formatCurrency(topSeller.amount) : "Sem vendas"} />
-          <MetricCard label="Top origem" value={topOrigin?.origin ?? "-"} detail={topOrigin ? formatCurrency(topOrigin.amount) : "Sem origem"} />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <ReportKpiCard label="Pedidos pagos" value={`${overview.paidOrders}`} detail="Com entrada confirmada" tone="emerald" />
+          <ReportKpiCard label="Ticket medio" value={formatCurrency(overview.averageTicket)} detail="Receita / pedidos" tone="accent" />
+          <ReportKpiCard label="Top vendedor" value={topSeller ? sellerLabel(topSeller.seller) : "-"} detail={topSeller ? formatCurrency(topSeller.amount) : "Sem vendas"} />
+          <ReportKpiCard label="Top origem" value={topOrigin?.origin ?? "-"} detail={topOrigin ? formatCurrency(topOrigin.amount) : "Sem origem"} />
+          <ReportKpiCard label="Top cliente" value={topCustomer?.name ?? "-"} detail={topCustomer ? `${formatCurrency(topCustomer.amount)} (${percent(topCustomerShare)})` : "Sem clientes"} tone="violet" />
+          <ReportKpiCard label="Top produto" value={topProduct?.productName ?? "-"} detail={topProduct ? `${topProduct.quantity} un. - ${formatCurrency(topProduct.amount)}` : "Sem produtos"} tone="accent" />
+          <ReportKpiCard label="Em analise" value={`${overview.underReviewOrders}`} detail="Checkout assistido" tone={overview.underReviewOrders > 0 ? "warning" : "muted"} />
+          <ReportKpiCard label="Aguardando" value={`${overview.awaitingPaymentOrders}`} detail="Aprovados ou parciais" tone={overview.awaitingPaymentOrders > 0 ? "warning" : "muted"} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">

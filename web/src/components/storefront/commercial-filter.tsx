@@ -10,6 +10,7 @@ import type {
   CatalogProductSort,
   CatalogSupplier,
 } from "@/lib/catalog";
+import { productTypeOptions } from "@/lib/product-types";
 
 type FranchiseOption = {
   id: string;
@@ -22,7 +23,7 @@ const commercialFilters: Array<{ label: string; value: CatalogProductFilter }> =
   { label: "Pronta-entrega", value: "ready" },
   { label: "Pré-venda", value: "preorder" },
   { label: "Encomendas", value: "order" },
-  { label: "Especiais", value: "specials" },
+  { label: "Acervo Raro", value: "specials" },
   { label: "Novidades", value: "new" },
 ];
 
@@ -42,6 +43,7 @@ export function CommercialFilter({
   currentSort,
   currentSubcategory = "",
   currentSupplier,
+  currentProductType = "",
   franchises = [],
   pathname,
   query,
@@ -58,6 +60,7 @@ export function CommercialFilter({
   currentSort: CatalogProductSort;
   currentSubcategory?: string;
   currentSupplier: string;
+  currentProductType?: string;
   franchises?: FranchiseOption[];
   pathname: string;
   query: string;
@@ -79,7 +82,7 @@ export function CommercialFilter({
       onSubmit={() => setIsSubmitting(true)}
       className="rounded-xl border border-cyan-400/20 bg-[#030816]/88 p-3 shadow-[0_18px_44px_rgba(2,6,23,0.2)]"
     >
-      <div className="grid gap-3 lg:grid-cols-[minmax(260px,1.4fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_minmax(150px,0.75fr)_auto]">
+      <div className="grid gap-3 lg:grid-cols-[minmax(260px,1.4fr)_repeat(5,minmax(140px,0.75fr))_auto]">
         <label className="relative block">
           <span className="sr-only">Buscar produto</span>
           <Search
@@ -153,6 +156,22 @@ export function CommercialFilter({
             </select>
           </label>
         ) : null}
+
+        <label className="block">
+          <span className="sr-only">Tipo de produto</span>
+          <select
+            name="productType"
+            defaultValue={currentProductType}
+            className="h-11 w-full rounded-lg border border-cyan-400/20 bg-[#071124] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-cyan-300/70"
+          >
+            <option value="">Tipos</option>
+            {productTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {showSupplier ? (
           <label className="block">
