@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   BadgePercent,
   BarChart3,
+  CalendarClock,
   Clapperboard,
   Gem,
   LayoutDashboard,
@@ -10,16 +11,17 @@ import {
   Ticket,
   Users,
 } from "lucide-react";
-import { isRafflesEnabled } from "@/lib/env";
+import { isPopFlixEnabled, isRafflesEnabled } from "@/lib/env";
 
 function getNavItems() {
   return [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/produtos", label: "Produtos", icon: Package },
+    { href: "/admin/pre-vendas", label: "Pre-vendas", icon: CalendarClock },
     { href: "/admin/acervo-raro", label: "Acervo Raro", icon: Gem },
     { href: "/admin/v2/pedidos", label: "Pedidos", icon: ReceiptText },
-    { href: "/admin/popflix", label: "PopFlix", icon: Clapperboard },
+    ...(isPopFlixEnabled() ? [{ href: "/admin/popflix", label: "PopFlix", icon: Clapperboard }] : []),
     { href: "/admin/cupons", label: "Cupons", icon: BadgePercent },
     ...(isRafflesEnabled() ? [{ href: "/admin/rifas", label: "Rifas", icon: Ticket }] : []),
     { href: "/admin/relatorios/fechamento", label: "Relatorios", icon: BarChart3 },

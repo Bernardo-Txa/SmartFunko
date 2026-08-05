@@ -112,6 +112,12 @@ export type CreateV2SiteOrderInput = z.infer<typeof createV2SiteOrderSchema>;
 export type CreateCustomerV2OrderRequestInput = z.infer<typeof createCustomerV2OrderRequestSchema>;
 export type BulkV2OrderActionInput = z.infer<typeof bulkV2OrderActionSchema>;
 export type UpdateV2FulfillmentInput = z.infer<typeof updateV2FulfillmentSchema>;
+type CreateV2PreorderOrderRequestInput = {
+  customerId: string;
+  items: V2OrderItemInput[];
+  notes?: string | null;
+  orderDate?: string;
+};
 
 export type V2OrderListFilters = {
   area?: string;
@@ -600,6 +606,27 @@ export class OrderV2Service {
       orderDate,
       paymentStatus: "nao_pago",
       source: "site",
+      visibleActorId: actorProfileId,
+    });
+  }
+
+  async createPreorderOrderRequest(input: CreateV2PreorderOrderRequestInput, actorProfileId?: string) {
+    const customer = await this.getActiveCustomer(input.customerId);
+    const orderDate = input.orderDate ?? todayInSaoPaulo();
+    const competence = await this.getCompetenceForDate(orderDate);
+    const items = await Promise.all(input.items.map((item) => this.enrichItem(item)));
+
+    return this.insertOrderWithItems({
+      approvalStatus: "aguardando_aprovacao",
+      competence,
+      customer,
+      fulfillmentStatus: "aguardando_fechamento",
+      internalNotes: "Pedido criado pelo modulo de pre-vendas",
+      items,
+      notes: input.notes ?? null,
+      orderDate,
+      paymentStatus: "nao_pago",
+      source: "preorder",
       visibleActorId: actorProfileId,
     });
   }
@@ -1293,7 +1320,7 @@ export class OrderV2Service {
     orderDate: string;
     paymentStatus: z.infer<typeof v2PaymentStatusSchema>;
     seller?: "daniel" | "allana" | null;
-    source: "admin_whatsapp" | "admin_manual" | "site";
+    source: "admin_whatsapp" | "admin_manual" | "site" | "preorder";
     visibleActorId?: string;
   }) {
     const subtotal = roundMoney(
@@ -1356,7 +1383,11 @@ export class OrderV2Service {
         competenceCode: input.competence.code,
         source: input.source,
       },
-      notes: input.source === "site" ? "Pedido criado pelo site aguardando aprovacao" : "Pedido lancado pelo admin",
+      notes: input.source === "site"
+        ? "Pedido criado pelo site aguardando aprovacao"
+        : input.source === "preorder"
+          ? "Pedido de pre-venda criado pelo cliente aguardando aprovacao"
+          : "Pedido lancado pelo admin",
       orderId: order.id,
       toStatus: `${input.approvalStatus}/${input.paymentStatus}/${input.fulfillmentStatus}`,
     });

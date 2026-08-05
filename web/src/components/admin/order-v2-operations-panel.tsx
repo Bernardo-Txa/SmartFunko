@@ -62,6 +62,7 @@ export type OrderV2ListFilters = {
   fulfillmentStatus: string;
   paymentStatus: string;
   q: string;
+  source?: string;
 };
 
 type ApiResponse = {
@@ -319,7 +320,7 @@ export function OrderV2OperationsPanel({
           ))}
         </div>
 
-        <form className="mt-4 grid gap-3 md:grid-cols-[minmax(180px,1fr)_170px_150px_190px_170px_auto] md:items-end">
+        <form className="mt-4 grid gap-3 md:grid-cols-[minmax(180px,1fr)_160px_150px_150px_170px_160px_auto] md:items-end">
           <input type="hidden" name="view" value={activeView} />
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Busca</span>
@@ -352,6 +353,19 @@ export function OrderV2OperationsPanel({
             >
               <option value="">Todas</option>
               {Object.entries(v2ApprovalStatusLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Origem</span>
+            <select
+              name="source"
+              defaultValue={filters.source ?? ""}
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              <option value="">Todas</option>
+              {Object.entries(v2SourceLabels).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isPopFlixEnabled } from "@/lib/env";
 
 export function SiteFooter() {
   return (
@@ -9,8 +10,13 @@ export function SiteFooter() {
           <span>Vendas assistidas com carrinho, link de pagamento e historico de pedidos.</span>
         </div>
         <div className="flex flex-wrap gap-3 md:justify-center">
-          <Link href="/popflix" className="hover:text-[var(--foreground)]">
-            PopFlix
+          {isPopFlixEnabled() ? (
+            <Link href="/popflix" className="hover:text-[var(--foreground)]">
+              PopFlix
+            </Link>
+          ) : null}
+          <Link href="/pre-vendas" className="hover:text-[var(--foreground)]">
+            Pre-vendas
           </Link>
           <Link href="/politica-de-envio" className="hover:text-[var(--foreground)]">
             Envio

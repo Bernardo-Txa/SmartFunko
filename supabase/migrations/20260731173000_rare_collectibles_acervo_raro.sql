@@ -63,13 +63,21 @@ create table if not exists public.rare_collectibles (
     check (reservation_days is null or reservation_days between 1 and 30)
 );
 
-create unique index if not exists rare_collectibles_serial_number_unique
-on public.rare_collectibles(lower(serial_number))
-where serial_number is not null and btrim(serial_number) <> '';
+drop index if exists public.rare_collectibles_serial_number_unique;
 
-create unique index if not exists rare_collectibles_authentication_code_unique
+create unique index rare_collectibles_serial_number_unique
+on public.rare_collectibles(lower(serial_number))
+where serial_number is not null
+  and btrim(serial_number) <> ''
+  and lower(btrim(serial_number)) not in ('preservado', 'sem codigo', 'sem código');
+
+drop index if exists public.rare_collectibles_authentication_code_unique;
+
+create unique index rare_collectibles_authentication_code_unique
 on public.rare_collectibles(lower(authentication_code))
-where authentication_code is not null and btrim(authentication_code) <> '';
+where authentication_code is not null
+  and btrim(authentication_code) <> ''
+  and lower(btrim(authentication_code)) not in ('preservado', 'sem codigo', 'sem código');
 
 create index if not exists rare_collectibles_status_idx
 on public.rare_collectibles(status);
@@ -199,10 +207,16 @@ select
   array_remove(array_cat(coalesce(primary_variant.special_tags, '{}'), array[coalesce(primary_variant.special_label, '')]), ''),
   products.name,
   legacy_meta.signer_name,
-  legacy_meta.serial_number,
+  case
+    when lower(coalesce(btrim(legacy_meta.serial_number), '')) in ('preservado', 'sem codigo', 'sem código') then null
+    else legacy_meta.serial_number
+  end,
   legacy_meta.certifier_name,
   legacy_meta.certificate_type,
-  legacy_meta.authentication_code,
+  case
+    when lower(coalesce(btrim(legacy_meta.authentication_code), '')) in ('preservado', 'sem codigo', 'sem código') then null
+    else legacy_meta.authentication_code
+  end,
   legacy_meta.authenticity_notes,
   coalesce(legacy_meta.included_items, '{}'),
   products.subcategory_name,

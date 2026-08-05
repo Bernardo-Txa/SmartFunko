@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Crown, Heart, Package, Ticket } from "lucide-react";
-import { isRafflesEnabled } from "@/lib/env";
+import { isPopFlixEnabled, isRafflesEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
 import { getOrderPendingAmount } from "@/lib/orders/payable";
 import { requireUserPage } from "@/server/auth/require-user-page";
@@ -51,16 +51,18 @@ export default async function AccountPage() {
             Historico de pedidos e pagamentos.
           </p>
         </section>
-        <Link
-          href="/conta/popflix"
-          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
-        >
-          <Crown className="text-[var(--yellow)]" size={24} />
-          <strong className="mt-4 block text-sm">PopFlix</strong>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Assinaturas mensais vinculadas ao sistema.
-          </p>
-        </Link>
+        {isPopFlixEnabled() ? (
+          <Link
+            href="/conta/popflix"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
+          >
+            <Crown className="text-[var(--yellow)]" size={24} />
+            <strong className="mt-4 block text-sm">PopFlix</strong>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Assinaturas mensais vinculadas ao sistema.
+            </p>
+          </Link>
+        ) : null}
         <Link
           href="/conta/wishlist"
           className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"

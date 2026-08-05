@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import {
   PopFlixOperationsPanel,
   type AdminPopFlixSubscription,
   type PopFlixAdminFilters,
 } from "@/components/admin/popflix-operations-panel";
+import { isPopFlixEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { PopFlixSubscriptionService } from "@/server/popflix/popflix-subscription-service";
@@ -47,6 +49,10 @@ function getStats(subscriptions: PopFlixSubscription[]) {
 }
 
 export default async function AdminPopFlixPage({ searchParams }: Props) {
+  if (!isPopFlixEnabled()) {
+    notFound();
+  }
+
   const admin = await requireAdminPage("/admin/popflix");
   const params = await searchParams;
   const paymentStatus = getParam(params?.paymentStatus);

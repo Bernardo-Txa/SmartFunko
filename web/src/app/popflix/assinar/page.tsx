@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import {
   PopFlixPlanSummaryCard,
   PopFlixSubscribeForm,
 } from "@/components/popflix/popflix-subscribe-form";
+import { isPopFlixEnabled } from "@/lib/env";
 import { getPopFlixPlan, normalizePopFlixPlanSlug } from "@/lib/popflix";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 
@@ -40,6 +42,10 @@ function PageIntro() {
 }
 
 export default async function PopFlixSubscribePage({ searchParams }: Props) {
+  if (!isPopFlixEnabled()) {
+    notFound();
+  }
+
   const params = await searchParams;
   const planSlug = normalizePopFlixPlanSlug(params?.plan);
   const plan = getPopFlixPlan(planSlug);

@@ -24,6 +24,7 @@ type Props = {
     fulfillmentStatus?: string;
     paymentStatus?: string;
     q?: string;
+    source?: string;
     view?: string;
   }>;
 };
@@ -83,6 +84,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
   const paymentStatus = getParam(params?.paymentStatus);
   const fulfillmentStatus = getParam(params?.fulfillmentStatus);
   const competenceId = getParam(params?.competenceId);
+  const source = getParam(params?.source);
   const view = getParam(params?.view);
   const service = new OrderV2Service(undefined, admin.profile.id);
   const [orders, competencies, customers] = await Promise.all([
@@ -92,6 +94,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
       fulfillmentStatus: fulfillmentStatus || undefined,
       paymentStatus: paymentStatus || undefined,
       search: search || undefined,
+      source: source || undefined,
     }) as unknown as Promise<AdminOrderV2ListOrder[]>,
     service.listCompetencies() as unknown as Promise<OrderV2CompetenceOption[]>,
     new CustomerService(undefined, admin.profile.id).listCustomers() as unknown as Promise<Customer[]>,
@@ -103,6 +106,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
     fulfillmentStatus,
     paymentStatus,
     q: search,
+    source,
   };
   const competenceSummaries = getCompetenceSummaries(competencies, orders);
 
@@ -162,7 +166,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
         </section>
 
         <OrderV2OperationsPanel
-          key={`${competenceId}-${approvalStatus}-${paymentStatus}-${fulfillmentStatus}-${search}-${view}`}
+          key={`${competenceId}-${approvalStatus}-${paymentStatus}-${fulfillmentStatus}-${source}-${search}-${view}`}
           orders={orders}
           competencies={competencies}
           filters={filters}

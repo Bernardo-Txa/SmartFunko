@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
@@ -20,6 +21,7 @@ import { ProductCarousel } from "@/components/storefront/product-carousel";
 import { CommercialSection } from "@/components/storefront/commercial-section";
 import { formatCurrency } from "@/lib/format";
 import { getCatalogProducts } from "@/lib/catalog";
+import { isPopFlixEnabled } from "@/lib/env";
 import { POPFLIX_PLANS, type PopFlixPlanSlug } from "@/lib/popflix";
 import { canonicalUrl, ogImages } from "@/lib/seo";
 import type { Product } from "@/types/product";
@@ -120,6 +122,10 @@ function getHeroProducts(products: Product[]) {
 }
 
 export default async function PopFlixPage() {
+  if (!isPopFlixEnabled()) {
+    notFound();
+  }
+
   const [specialProducts, readyProducts] = await Promise.all([
     getCatalogProducts({ filter: "specials", pageSize: 10, sort: "specials_first" }),
     getCatalogProducts({ filter: "ready", pageSize: 8, sort: "ready_first" }),

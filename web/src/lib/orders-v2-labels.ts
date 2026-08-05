@@ -24,6 +24,7 @@ export const v2FulfillmentStatusLabels: Record<string, string> = {
 export const v2SourceLabels: Record<string, string> = {
   admin_manual: "Admin",
   admin_whatsapp: "WhatsApp",
+  preorder: "Pre-venda",
   site: "Site",
 };
 

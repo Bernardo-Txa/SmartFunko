@@ -4,7 +4,7 @@ import { HeaderActions } from "@/components/layout/header-actions";
 import { HeaderNavLink } from "@/components/layout/header-nav-link";
 import { MegaMenu } from "@/components/storefront/mega-menu";
 import { getCatalogCategories, getCatalogFranchises } from "@/lib/catalog";
-import { isRafflesEnabled } from "@/lib/env";
+import { isPopFlixEnabled, isRafflesEnabled } from "@/lib/env";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 
 export async function SiteHeader() {
@@ -20,8 +20,9 @@ export async function SiteHeader() {
   const ordersHref = currentUser ? "/conta/pedidos-v2" : "/login?next=/conta/pedidos-v2";
   const links: Array<{ href: string; label: string }> = [
     { href: "/fornecedores", label: "Collabs" },
+    { href: "/pre-vendas", label: "Pre-vendas" },
     { href: "/acervo-raro", label: "Acervo Raro" },
-    { href: "/popflix", label: "PopFlix" },
+    ...(isPopFlixEnabled() ? [{ href: "/popflix", label: "PopFlix" }] : []),
     ...(isRafflesEnabled() ? [{ href: "/rifas", label: "Rifas" }] : []),
     { href: ordersHref, label: "Meus pedidos" },
   ];

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowRight, CreditCard, Crown, ExternalLink } from "lucide-react";
+import { isPopFlixEnabled } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { PopFlixSubscriptionService } from "@/server/popflix/popflix-subscription-service";
@@ -158,6 +160,10 @@ function SubscriptionCard({ subscription }: { subscription: PopFlixSubscription 
 }
 
 export default async function AccountPopFlixPage() {
+  if (!isPopFlixEnabled()) {
+    notFound();
+  }
+
   const { customer } = await requireUserPage("/conta/popflix");
 
   if (!customer) {
