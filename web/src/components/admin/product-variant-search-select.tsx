@@ -194,7 +194,7 @@ export function ProductVariantSearchSelect({
   }
 
   return (
-    <div className={`relative block ${className}`}>
+    <div className={`relative block min-w-0 ${className}`}>
       <label htmlFor={inputId} className="text-sm font-semibold text-[var(--foreground)]">{label}</label>
       {name ? <input type="hidden" name={name} value={selected?.id ?? ""} /> : null}
       <div className="relative mt-2">
@@ -226,7 +226,7 @@ export function ProductVariantSearchSelect({
           onFocus={() => setIsOpen(true)}
           onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
           placeholder={placeholder}
-          className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-9 text-sm outline-none focus:border-[var(--accent)]"
+          className="h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-9 text-sm outline-none focus:border-[var(--accent)]"
         />
         {isLoading ? (
           <SmartButtonLoading

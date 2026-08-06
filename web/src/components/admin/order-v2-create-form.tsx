@@ -146,13 +146,13 @@ export function OrderV2CreateForm({
         </button>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
-        <label className="block">
+      <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(150px,180px)_minmax(150px,180px)]">
+        <label className="block min-w-0">
           <span className="text-sm font-semibold text-[var(--foreground)]">Cliente</span>
           <select
             value={customerId}
             onChange={(event) => setCustomerId(event.target.value)}
-            className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            className="mt-2 h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
           >
             {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
@@ -161,12 +161,12 @@ export function OrderV2CreateForm({
             ))}
           </select>
         </label>
-        <label className="block">
+        <label className="block min-w-0">
           <span className="text-sm font-semibold text-[var(--foreground)]">Vendedor</span>
           <select
             value={seller}
             onChange={(event) => setSeller(event.target.value)}
-            className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            className="mt-2 h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
           >
             {orderSellerOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -175,20 +175,20 @@ export function OrderV2CreateForm({
             ))}
           </select>
         </label>
-        <label className="block">
+        <label className="block min-w-0">
           <span className="text-sm font-semibold text-[var(--foreground)]">Data do pedido</span>
           <input
             value={orderDate}
             onChange={(event) => setOrderDate(event.target.value)}
             type="date"
-            className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            className="mt-2 h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
           />
         </label>
       </div>
 
       <div className="mt-5 grid gap-4">
         {items.map((item, index) => (
-          <div key={item.id} className="grid gap-3 rounded-lg border border-[var(--border)] p-3 md:grid-cols-[minmax(0,1fr)_90px_130px_44px]">
+          <div key={item.id} className="grid min-w-0 gap-3 rounded-lg border border-[var(--border)] p-3 xl:grid-cols-[minmax(0,1fr)_90px_130px_44px]">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(180px,0.5fr)]">
               <ProductVariantSearchSelect
                 label={`Produto ${index + 1}`}
@@ -197,33 +197,33 @@ export function OrderV2CreateForm({
                 placeholder="Buscar produto ja cadastrado"
                 supplierId={supplierId}
               />
-              <label className="block">
+              <label className="block min-w-0">
                 <span className="text-sm font-semibold text-[var(--foreground)]">Nome livre do pedido</span>
                 <input
                   value={item.productName}
                   onChange={(event) => updateItem(item.id, { productName: event.target.value })}
-                  className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                  className="mt-2 h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
                   placeholder="Nao cadastra no catalogo"
                 />
               </label>
             </div>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="text-sm font-semibold text-[var(--foreground)]">Qtd.</span>
               <input
                 value={item.quantity}
                 min={1}
                 onChange={(event) => updateItem(item.id, { quantity: event.target.value })}
                 type="number"
-                className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                className="mt-2 h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
               />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="text-sm font-semibold text-[var(--foreground)]">Preco</span>
               <input
                 value={item.unitPrice}
                 onChange={(event) => updateItem(item.id, { unitPrice: event.target.value })}
                 inputMode="decimal"
-                className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                className="mt-2 h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
               />
             </label>
             <button

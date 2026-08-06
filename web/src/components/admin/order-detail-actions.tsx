@@ -424,7 +424,7 @@ export function OrderDetailActions({
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Adicionar item</h2>
         <form onSubmit={addItem} className="mt-4 grid gap-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
+          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
             <ProductVariantSearchSelect
               selected={draftItem.selectedVariant}
               onSelect={handleVariantChange}

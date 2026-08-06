@@ -105,7 +105,7 @@ export default async function AdminOrderV2DetailPage({ params }: Props) {
           <Badge status={order.fulfillment_status} label={v2FulfillmentStatusLabels[order.fulfillment_status] ?? order.fulfillment_status} />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Total" value={formatCurrency(Number(order.total))} detail="Valor do pedido" />
           <MetricCard label="Origem" value={v2SourceLabels[order.source] ?? order.source} detail={formatDate(order.order_date)} />
           <MetricCard label="Competencia" value={competence?.label ?? "-"} detail={competence?.starts_on && competence?.ends_on ? `${formatDate(competence.starts_on)} a ${formatDate(competence.ends_on)}` : "-"} />

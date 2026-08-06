@@ -113,7 +113,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
   return (
     <AdminShell title="Pedidos V2" description="Fluxo novo de pedidos, competencias e pagamento parcial InfinitePay.">
       <div className="grid gap-6">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard label="Pedidos" value={`${stats.total}`} detail="No filtro atual" />
           <MetricCard label="Site pendente" value={`${stats.awaitingApproval}`} detail="Aguardando aprovacao" />
           <MetricCard label="A receber" value={formatCurrency(stats.openAmount)} detail="Nao pago ou checkout gerado" />
@@ -133,7 +133,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
             </div>
           </div>
           <OrderV2CompetenceForm />
-          <div className="mt-4 overflow-hidden rounded-lg border border-[var(--border)]">
+          <div className="mt-4 overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
                 <tr>

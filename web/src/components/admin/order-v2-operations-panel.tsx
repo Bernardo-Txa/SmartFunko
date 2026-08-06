@@ -320,7 +320,7 @@ export function OrderV2OperationsPanel({
           ))}
         </div>
 
-        <form className="mt-4 grid gap-3 md:grid-cols-[minmax(180px,1fr)_160px_150px_150px_170px_160px_auto] md:items-end">
+        <form className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 xl:items-end">
           <input type="hidden" name="view" value={activeView} />
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Busca</span>
@@ -448,7 +448,7 @@ export function OrderV2OperationsPanel({
       ) : null}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] text-left text-sm">
+        <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>
               <th className="w-12 px-4 py-3">

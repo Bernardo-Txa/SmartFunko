@@ -121,7 +121,7 @@ export function PaymentCreateForm({
         </div>
       </div>
       <form onSubmit={recordPayment} className="mt-4 grid gap-4">
-        <div className="grid gap-4 lg:grid-cols-[140px_150px_140px_190px_1fr]">
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[140px_150px_140px_190px_1fr]">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Método</span>
             <select

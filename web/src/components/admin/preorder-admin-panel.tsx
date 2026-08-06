@@ -144,7 +144,7 @@ export function PreorderAdminPanel({
   return (
     <div className="grid gap-6">
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div>
             <div className="mb-4">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--yellow)]">Cadastro temporario</p>
@@ -155,7 +155,7 @@ export function PreorderAdminPanel({
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-4">
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_160px_160px]">
+              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_160px_160px]">
                 <label className="block">
                   <span className="text-sm font-semibold text-[var(--foreground)]">Produto</span>
                   <input
@@ -193,7 +193,7 @@ export function PreorderAdminPanel({
                 </label>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
                 <label className="block">
                   <span className="text-sm font-semibold text-[var(--foreground)]">Resumo curto</span>
                   <input
@@ -458,7 +458,7 @@ function PreorderAdminRow({ item }: { item: PreorderItem }) {
   }
 
   return (
-    <article className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+    <article className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4 xl:grid-cols-[minmax(0,1fr)_260px]">
       <div className="grid gap-4 sm:grid-cols-[88px_minmax(0,1fr)]">
         <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-lg border border-[var(--border)] bg-slate-950/70">
           {item.mainImageUrl ? (

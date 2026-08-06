@@ -48,7 +48,7 @@ export default async function AdminDemandPage() {
       title="Demanda e wishlist"
       description="Ranking real de interesses para compra, importacao e divulgacao manual."
     >
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Favoritos" value={`${dashboard.totalItems}`} detail="Itens salvos por clientes" />
         <MetricCard label="Clientes" value={`${dashboard.totalCustomers}`} detail="Clientes interessados" />
         <MetricCard label="Produtos" value={`${dashboard.products.length}`} detail="Produtos com demanda" />

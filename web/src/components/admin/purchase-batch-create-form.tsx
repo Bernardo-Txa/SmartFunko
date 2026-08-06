@@ -109,7 +109,7 @@ export function PurchaseBatchCreateForm({ suppliers }: { suppliers: SupplierOpti
           className="mt-2 min-h-24 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
         />
       </label>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Compra estimada</span>
           <input

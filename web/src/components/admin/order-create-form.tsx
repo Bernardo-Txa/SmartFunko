@@ -299,7 +299,7 @@ export function OrderCreateForm({
                     </button>
                   ) : null}
                 </div>
-                <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
+                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
                   <ProductVariantSearchSelect
                     selected={item.selectedVariant}
                     onSelect={(variant) => updateItemVariant(item.key, variant)}

@@ -45,7 +45,7 @@ export function OrderV2CompetenceForm() {
   }
 
   return (
-    <form action={submit} className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+    <form action={submit} className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
       <input
         name="code"
         placeholder="2026-10"

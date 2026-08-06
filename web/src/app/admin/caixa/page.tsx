@@ -89,7 +89,7 @@ export default async function AdminCashflowPage({ searchParams }: Props) {
   return (
     <AdminShell title="Caixa" description="Entradas, saídas, ajustes e reflexos dos pagamentos manuais.">
       <div className="grid gap-6">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Entradas" value={formatCurrency(summary.incomeInPeriod)} detail="No período filtrado" />
           <MetricCard label="Saídas" value={formatCurrency(summary.expenseInPeriod)} detail="No período filtrado" />
           <MetricCard label="Saldo" value={formatCurrency(summary.netInPeriod)} detail="Entradas - saídas + ajustes" />
@@ -102,7 +102,7 @@ export default async function AdminCashflowPage({ searchParams }: Props) {
 
         <CashflowManualEntryForm />
 
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:grid-cols-[minmax(170px,1fr)_150px_190px_150px_150px_auto_auto] lg:items-end">
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-2 xl:grid-cols-4 xl:items-end">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Texto</span>
             <input

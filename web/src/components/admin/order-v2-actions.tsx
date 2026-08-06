@@ -128,7 +128,7 @@ export function OrderV2Actions({
         ) : null}
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-[220px_1fr_1fr_auto]">
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[220px_minmax(0,1fr)_minmax(0,1fr)_auto]">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Operacao</span>
           <select

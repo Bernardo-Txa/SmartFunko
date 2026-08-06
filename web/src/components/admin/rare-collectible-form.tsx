@@ -293,7 +293,7 @@ export function RareCollectibleForm({ franchises, item }: Props) {
       </div>
 
       <section className="mt-5 grid gap-4">
-        <div className="grid gap-4 lg:grid-cols-[minmax(260px,1fr)_180px_170px_170px]">
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(260px,1fr)_180px_170px_170px]">
           <Field label="Nome da peça">
             <input name="name" required defaultValue={item?.name ?? ""} placeholder="Funko Chucky autografado" className={inputClassName} />
           </Field>
@@ -313,7 +313,7 @@ export function RareCollectibleForm({ franchises, item }: Props) {
           </Field>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
           <Field label="Categoria">
             <select name="category" defaultValue={item?.category ?? "Cultura Pop"} className={inputClassName}>
               <option>Cinema e TV</option>
@@ -334,7 +334,7 @@ export function RareCollectibleForm({ franchises, item }: Props) {
           </Field>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_260px] lg:items-end">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-end">
           <Field label="Imagem principal / galeria">
             <input
               name="images"

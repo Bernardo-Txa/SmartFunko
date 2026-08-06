@@ -119,7 +119,7 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="grid gap-4">
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_160px_160px]">
+            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_160px_160px]">
               <label className="block">
                 <span className="text-sm font-semibold text-[var(--foreground)]">Produto</span>
                 <input
@@ -155,7 +155,7 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
               </label>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
               <label className="block">
                 <span className="text-sm font-semibold text-[var(--foreground)]">Resumo curto</span>
                 <input

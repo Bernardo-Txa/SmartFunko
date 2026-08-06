@@ -69,7 +69,7 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
   return (
     <AdminShell title="Rifas" description="Painel operacional com cotas, pagamentos, ranking mensal e sorteio interno.">
       <div className="grid gap-5">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Abertas" value={`${openCampaigns}`} detail="Aceitando reservas" />
           <MetricCard label="Pendentes" value={`${pendingNumbers}`} detail="Aguardando pagamento" />
           <MetricCard label="Vendidas" value={`${soldNumbers}`} detail="Numeros pagos" />
@@ -102,7 +102,7 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
               </button>
             </form>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard label="Cotas pagas" value={`${monthlyOverview.quotas}`} detail={`${monthlyOverview.orders} pedido(s) pago(s)`} />
             <MetricCard label="Receita" value={formatCurrency(monthlyOverview.revenue)} detail="Somente pagamentos confirmados" />
             <MetricCard label="Clientes" value={`${monthlyOverview.uniqueCustomers}`} detail="Compradores unicos" />
@@ -152,7 +152,7 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
         </section>
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_220px_auto] md:items-end">
+          <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 xl:grid-cols-[minmax(180px,1fr)_220px_auto] xl:items-end">
             {monthlyOverview.month ? <input type="hidden" name="month" value={monthlyOverview.month} /> : null}
             <label className="block">
               <span className="text-sm font-semibold text-[var(--foreground)]">Busca</span>

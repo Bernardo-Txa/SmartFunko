@@ -160,7 +160,7 @@ export function CouponAdminPanel({ coupons }: Props) {
           <BadgePercent size={18} className="text-[var(--accent)]" aria-hidden="true" />
           <h2 className="text-lg font-bold text-[var(--foreground)]">Novo cupom</h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Código</span>
             <input
@@ -203,7 +203,7 @@ export function CouponAdminPanel({ coupons }: Props) {
             />
           </label>
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Pedido mínimo</span>
             <input

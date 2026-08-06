@@ -78,7 +78,7 @@ export default async function AdminPopFlixPage({ searchParams }: Props) {
   return (
     <AdminShell title="PopFlix" description="Assinaturas, cobranças InfinitePay e confirmação de mensalidades.">
       <div className="grid gap-6">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Assinaturas" value={`${stats.total}`} detail={`${stats.active} ativas no filtro`} />
           <MetricCard label="MRR PopFlix" value={formatCurrency(stats.activeMonthly)} detail="Mensalidade ativa prevista" />
           <MetricCard label="A receber" value={formatCurrency(stats.pendingAmount)} detail={`${stats.pending} pendente${stats.pending === 1 ? "" : "s"}`} />

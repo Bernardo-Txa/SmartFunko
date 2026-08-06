@@ -143,7 +143,7 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Numeros" value={`${stats.total}`} detail={`${stats.available} disponiveis`} />
           <MetricCard label="Vendidos" value={`${stats.sold}`} detail={`${stats.soldPercent}% da campanha`} />
           <MetricCard label="Pendentes" value={`${stats.pending}`} detail="Aguardando pagamento" />

@@ -262,7 +262,7 @@ export default async function AdminFinancialReportPage({ searchParams }: Props) 
           </div>
         </ReportHero>
 
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:grid-cols-[minmax(260px,1fr)_auto_auto] lg:items-end">
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-2 xl:grid-cols-[minmax(260px,1fr)_auto_auto] xl:items-end">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Competencia</span>
             <select

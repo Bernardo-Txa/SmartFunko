@@ -53,7 +53,7 @@ export function CashflowManualEntryForm() {
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
       <h2 className="text-lg font-bold text-[var(--foreground)]">Lançamento manual</h2>
-      <form onSubmit={submitEntry} className="mt-4 grid gap-4 md:grid-cols-[150px_210px_140px_150px_1fr_auto] md:items-end">
+      <form onSubmit={submitEntry} className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:items-end">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Tipo</span>
           <select

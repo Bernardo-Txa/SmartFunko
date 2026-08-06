@@ -75,7 +75,7 @@ export default async function AdminRareCollectiblesPage({ searchParams }: Props)
       description="Cadastro e manutenção independente de peças autênticas, autografadas e colecionáveis."
     >
       <div className="grid min-w-0 gap-6">
-        <section className="grid gap-3 md:grid-cols-5">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
             <span className="text-xs font-black uppercase tracking-[0.14em] text-[var(--muted)]">Disponíveis</span>
             <strong className="mt-2 block text-2xl text-[var(--foreground)]">{stats.available}</strong>
@@ -108,7 +108,7 @@ export default async function AdminRareCollectiblesPage({ searchParams }: Props)
                 Pesquise por nome, autografante, código de autenticação ou número de série.
               </p>
             </div>
-            <form action="/admin/acervo-raro" className="grid gap-2 md:grid-cols-[minmax(220px,1fr)_150px_150px_auto_auto]">
+            <form action="/admin/acervo-raro" className="grid gap-2 xl:grid-cols-[minmax(220px,1fr)_150px_150px_auto_auto]">
               <label className="relative block">
                 <Search
                   aria-hidden="true"

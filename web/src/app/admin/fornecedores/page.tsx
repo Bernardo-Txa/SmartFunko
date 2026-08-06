@@ -30,7 +30,7 @@ export default async function AdminSuppliersPage() {
           Novo fornecedor
         </Link>
       </div>
-      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>

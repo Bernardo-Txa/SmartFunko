@@ -280,7 +280,7 @@ export function SpecialProductCreateForm({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(260px,1fr)_170px_160px_160px]">
+      <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(260px,1fr)_170px_160px_160px]">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Nome da peca</span>
           <input

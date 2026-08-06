@@ -195,7 +195,7 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
           </div>
         </ReportHero>
 
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 xl:grid-cols-[minmax(220px,1fr)_140px_190px_160px_auto_auto] xl:items-end">
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-2 2xl:grid-cols-[minmax(220px,1fr)_140px_190px_160px_auto_auto] 2xl:items-end">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Competencia</span>
             <select

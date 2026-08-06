@@ -60,7 +60,7 @@ export default async function AdminPreordersPage({ searchParams }: Props) {
       description="Cadastro temporario, checkout InfinitePay e pedidos V2 criados somente apos pagamento."
     >
       <div className="grid gap-6">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Pre-vendas" value={`${stats.total}`} detail={`${stats.open} aberta(s)`} />
           <MetricCard label="A pedir" value={`${stats.approvedQuantity}`} detail="Itens ja pagos" />
           <MetricCard label="Aguardando pagamento" value={`${stats.pendingQuantity}`} detail={formatCurrency(stats.pendingAmount)} />

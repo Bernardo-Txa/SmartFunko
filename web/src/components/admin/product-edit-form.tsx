@@ -258,7 +258,7 @@ function VariantForm({
 
   return (
     <form onSubmit={submitVariant} className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">SKU</span>
           <input
@@ -303,7 +303,7 @@ function VariantForm({
           />
         </label>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SelectField defaultValue={variant?.condition ?? "new"} label="Condicao" name="condition" options={conditionOptions} />
         <SelectField defaultValue={variant?.type ?? "common"} label="Tipo" name="type" options={typeOptions} />
         <SelectField defaultValue={variant?.source ?? "own_stock"} label="Origem" name="source" options={sourceOptions} />
@@ -648,7 +648,7 @@ export function ProductEditForm({
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Tipo de produto</span>
             <select

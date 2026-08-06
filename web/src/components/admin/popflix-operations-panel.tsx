@@ -289,7 +289,7 @@ export function PopFlixOperationsPanel({
           ))}
         </div>
 
-        <form className="mt-4 grid gap-3 lg:grid-cols-[minmax(180px,1fr)_190px_170px_160px_auto_auto] lg:items-end">
+        <form className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 xl:items-end">
           <input type="hidden" name="view" value={activeView} />
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Cliente ou assinatura</span>
