@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { getCatalogProducts, getCatalogSuppliers } from "@/lib/catalog";
-import { isRafflesEnabled } from "@/lib/env";
+import { isPopFlixEnabled, isRafflesEnabled } from "@/lib/env";
 import { canonicalUrl } from "@/lib/seo";
 import { RaffleService } from "@/server/raffles/raffle-service";
+import { RareCollectibleService } from "@/server/rare-collectibles/rare-collectible-service";
 import type { RaffleCampaign } from "@/components/raffles/raffle-types";
 
 function entry(
@@ -26,7 +27,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/", { changeFrequency: "daily", priority: 1 }),
     entry("/catalogo", { changeFrequency: "daily", priority: 0.9 }),
     entry("/fornecedores", { changeFrequency: "weekly", priority: 0.7 }),
+    entry("/pre-vendas", { changeFrequency: "daily", priority: 0.75 }),
+    entry("/acervo-raro", { changeFrequency: "weekly", priority: 0.8 }),
   ];
+
+  if (isPopFlixEnabled()) {
+    routes.push(
+      entry("/popflix", { changeFrequency: "weekly", priority: 0.8 }),
+      entry("/popflix/assinar", { changeFrequency: "weekly", priority: 0.7 }),
+    );
+  }
 
   try {
     const suppliers = await getCatalogSuppliers();
@@ -60,6 +70,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
   } catch (error) {
     console.error("Failed to load products for sitemap", error);
+  }
+
+  try {
+    const rareItems = await new RareCollectibleService().listPublicRareCollectibles();
+
+    routes.push(
+      ...rareItems.all.map((item) =>
+        entry(`/acervo-raro/${item.slug}`, {
+          changeFrequency: item.status === "available" ? "daily" : "weekly",
+          lastModified: item.updatedAt,
+          priority: item.isFeatured ? 0.82 : 0.72,
+        }),
+      ),
+    );
+  } catch (error) {
+    console.error("Failed to load rare collectibles for sitemap", error);
   }
 
   if (isRafflesEnabled()) {

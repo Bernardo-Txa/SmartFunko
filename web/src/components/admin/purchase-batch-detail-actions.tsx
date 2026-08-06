@@ -299,7 +299,7 @@ export function PurchaseBatchDetailActions({
                   </div>
                   <PurchaseBatchItemStatusBadge status={item.status} />
                 </div>
-                <div className="grid gap-3 md:grid-cols-5">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                   <label className="block">
                     <span className="text-xs font-semibold text-[var(--muted)]">Status</span>
                     <select
@@ -365,7 +365,7 @@ export function PurchaseBatchDetailActions({
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Recebimento</h2>
         <form onSubmit={receiveBatch} className="mt-4 grid gap-4">
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <input name="actualPurchaseCost" type="number" min={0} step="0.01" placeholder="Compra real" className="h-10 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
             <input name="actualShippingCost" type="number" min={0} step="0.01" placeholder="Frete real" className="h-10 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
             <input name="actualTaxesCost" type="number" min={0} step="0.01" placeholder="Taxas reais" className="h-10 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />

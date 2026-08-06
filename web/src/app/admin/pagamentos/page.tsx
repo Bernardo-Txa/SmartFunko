@@ -94,7 +94,7 @@ export default async function AdminPaymentsPage({ searchParams }: Props) {
           <MetricCard label="Pendente a receber" value={formatCurrency(summary.pendingReceivables)} detail="Pedidos ainda em aberto" />
         </div>
 
-        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:grid-cols-[minmax(180px,1fr)_150px_150px_150px_150px_auto_auto] lg:items-end">
+        <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-2 xl:grid-cols-4 xl:items-end">
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Cliente ou pedido</span>
             <input

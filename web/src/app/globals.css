@@ -213,6 +213,51 @@ html.light .smart-storefront-hero-grid {
   background-size: 34px 34px;
 }
 
+.popflix-hero {
+  --popflix-hero-background:
+    linear-gradient(112deg, rgba(2, 6, 23, 0.98) 0%, rgba(7, 17, 36, 0.95) 42%, rgba(221, 42, 123, 0.28) 70%, rgba(250, 204, 21, 0.18) 100%);
+  --popflix-hero-border: rgba(255, 255, 255, 0.14);
+  --popflix-hero-card: rgba(255, 255, 255, 0.08);
+  --popflix-hero-card-strong: rgba(255, 255, 255, 0.14);
+  --popflix-hero-foreground: #f8fafc;
+  --popflix-hero-muted: #cbd5e1;
+  --popflix-hero-shade:
+    linear-gradient(90deg, #020617 0%, rgba(2, 6, 23, 0.9) 42%, rgba(2, 6, 23, 0.32) 100%);
+  background: var(--popflix-hero-background);
+}
+
+html.light .popflix-hero {
+  --popflix-hero-background:
+    linear-gradient(112deg, #f8fafc 0%, #e0f7fb 42%, rgba(252, 231, 243, 0.92) 72%, rgba(254, 249, 195, 0.96) 100%);
+  --popflix-hero-border: rgba(14, 116, 144, 0.2);
+  --popflix-hero-card: rgba(255, 255, 255, 0.68);
+  --popflix-hero-card-strong: rgba(255, 255, 255, 0.86);
+  --popflix-hero-foreground: #0f172a;
+  --popflix-hero-muted: #475569;
+  --popflix-hero-shade:
+    linear-gradient(90deg, rgba(248, 250, 252, 0.98) 0%, rgba(248, 250, 252, 0.86) 44%, rgba(248, 250, 252, 0.2) 100%);
+}
+
+.popflix-hero-grid {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+  background-size: 36px 36px;
+  opacity: 0.7;
+}
+
+html.light .popflix-hero-grid {
+  background:
+    linear-gradient(90deg, rgba(14, 116, 144, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(14, 116, 144, 0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  opacity: 0.9;
+}
+
+.popflix-hero-shade {
+  background: var(--popflix-hero-shade);
+}
+
 .smart-brands-intro-bg {
   background: linear-gradient(135deg, #051923 0%, #030816 55%, #201805 100%);
 }
@@ -227,6 +272,10 @@ html.light .smart-brands-intro-bg {
 
 .smart-brand-hero-panini {
   background: linear-gradient(135deg, #241a05 0%, #030816 50%, #10203d 100%);
+}
+
+.smart-brand-hero-nba {
+  background: linear-gradient(135deg, #071a3a 0%, #030816 52%, #3b0710 100%);
 }
 
 .smart-brand-hero-piticas {
@@ -245,6 +294,10 @@ html.light .smart-brand-hero-panini {
   background: linear-gradient(135deg, #fffbeb 0%, #f8fbff 50%, #e8f4ff 100%);
 }
 
+html.light .smart-brand-hero-nba {
+  background: linear-gradient(135deg, #e8f2ff 0%, #f8fbff 52%, #fff1f2 100%);
+}
+
 html.light .smart-brand-hero-piticas {
   background: linear-gradient(135deg, #fff3e8 0%, #f8fbff 52%, #e8fbff 100%);
 }
@@ -261,6 +314,10 @@ html.light .smart-brand-hero-generic {
   background: rgba(113, 63, 18, 0.18);
 }
 
+.smart-brand-band-nba {
+  background: rgba(30, 64, 175, 0.24);
+}
+
 .smart-brand-band-piticas {
   background: rgba(124, 45, 18, 0.22);
 }
@@ -275,6 +332,10 @@ html.light .smart-brand-band-copag {
 
 html.light .smart-brand-band-panini {
   background: rgba(255, 251, 235, 0.88);
+}
+
+html.light .smart-brand-band-nba {
+  background: rgba(232, 242, 255, 0.9);
 }
 
 html.light .smart-brand-band-piticas {

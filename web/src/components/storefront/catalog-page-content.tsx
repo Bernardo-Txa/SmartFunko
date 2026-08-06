@@ -13,6 +13,7 @@ export type CatalogPageSearchParams = {
   category?: string;
   franchise?: string;
   page?: string;
+  productType?: string;
   q?: string;
   sort?: CatalogProductSort;
   subcategory?: string;
@@ -35,7 +36,13 @@ function buildHref(
 }
 
 function normalizeSort(value: string | undefined): CatalogProductSort {
-  if (value === "newest" || value === "price_asc" || value === "price_desc" || value === "name") {
+  if (
+    value === "newest" ||
+    value === "price_asc" ||
+    value === "price_desc" ||
+    value === "name" ||
+    value === "specials_first"
+  ) {
     return value;
   }
 
@@ -51,6 +58,7 @@ export async function CatalogPageContent({
   const category = normalizeCatalogTokenValue(params?.category);
   const franchise = normalizeCatalogTokenValue(params?.franchise);
   const page = Number(params?.page ?? 1);
+  const productType = params?.productType ?? "";
   const query = params?.q ?? "";
   const sort = normalizeSort(params?.sort);
   const subcategory = normalizeCatalogTokenValue(params?.subcategory);
@@ -63,6 +71,7 @@ export async function CatalogPageContent({
       franchise,
       page,
       pageSize: 24,
+      productType,
       query,
       sort,
       subcategory,
@@ -90,10 +99,11 @@ export async function CatalogPageContent({
 
       <section className="mb-6">
         <CatalogFilter
-          key={[category, franchise, sort, subcategory, query].join(":")}
+          key={[category, franchise, productType, sort, subcategory, query].join(":")}
           categories={categories}
           currentCategory={category}
           currentFranchise={franchise}
+          currentProductType={productType}
           currentSort={sort}
           currentSubcategory={subcategory}
           franchises={franchises}
@@ -121,6 +131,7 @@ export async function CatalogPageContent({
             category,
             franchise,
             page: Math.max(1, productPage.meta.page - 1),
+            productType,
             q: query,
             sort,
             subcategory,
@@ -139,6 +150,7 @@ export async function CatalogPageContent({
             category,
             franchise,
             page: Math.min(productPage.meta.totalPages, productPage.meta.page + 1),
+            productType,
             q: query,
             sort,
             subcategory,

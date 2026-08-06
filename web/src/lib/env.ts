@@ -16,6 +16,7 @@ export function getSiteUrl() {
 
 export const env = {
   enableAssistedCheckout: process.env.NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT ?? "true",
+  enablePopFlix: process.env.NEXT_PUBLIC_POPFLIX_ENABLED ?? process.env.POPFLIX_ENABLED ?? "",
   enableRaffles: process.env.NEXT_PUBLIC_ENABLE_RAFFLES ?? "",
   enableRewards: process.env.NEXT_PUBLIC_ENABLE_REWARDS ?? "",
   infinitePayApiBaseUrl: process.env.INFINITEPAY_API_BASE_URL ?? "https://api.checkout.infinitepay.io",
@@ -32,6 +33,10 @@ export const env = {
 
 export function isAssistedCheckoutEnabled() {
   return env.enableAssistedCheckout !== "false";
+}
+
+export function isPopFlixEnabled() {
+  return env.enablePopFlix === "true";
 }
 
 export function isRafflesEnabled() {

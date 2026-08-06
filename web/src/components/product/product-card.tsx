@@ -46,6 +46,16 @@ export function ProductArtwork({
   compact?: boolean;
   product: Product;
 }) {
+  const productTypeLabel = product.productTypeLabel ?? "Funko Pop";
+  const artworkInitials = productTypeLabel
+    .replace("/", " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "SF";
+
   return (
     <div
       className={clsx(
@@ -70,7 +80,7 @@ export function ProductArtwork({
               compact ? "px-2.5 py-0.5 text-base" : "px-3 py-1 text-xl",
             )}
           >
-            POP
+            {artworkInitials}
           </span>
           <p className={clsx("font-bold uppercase text-slate-500", compact ? "mt-2 text-[10px]" : "mt-3 text-xs")}>
             {product.franchise}
@@ -86,7 +96,7 @@ export function ProductArtwork({
             {product.funkoNumber}
           </strong>
           <span className={clsx("mt-2 inline-flex rounded-full bg-[var(--yellow)] px-2 font-black text-slate-950", compact ? "py-0.5 text-[10px]" : "py-1 text-xs")}>
-            {product.type}
+            {productTypeLabel}
           </span>
         </div>
       </div>
@@ -151,6 +161,7 @@ export function ProductCard({
     slug: product.slug,
     variantId: product.variantId,
   };
+  const productTypeLabel = product.productTypeLabel ?? "Funko Pop";
 
   return (
     <article
@@ -193,6 +204,9 @@ export function ProductCard({
         </div>
 
         <div className="mt-2 flex min-h-5 flex-wrap items-center gap-1.5">
+          <span className="rounded-full border border-cyan-300/14 bg-cyan-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-cyan-100">
+            {productTypeLabel}
+          </span>
           <p className="text-[10px] font-black uppercase tracking-[0.13em] text-sky-300/90">
             {product.franchise}
           </p>

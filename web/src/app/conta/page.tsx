@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Gem, Heart, Package, Ticket } from "lucide-react";
-import { isRafflesEnabled, isRewardsEnabled } from "@/lib/env";
+import { ArrowRight, Crown, Heart, Package, Ticket } from "lucide-react";
+import { isPopFlixEnabled, isRafflesEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
 import { getOrderPendingAmount } from "@/lib/orders/payable";
 import { requireUserPage } from "@/server/auth/require-user-page";
@@ -51,9 +51,21 @@ export default async function AccountPage() {
           <Package className="text-[var(--pink)]" size={24} />
           <strong className="mt-4 block text-sm">{orders.length} pedidos</strong>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Historico do atendimento pelo WhatsApp.
+            Historico de pedidos e pagamentos.
           </p>
         </section>
+        {isPopFlixEnabled() ? (
+          <Link
+            href="/conta/popflix"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
+          >
+            <Crown className="text-[var(--yellow)]" size={24} />
+            <strong className="mt-4 block text-sm">PopFlix</strong>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Assinaturas mensais vinculadas ao sistema.
+            </p>
+          </Link>
+        ) : null}
         <Link
           href="/conta/wishlist"
           className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
@@ -64,18 +76,6 @@ export default async function AccountPage() {
             Lista de desejos e produtos acompanhados.
           </p>
         </Link>
-        {isRewardsEnabled() ? (
-          <Link
-            href="/conta/clube"
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 hover:bg-cyan-400/10"
-          >
-            <Gem className="text-[var(--accent)]" size={24} />
-            <strong className="mt-4 block text-sm">Clube Smart Funkos</strong>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Pontos, níveis e ranking mensal de pedidos.
-            </p>
-          </Link>
-        ) : null}
         {isRafflesEnabled() ? (
           <Link
             href="/conta/rifas"
@@ -97,7 +97,7 @@ export default async function AccountPage() {
       </div>
 
       <Link
-        href="/conta/pedidos"
+        href="/conta/pedidos-v2"
         className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--yellow)] px-5 text-sm font-black text-[#020617] shadow-[0_0_22px_rgba(250,204,21,0.22)] hover:brightness-110"
       >
         Ver meus pedidos

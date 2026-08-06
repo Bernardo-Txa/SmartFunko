@@ -19,7 +19,7 @@ export default async function AdminCustomersPage() {
 
   return (
     <AdminShell title="Clientes" description="Cadastro e vinculo com pedidos do WhatsApp.">
-      <div className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
             <tr>
@@ -31,7 +31,7 @@ export default async function AdminCustomersPage() {
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {customers.map((customer) => (
-              <tr key={customer.email}>
+              <tr key={customer.id}>
                 <td className="px-4 py-3 font-semibold text-[var(--foreground)]">
                   {customer.name}
                 </td>

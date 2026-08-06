@@ -111,7 +111,7 @@ export function MegaMenu({
         aria-controls={menuId}
         aria-expanded={isOpen}
         className={clsx(
-          "inline-flex h-10 cursor-pointer list-none items-center gap-1 rounded-full px-4 text-sm font-bold transition hover:bg-cyan-400/12 hover:text-white",
+          "inline-flex h-10 shrink-0 cursor-pointer list-none items-center gap-1 whitespace-nowrap rounded-full px-3 text-sm font-bold leading-none transition hover:bg-cyan-400/12 hover:text-white 2xl:px-4",
           isCatalogActive ? "bg-cyan-300/14 text-white ring-1 ring-cyan-200/26" : "text-slate-200",
         )}
         onClick={() => setIsOpen((current) => !current)}

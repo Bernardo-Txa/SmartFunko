@@ -97,7 +97,7 @@ export function RaffleCampaignForm() {
         <span className="text-sm font-semibold text-[var(--foreground)]">Descricao do premio</span>
         <textarea name="prizeDescription" className="mt-2 min-h-24 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
       </label>
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Numero inicial</span>
           <input name="numberStart" type="number" min={1} defaultValue={1} required className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />

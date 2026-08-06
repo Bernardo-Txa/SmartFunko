@@ -236,7 +236,7 @@ export default async function ProductPage({ params }: Props) {
             </div>
           </dl>
 
-          <p className="mt-5 text-sm leading-6 text-[var(--muted)]">
+          <p className="mt-5 whitespace-pre-line text-sm leading-6 text-[var(--muted)]">
             {product.description}
           </p>
 

@@ -17,21 +17,12 @@ import {
 } from "@/lib/order-labels";
 import { orderItemStatusOptions } from "@/lib/status-labels";
 
-type InventoryOption = {
-  id: string;
-  product_variant_id: string;
-  sku: string;
-  status: string;
-  location: string | null;
-};
-
 type OrderItemOption = {
   id: string;
   status: string;
 };
 
 type DraftItem = {
-  inventoryItemId: string;
   productVariantId: string;
   quantity: number;
   selectedVariant: ProductVariantSearchOption | null;
@@ -58,7 +49,6 @@ function mapVariantSource(source: ProductVariantSearchOption["source"]): DraftIt
 export function OrderDetailActions({
   customerId,
   defaultMaxInstallments,
-  inventory,
   items,
   orderId,
   orderTotal,
@@ -73,7 +63,6 @@ export function OrderDetailActions({
 }: {
   customerId: string;
   defaultMaxInstallments: number;
-  inventory: InventoryOption[];
   items: OrderItemOption[];
   orderId: string;
   orderTotal: number;
@@ -90,7 +79,6 @@ export function OrderDetailActions({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [draftItem, setDraftItem] = useState<DraftItem>({
-    inventoryItemId: "",
     productVariantId: "",
     quantity: 1,
     selectedVariant: null,
@@ -105,10 +93,6 @@ export function OrderDetailActions({
   const [maxInstallments, setMaxInstallments] = useState(String(paymentMaxInstallments ?? defaultMaxInstallments));
   const [rejectReason, setRejectReason] = useState("");
 
-  const availableInventory = inventory.filter(
-    (entry) => entry.product_variant_id === draftItem.productVariantId && entry.status === "available",
-  );
-
   function showSuccess(text: string) {
     setError("");
     setMessage(text);
@@ -118,7 +102,6 @@ export function OrderDetailActions({
   function handleVariantChange(variant: ProductVariantSearchOption | null) {
     setDraftItem((current) => ({
       ...current,
-      inventoryItemId: "",
       productVariantId: variant?.id ?? "",
       selectedVariant: variant,
       source: variant ? mapVariantSource(variant.source) : current.source,
@@ -162,14 +145,13 @@ export function OrderDetailActions({
     }
 
     await submitJson(`/api/v1/admin/orders/${orderId}/items`, "POST", {
-      inventoryItemId: draftItem.source === "stock" ? draftItem.inventoryItemId || null : null,
+      inventoryItemId: null,
       productVariantId: draftItem.productVariantId,
       quantity: draftItem.quantity,
       source: draftItem.source,
       unitPrice: draftItem.unitPrice,
     });
     setDraftItem({
-      inventoryItemId: "",
       productVariantId: "",
       quantity: 1,
       selectedVariant: null,
@@ -442,9 +424,8 @@ export function OrderDetailActions({
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Adicionar item</h2>
         <form onSubmit={addItem} className="mt-4 grid gap-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
+          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(220px,1.5fr)_160px_130px_150px]">
             <ProductVariantSearchSelect
-              allowQuickCreate
               selected={draftItem.selectedVariant}
               onSelect={handleVariantChange}
             />
@@ -455,7 +436,6 @@ export function OrderDetailActions({
                 onChange={(event) =>
                   setDraftItem((current) => ({
                     ...current,
-                    inventoryItemId: event.target.value === "stock" ? current.inventoryItemId : "",
                     source: event.target.value as DraftItem["source"],
                   }))
                 }
@@ -492,23 +472,6 @@ export function OrderDetailActions({
               />
             </label>
           </div>
-          {draftItem.source === "stock" ? (
-            <label className="block">
-              <span className="text-sm font-semibold text-[var(--foreground)]">Unidade de estoque</span>
-              <select
-                value={draftItem.inventoryItemId}
-                onChange={(event) => setDraftItem((current) => ({ ...current, inventoryItemId: event.target.value }))}
-                className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-              >
-                <option value="">Sem reserva automatica</option>
-                {availableInventory.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.sku} {entry.location ? `- ${entry.location}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
           <button
             disabled={isSubmitting}
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
@@ -562,7 +525,7 @@ export function OrderDetailActions({
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Cancelar pedido</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          O cancelamento libera estoque reservado vinculado aos itens do pedido.
+          Cancela o pedido e registra a alteração no histórico operacional.
         </p>
         <button
           type="button"

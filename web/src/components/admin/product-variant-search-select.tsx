@@ -42,6 +42,7 @@ type Props = {
   onSelect: (option: ProductVariantSearchOption | null) => void;
   placeholder?: string;
   selected: ProductVariantSearchOption | null;
+  supplierId?: string | null;
 };
 
 function formatOptionLabel(option: ProductVariantSearchOption) {
@@ -56,6 +57,7 @@ export function ProductVariantSearchSelect({
   onSelect,
   placeholder = "Buscar por nome ou SKU",
   selected,
+  supplierId,
 }: Props) {
   const inputId = useId();
   const [draftQuery, setDraftQuery] = useState("");
@@ -90,8 +92,19 @@ export function ProductVariantSearchSelect({
       setError("");
 
       try {
+        const params = new URLSearchParams({
+          limit: "20",
+          q: term,
+        });
+
+        if (supplierId === null) {
+          params.set("supplierId", "general");
+        } else if (supplierId) {
+          params.set("supplierId", supplierId);
+        }
+
         const response = await fetch(
-          `/api/v1/admin/product-variants/search?q=${encodeURIComponent(term)}&limit=20`,
+          `/api/v1/admin/product-variants/search?${params.toString()}`,
           { signal: controller.signal },
         );
         const payload = (await response.json()) as ApiResponse;
@@ -117,7 +130,7 @@ export function ProductVariantSearchSelect({
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [draftQuery, isOpen, selected]);
+  }, [draftQuery, isOpen, selected, supplierId]);
 
   function clearSelection() {
     onSelect(null);
@@ -181,7 +194,7 @@ export function ProductVariantSearchSelect({
   }
 
   return (
-    <div className={`relative block ${className}`}>
+    <div className={`relative block min-w-0 ${className}`}>
       <label htmlFor={inputId} className="text-sm font-semibold text-[var(--foreground)]">{label}</label>
       {name ? <input type="hidden" name={name} value={selected?.id ?? ""} /> : null}
       <div className="relative mt-2">
@@ -213,7 +226,7 @@ export function ProductVariantSearchSelect({
           onFocus={() => setIsOpen(true)}
           onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
           placeholder={placeholder}
-          className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-9 text-sm outline-none focus:border-[var(--accent)]"
+          className="h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-9 text-sm outline-none focus:border-[var(--accent)]"
         />
         {isLoading ? (
           <SmartButtonLoading

@@ -10,7 +10,7 @@ export async function requireAdminPage(nextPath = "/admin/dashboard") {
     return await requireAdmin();
   } catch (error) {
     if (error instanceof HttpError && error.status === 403) {
-      redirect("/conta/pedidos");
+      redirect("/conta/pedidos-v2");
     }
 
     redirect(`/login?next=${encodeURIComponent(sanitizeNextPath(nextPath) ?? "/admin/dashboard")}`);
@@ -22,7 +22,7 @@ export async function requireOwnerPage(nextPath = "/admin/dashboard") {
     return await requireOwner();
   } catch (error) {
     if (error instanceof HttpError && error.status === 403) {
-      redirect("/conta/pedidos");
+      redirect("/conta/pedidos-v2");
     }
 
     redirect(`/login?next=${encodeURIComponent(sanitizeNextPath(nextPath) ?? "/admin/dashboard")}`);

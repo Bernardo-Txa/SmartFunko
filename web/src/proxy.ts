@@ -75,6 +75,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (request.nextUrl.pathname === "/conta/pedidos") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/conta/pedidos-v2";
+    return NextResponse.redirect(url);
+  }
+
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -143,7 +149,7 @@ export async function proxy(request: NextRequest) {
       .maybeSingle<{ role: "customer" | "admin" | "owner" }>();
 
     if (profile?.role !== "owner") {
-      return redirectWithCookies(request, response, "/conta/pedidos");
+      return redirectWithCookies(request, response, "/conta/pedidos-v2");
     }
   }
 

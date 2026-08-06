@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { productVariantStatusOptions } from "@/lib/status-labels";
+import { productTypeOptions } from "@/lib/product-types";
 
 type Option = {
   id: string;
@@ -56,6 +57,7 @@ export type AdminProductEditData = {
   name: string;
   product_images?: ProductImage[] | null;
   product_variants?: ProductVariant[] | null;
+  product_type?: string | null;
   slug: string;
   status: "active" | "inactive" | "archived";
   subcategory_name: string | null;
@@ -256,7 +258,7 @@ function VariantForm({
 
   return (
     <form onSubmit={submitVariant} className="grid gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">SKU</span>
           <input
@@ -301,7 +303,7 @@ function VariantForm({
           />
         </label>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SelectField defaultValue={variant?.condition ?? "new"} label="Condicao" name="condition" options={conditionOptions} />
         <SelectField defaultValue={variant?.type ?? "common"} label="Tipo" name="type" options={typeOptions} />
         <SelectField defaultValue={variant?.source ?? "own_stock"} label="Origem" name="source" options={sourceOptions} />
@@ -392,6 +394,7 @@ export function ProductEditForm({
       funkoNumber: nullable(formData.get("funkoNumber")),
       mainImageUrl: nullable(formData.get("mainImageUrl")),
       name: String(formData.get("name") ?? "").trim(),
+      productType: String(formData.get("productType") ?? "funko_pop"),
       slug: String(formData.get("slug") ?? "").trim(),
       status: String(formData.get("status") ?? "active"),
       subcategoryName: nullable(formData.get("subcategoryName")),
@@ -645,7 +648,21 @@ export function ProductEditForm({
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <label className="block">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Tipo de produto</span>
+            <select
+              name="productType"
+              defaultValue={product.product_type ?? "funko_pop"}
+              className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+            >
+              {productTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="block">
             <span className="text-sm font-semibold text-[var(--foreground)]">Franquia</span>
             <select

@@ -1,4 +1,5 @@
 import "server-only";
+import { randomInt } from "crypto";
 import { z } from "zod";
 import { env, hasInfinitePayCheckoutEnv } from "@/lib/env";
 import { AuditLogService } from "@/server/audit/audit-log-service";
@@ -76,7 +77,8 @@ export const drawRaffleCampaignSchema = z.object({
   drawNotes: optionalText,
   drawReference: optionalText,
   drawnAt: z.string().datetime().optional(),
-  winnerNumber: z.number().int().positive(),
+  mode: z.enum(["manual", "internal_random"]).default("manual"),
+  winnerNumber: z.number().int().positive().optional(),
 });
 
 export type CreateRaffleCampaignInput = z.infer<typeof createRaffleCampaignSchema>;
@@ -90,12 +92,58 @@ export type RaffleListFilters = {
   status?: string;
 };
 
+export type RaffleMonthlyTopCustomer = {
+  customerEmail: string | null;
+  customerId: string;
+  customerName: string;
+  customerPhone: string | null;
+  lastPurchaseAt: string | null;
+  orders: number;
+  quotas: number;
+  revenue: number;
+};
+
+export type RaffleMonthlyCampaignRow = {
+  campaignCode: string | null;
+  campaignId: string;
+  campaignTitle: string;
+  orders: number;
+  quotas: number;
+  revenue: number;
+};
+
+export type RaffleMonthlyOverview = {
+  campaigns: RaffleMonthlyCampaignRow[];
+  month: string;
+  monthLabel: string;
+  orders: number;
+  quotas: number;
+  revenue: number;
+  topCustomers: RaffleMonthlyTopCustomer[];
+  uniqueCustomers: number;
+};
+
+export type RaffleDrawWinner = {
+  couponCode?: string | null;
+  customerEmail?: string | null;
+  customerId: string | null;
+  customerName: string;
+  customerPhone?: string | null;
+  placement: number;
+  prizeLabel: string;
+  prizeType: "main_prize" | "coupon_10";
+  raffleNumberId: string | null;
+  number: number | null;
+  numberLabel: string | null;
+};
+
 type RaffleCampaignRow = {
   id: string;
   code: string;
   slug: string;
   status: string;
   title: string;
+  prize_title: string;
   number_start: number;
   number_end: number;
   total_numbers: number;
@@ -151,6 +199,31 @@ type RaffleOrderRow = {
   raffle_numbers?: Array<{
     label: string;
   }>;
+};
+
+type RafflePaidOrderOverviewRow = {
+  customer_id: string;
+  customers?: {
+    email?: string | null;
+    name?: string | null;
+    phone?: string | null;
+  } | null;
+  id: string;
+  paid_at: string | null;
+  quantity: number;
+  raffle_campaign_id: string;
+  raffle_campaigns?: {
+    code?: string | null;
+    title?: string | null;
+  } | null;
+  total_amount: number | string;
+};
+
+type RaffleSoldNumberRow = {
+  customer_id: string | null;
+  id: string;
+  label: string;
+  number: number;
 };
 
 function campaignSelect() {
@@ -209,6 +282,117 @@ function createCampaignCode(title: string) {
     .toString(36)
     .slice(2, 5)
     .toUpperCase()}`;
+}
+
+function normalizeMonth(value?: string | null) {
+  const now = new Date();
+  const fallback = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const month = value?.trim() || fallback;
+
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    return fallback;
+  }
+
+  const [, rawMonth] = month.split("-").map(Number);
+
+  return rawMonth >= 1 && rawMonth <= 12 ? month : fallback;
+}
+
+function getBrazilMonthBounds(monthInput?: string | null) {
+  const month = normalizeMonth(monthInput);
+  const [year, monthNumber] = month.split("-").map(Number);
+  const start = new Date(`${month}-01T00:00:00-03:00`);
+  const nextMonth = monthNumber === 12
+    ? `${year + 1}-01`
+    : `${year}-${String(monthNumber + 1).padStart(2, "0")}`;
+  const end = new Date(`${nextMonth}-01T00:00:00-03:00`);
+  const monthLabel = new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+  }).format(start);
+
+  return {
+    end: end.toISOString(),
+    month,
+    monthLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+    start: start.toISOString(),
+  };
+}
+
+function money(value: number | string | null | undefined) {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function createRaffleCouponCode(campaignCode: string, placement: number) {
+  const safeCampaign = campaignCode
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 16);
+  const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+
+  return `RIFA-${safeCampaign || "SMART"}-${placement}L-${suffix}`.slice(0, 40);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseDrawWinnersFromPayload(payload: unknown): RaffleDrawWinner[] {
+  if (!isRecord(payload)) {
+    return [];
+  }
+
+  const winners = payload.winners;
+
+  if (!Array.isArray(winners)) {
+    const winnerNumber = isRecord(payload.winnerNumber) ? payload.winnerNumber : null;
+
+    if (!winnerNumber) {
+      return [];
+    }
+
+    return [{
+      customerId: typeof winnerNumber.customer_id === "string" ? winnerNumber.customer_id : null,
+      customerName: "Cliente vencedor",
+      placement: 1,
+      prizeLabel: "Funko da rifa",
+      prizeType: "main_prize",
+      raffleNumberId: typeof winnerNumber.id === "string" ? winnerNumber.id : null,
+      number: typeof winnerNumber.number === "number" ? winnerNumber.number : null,
+      numberLabel: typeof winnerNumber.label === "string" ? winnerNumber.label : null,
+    }];
+  }
+
+  return winners
+    .map((winner): RaffleDrawWinner | null => {
+      if (!isRecord(winner)) {
+        return null;
+      }
+
+      const placement = Number(winner.placement ?? 0);
+
+      if (!Number.isInteger(placement) || placement <= 0) {
+        return null;
+      }
+
+      return {
+        couponCode: typeof winner.couponCode === "string" ? winner.couponCode : null,
+        customerEmail: typeof winner.customerEmail === "string" ? winner.customerEmail : null,
+        customerId: typeof winner.customerId === "string" ? winner.customerId : null,
+        customerName: typeof winner.customerName === "string" ? winner.customerName : "Cliente",
+        customerPhone: typeof winner.customerPhone === "string" ? winner.customerPhone : null,
+        placement,
+        prizeLabel: typeof winner.prizeLabel === "string" ? winner.prizeLabel : "Premio",
+        prizeType: winner.prizeType === "coupon_10" ? "coupon_10" : "main_prize",
+        raffleNumberId: typeof winner.raffleNumberId === "string" ? winner.raffleNumberId : null,
+        number: typeof winner.number === "number" ? winner.number : null,
+        numberLabel: typeof winner.numberLabel === "string" ? winner.numberLabel : null,
+      };
+    })
+    .filter((winner): winner is RaffleDrawWinner => Boolean(winner))
+    .sort((first, second) => first.placement - second.placement);
 }
 
 function toDbPayload(input: Partial<CreateRaffleCampaignInput>) {
@@ -425,6 +609,92 @@ export class RaffleService {
     return this.attachCampaignStats((data ?? []) as unknown as RaffleCampaignRow[]);
   }
 
+  async getRaffleMonthlyOverview(monthInput?: string | null): Promise<RaffleMonthlyOverview> {
+    const monthBounds = getBrazilMonthBounds(monthInput);
+    const { data, error } = await this.supabase
+      .from("raffle_orders")
+      .select(`
+        id,raffle_campaign_id,customer_id,quantity,total_amount,paid_at,
+        customers(id,name,email,phone),
+        raffle_campaigns(id,code,title)
+      `)
+      .eq("status", "paid")
+      .gte("paid_at", monthBounds.start)
+      .lt("paid_at", monthBounds.end)
+      .order("paid_at", { ascending: false });
+
+    if (error) {
+      throwQueryError(error, "Falha ao resumir rifas do mes");
+    }
+
+    const topCustomers = new Map<string, RaffleMonthlyTopCustomer>();
+    const campaigns = new Map<string, RaffleMonthlyCampaignRow>();
+    let orders = 0;
+    let quotas = 0;
+    let revenue = 0;
+
+    for (const order of (data ?? []) as unknown as RafflePaidOrderOverviewRow[]) {
+      const quantity = Number(order.quantity ?? 0);
+      const total = money(order.total_amount);
+      const customerId = order.customer_id;
+      const campaignId = order.raffle_campaign_id;
+      orders += 1;
+      quotas += quantity;
+      revenue += total;
+
+      const customer = topCustomers.get(customerId) ?? {
+        customerEmail: order.customers?.email ?? null,
+        customerId,
+        customerName: order.customers?.name ?? "Cliente",
+        customerPhone: order.customers?.phone ?? null,
+        lastPurchaseAt: order.paid_at,
+        orders: 0,
+        quotas: 0,
+        revenue: 0,
+      };
+      customer.orders += 1;
+      customer.quotas += quantity;
+      customer.revenue += total;
+
+      if (
+        order.paid_at &&
+        (!customer.lastPurchaseAt || new Date(order.paid_at).getTime() > new Date(customer.lastPurchaseAt).getTime())
+      ) {
+        customer.lastPurchaseAt = order.paid_at;
+      }
+
+      topCustomers.set(customerId, customer);
+
+      const campaign = campaigns.get(campaignId) ?? {
+        campaignCode: order.raffle_campaigns?.code ?? null,
+        campaignId,
+        campaignTitle: order.raffle_campaigns?.title ?? "Rifa",
+        orders: 0,
+        quotas: 0,
+        revenue: 0,
+      };
+      campaign.orders += 1;
+      campaign.quotas += quantity;
+      campaign.revenue += total;
+      campaigns.set(campaignId, campaign);
+    }
+
+    return {
+      campaigns: Array.from(campaigns.values())
+        .sort((first, second) => second.quotas - first.quotas || second.revenue - first.revenue)
+        .slice(0, 8),
+      month: monthBounds.month,
+      monthLabel: monthBounds.monthLabel,
+      orders,
+      quotas,
+      revenue,
+      topCustomers: Array.from(topCustomers.values())
+        .sort((first, second) => second.quotas - first.quotas || second.revenue - first.revenue)
+        .slice(0, 8),
+      uniqueCustomers: topCustomers.size,
+    };
+  }
+
   async getRaffleCampaignById(id: string) {
     await this.expireRaffleReservations();
 
@@ -444,6 +714,23 @@ export class RaffleService {
 
     const [campaign] = await this.attachCampaignStats([data as unknown as RaffleCampaignRow]);
     return campaign;
+  }
+
+  async getRaffleDrawWinners(campaignId: string): Promise<RaffleDrawWinner[]> {
+    const { data, error } = await this.supabase
+      .from("raffle_draw_audit_logs")
+      .select("payload")
+      .eq("raffle_campaign_id", campaignId)
+      .in("action", ["campaign.internal_drawn", "campaign.drawn"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throwQueryError(error, "Falha ao buscar resultado da rifa");
+    }
+
+    return parseDrawWinnersFromPayload((data as { payload?: unknown } | null)?.payload);
   }
 
   async getRaffleCampaignBySlug(slug: string) {
@@ -624,6 +911,14 @@ export class RaffleService {
   }
 
   async drawRaffleCampaign(id: string, input: DrawRaffleCampaignInput, actorProfileId = this.actorId) {
+    if (input.mode === "internal_random") {
+      return this.drawRaffleCampaignInternally(id, input, actorProfileId);
+    }
+
+    if (!input.winnerNumber) {
+      throw badRequest("Informe o numero vencedor");
+    }
+
     const campaign = (await this.getRaffleCampaignById(id)) as unknown as RaffleCampaignRow;
 
     if (!["closed", "sold_out"].includes(campaign.status)) {
@@ -661,6 +956,7 @@ export class RaffleService {
         draw_notes: input.drawNotes ?? null,
         draw_reference: drawReference,
         drawn_at: drawnAt,
+        draw_method: "manual_external",
         status: "drawn",
         updated_by: actorProfileId ?? null,
         winner_customer_id: number.customer_id,
@@ -705,6 +1001,200 @@ export class RaffleService {
     );
 
     return this.getRaffleCampaignById(id);
+  }
+
+  private async drawRaffleCampaignInternally(
+    id: string,
+    input: DrawRaffleCampaignInput,
+    actorProfileId = this.actorId,
+  ) {
+    const campaign = (await this.getRaffleCampaignById(id)) as unknown as RaffleCampaignRow;
+
+    if (!["closed", "sold_out"].includes(campaign.status)) {
+      throw conflict("Encerre a rifa antes de sortear no aplicativo");
+    }
+
+    if (campaign.winner_raffle_number_id || campaign.status === "drawn") {
+      throw conflict("Rifa ja foi sorteada");
+    }
+
+    const { data: soldNumbersData, error: soldNumbersError } = await this.supabase
+      .from("raffle_numbers")
+      .select("id,number,label,customer_id")
+      .eq("raffle_campaign_id", id)
+      .eq("status", "sold");
+
+    if (soldNumbersError) {
+      throwQueryError(soldNumbersError, "Falha ao carregar cotas pagas da rifa");
+    }
+
+    const soldNumbers = ((soldNumbersData ?? []) as unknown as RaffleSoldNumberRow[])
+      .filter((number) => Boolean(number.customer_id));
+    const uniqueCustomerIds = Array.from(new Set(soldNumbers.map((number) => number.customer_id).filter(Boolean))) as string[];
+
+    if (soldNumbers.length === 0 || uniqueCustomerIds.length === 0) {
+      throw conflict("Nao existem cotas pagas para sortear");
+    }
+
+    const { data: customersData, error: customersError } = await this.supabase
+      .from("customers")
+      .select("id,name,email,phone")
+      .in("id", uniqueCustomerIds);
+
+    if (customersError) {
+      throwQueryError(customersError, "Falha ao carregar clientes da rifa");
+    }
+
+    const customers = new Map(
+      ((customersData ?? []) as Array<{ id: string; name?: string | null; email?: string | null; phone?: string | null }>)
+        .map((customer) => [customer.id, customer]),
+    );
+    const winners: RaffleDrawWinner[] = [];
+    const selectedCustomers = new Set<string>();
+    const maxPlacements = Math.min(5, uniqueCustomerIds.length);
+
+    while (winners.length < maxPlacements) {
+      const eligibleNumbers = soldNumbers.filter((number) =>
+        number.customer_id && !selectedCustomers.has(number.customer_id),
+      );
+
+      if (eligibleNumbers.length === 0) {
+        break;
+      }
+
+      const pickedNumber = eligibleNumbers[randomInt(eligibleNumbers.length)];
+      const customerId = pickedNumber.customer_id;
+
+      if (!customerId) {
+        continue;
+      }
+
+      selectedCustomers.add(customerId);
+      const placement = winners.length + 1;
+      const customer = customers.get(customerId);
+      const prizeType = placement === 1 ? "main_prize" : "coupon_10";
+      const coupon = placement === 1
+        ? null
+        : await this.createRaffleWinnerCoupon(campaign, placement, customer?.name ?? "Cliente", input.drawnAt);
+
+      winners.push({
+        couponCode: coupon?.code ?? null,
+        customerEmail: customer?.email ?? null,
+        customerId,
+        customerName: customer?.name ?? "Cliente",
+        customerPhone: customer?.phone ?? null,
+        placement,
+        prizeLabel: placement === 1 ? `Funko da rifa: ${campaign.prize_title}` : "Cupom 10% de desconto",
+        prizeType,
+        raffleNumberId: pickedNumber.id,
+        number: pickedNumber.number,
+        numberLabel: pickedNumber.label,
+      });
+    }
+
+    const firstWinner = winners[0];
+
+    if (!firstWinner?.raffleNumberId) {
+      throw conflict("Nao foi possivel definir o primeiro colocado");
+    }
+
+    const drawnAt = input.drawnAt ?? new Date().toISOString();
+    const drawReference = input.drawReference?.trim() || "Sorteio interno SmartFunko";
+    const drawNotes = input.drawNotes?.trim() || [
+      "Sorteio feito dentro do aplicativo.",
+      "Regra aplicada: depois que um cliente ganha, ele sai das proximas colocacoes.",
+      winners.length < 5 ? `A rifa tinha apenas ${winners.length} comprador(es) unico(s) elegivel(is).` : null,
+    ].filter(Boolean).join(" ");
+
+    const { data, error } = await this.supabase
+      .from("raffle_campaigns")
+      .update({
+        draw_method: "internal_random",
+        draw_notes: drawNotes,
+        draw_reference: drawReference,
+        drawn_at: drawnAt,
+        status: "drawn",
+        updated_by: actorProfileId ?? null,
+        winner_customer_id: firstWinner.customerId,
+        winner_raffle_number_id: firstWinner.raffleNumberId,
+      })
+      .eq("id", id)
+      .select(campaignSelect())
+      .single();
+
+    if (error) {
+      throwQueryError(error, "Falha ao registrar sorteio interno");
+    }
+
+    const { error: winnerError } = await this.supabase
+      .from("raffle_numbers")
+      .update({ status: "winner" })
+      .eq("id", firstWinner.raffleNumberId);
+
+    if (winnerError) {
+      throwQueryError(winnerError, "Falha ao marcar primeiro colocado");
+    }
+
+    const drawnCampaign = data as unknown as RaffleCampaignRow;
+    const payload = {
+      drawMode: "internal_random",
+      drawReference,
+      drawnAt,
+      prizeRule: "1o lugar ganha o funko; 2o ao 5o lugar ganham cupom de 10%. Comprador nao repete.",
+      soldNumbers: soldNumbers.length,
+      uniqueCustomers: uniqueCustomerIds.length,
+      winners,
+    };
+
+    await this.audit.createAdminActionLog({
+      action: "raffle.internal_draw",
+      adminId: actorProfileId,
+      entityId: id,
+      entityType: "raffle_campaign",
+      oldValue: campaign,
+      newValue: { ...drawnCampaign, draw: payload },
+    });
+
+    await this.createDrawAudit(id, "campaign.internal_drawn", payload, actorProfileId);
+
+    return this.getRaffleCampaignById(id);
+  }
+
+  private async createRaffleWinnerCoupon(
+    campaign: RaffleCampaignRow,
+    placement: number,
+    customerName: string,
+    startsAt?: string | null,
+  ) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const code = createRaffleCouponCode(campaign.code, placement);
+      const { data, error } = await this.supabase
+        .from("discount_coupons")
+        .insert({
+          code,
+          created_by: this.actorId ?? null,
+          description: `Premio ${placement}o lugar da rifa ${campaign.code} para ${customerName}: 10% de desconto`,
+          discount_type: "percent",
+          is_active: true,
+          max_discount: null,
+          min_order_total: 0,
+          starts_at: startsAt ?? new Date().toISOString(),
+          usage_limit: 1,
+          value: 10,
+        })
+        .select("id,code")
+        .single();
+
+      if (!error) {
+        return data as { code: string; id: string };
+      }
+
+      if (error.code !== "23505") {
+        throwQueryError(error, "Falha ao gerar cupom do sorteio");
+      }
+    }
+
+    throw conflict("Nao foi possivel gerar um codigo unico de cupom");
   }
 
   async listRaffleOrders(campaignId?: string, filters: RaffleListFilters = {}) {

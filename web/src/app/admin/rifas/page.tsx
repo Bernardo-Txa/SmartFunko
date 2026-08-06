@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 
 type Props = {
   searchParams?: Promise<{
+    month?: string;
     q?: string;
     status?: string;
   }>;
@@ -47,30 +48,112 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
   const params = await searchParams;
   const search = getParam(params?.q);
   const status = getParam(params?.status);
-  const campaigns = (await new RaffleService(undefined, admin.profile.id).listRaffleCampaigns({
-    q: search || undefined,
-    status: status || undefined,
-  })) as unknown as RaffleCampaign[];
-  const pendingNumbers = campaigns.reduce((sum, campaign) => sum + getStats(campaign).pending, 0);
-  const soldNumbers = campaigns.reduce((sum, campaign) => sum + getStats(campaign).sold, 0);
-  const projectedRevenue = campaigns.reduce((sum, campaign) => {
+  const month = getParam(params?.month);
+  const service = new RaffleService(undefined, admin.profile.id);
+  const [campaigns, monthlyOverview] = await Promise.all([
+    service.listRaffleCampaigns({
+      q: search || undefined,
+      status: status || undefined,
+    }) as Promise<unknown>,
+    service.getRaffleMonthlyOverview(month || undefined),
+  ]);
+  const raffleCampaigns = campaigns as RaffleCampaign[];
+  const pendingNumbers = raffleCampaigns.reduce((sum, campaign) => sum + getStats(campaign).pending, 0);
+  const soldNumbers = raffleCampaigns.reduce((sum, campaign) => sum + getStats(campaign).sold, 0);
+  const projectedRevenue = raffleCampaigns.reduce((sum, campaign) => {
     const stats = getStats(campaign);
     return sum + (stats.sold + stats.pending) * Number(campaign.price_per_number);
   }, 0);
-  const openCampaigns = campaigns.filter((campaign) => campaign.status === "open").length;
+  const openCampaigns = raffleCampaigns.filter((campaign) => campaign.status === "open").length;
 
   return (
-    <AdminShell title="Rifas" description="Campanhas DEV 1.1 com reserva temporaria e confirmacao manual.">
+    <AdminShell title="Rifas" description="Painel operacional com cotas, pagamentos, ranking mensal e sorteio interno.">
       <div className="grid gap-5">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Abertas" value={`${openCampaigns}`} detail="Aceitando reservas" />
           <MetricCard label="Pendentes" value={`${pendingNumbers}`} detail="Aguardando pagamento" />
           <MetricCard label="Vendidas" value={`${soldNumbers}`} detail="Numeros pagos" />
           <MetricCard label="Receita prevista" value={formatCurrency(projectedRevenue)} detail="Pendentes + pagos" />
         </div>
 
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--yellow)]">Resumo mensal</p>
+              <h2 className="mt-2 text-2xl font-black text-[var(--foreground)]">{monthlyOverview.monthLabel}</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Compras pagas no mes, ranking por cotas e volume por campanha.
+              </p>
+            </div>
+            <form className="flex flex-wrap items-end gap-2">
+              {search ? <input type="hidden" name="q" value={search} /> : null}
+              {status ? <input type="hidden" name="status" value={status} /> : null}
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">Mes</span>
+                <input
+                  name="month"
+                  type="month"
+                  defaultValue={monthlyOverview.month}
+                  className="mt-2 h-10 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                />
+              </label>
+              <button className="h-10 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-[#020617] hover:brightness-110">
+                Atualizar
+              </button>
+            </form>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="Cotas pagas" value={`${monthlyOverview.quotas}`} detail={`${monthlyOverview.orders} pedido(s) pago(s)`} />
+            <MetricCard label="Receita" value={formatCurrency(monthlyOverview.revenue)} detail="Somente pagamentos confirmados" />
+            <MetricCard label="Clientes" value={`${monthlyOverview.uniqueCustomers}`} detail="Compradores unicos" />
+            <MetricCard label="Ticket medio" value={formatCurrency(monthlyOverview.orders > 0 ? monthlyOverview.revenue / monthlyOverview.orders : 0)} detail="Por pedido de rifa" />
+          </div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+              <div className="border-b border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3">
+                <h3 className="font-bold text-[var(--foreground)]">Quem comprou mais cotas</h3>
+              </div>
+              <div className="divide-y divide-[var(--border)]">
+                {monthlyOverview.topCustomers.map((customer, index) => (
+                  <div key={customer.customerId} className="grid gap-3 px-4 py-3 text-sm sm:grid-cols-[44px_1fr_90px_120px] sm:items-center">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--background)] font-black text-[var(--yellow)]">{index + 1}</span>
+                    <div>
+                      <p className="font-bold text-[var(--foreground)]">{customer.customerName}</p>
+                      <p className="text-xs text-[var(--muted)]">{customer.customerEmail ?? customer.customerPhone ?? "Sem contato"}</p>
+                    </div>
+                    <p className="font-black text-[var(--foreground)]">{customer.quotas} cotas</p>
+                    <p className="text-[var(--muted)]">{formatCurrency(customer.revenue)}</p>
+                  </div>
+                ))}
+                {monthlyOverview.topCustomers.length === 0 ? (
+                  <p className="px-4 py-5 text-sm text-[var(--muted)]">Nenhuma rifa paga neste mes.</p>
+                ) : null}
+              </div>
+            </div>
+            <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+              <div className="border-b border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3">
+                <h3 className="font-bold text-[var(--foreground)]">Rifas do mes</h3>
+              </div>
+              <div className="divide-y divide-[var(--border)]">
+                {monthlyOverview.campaigns.map((campaign) => (
+                  <Link key={campaign.campaignId} href={`/admin/rifas/${campaign.campaignId}`} className="block px-4 py-3 hover:bg-[var(--surface-strong)]">
+                    <p className="font-bold text-[var(--foreground)]">{campaign.campaignTitle}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {campaign.campaignCode ?? "Rifa"} · {campaign.quotas} cotas · {formatCurrency(campaign.revenue)}
+                    </p>
+                  </Link>
+                ))}
+                {monthlyOverview.campaigns.length === 0 ? (
+                  <p className="px-4 py-5 text-sm text-[var(--muted)]">Sem campanhas com pagamento no mes.</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-[minmax(180px,1fr)_220px_auto] md:items-end">
+          <form className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 xl:grid-cols-[minmax(180px,1fr)_220px_auto] xl:items-end">
+            {monthlyOverview.month ? <input type="hidden" name="month" value={monthlyOverview.month} /> : null}
             <label className="block">
               <span className="text-sm font-semibold text-[var(--foreground)]">Busca</span>
               <input
@@ -125,7 +208,7 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {campaigns.map((campaign) => {
+                {raffleCampaigns.map((campaign) => {
                   const stats = getStats(campaign);
 
                   return (
@@ -160,7 +243,7 @@ export default async function AdminRafflesPage({ searchParams }: Props) {
             </table>
           </div>
         </section>
-        {campaigns.length === 0 ? (
+        {raffleCampaigns.length === 0 ? (
           <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
             Voce ainda nao criou nenhuma rifa.
           </p>

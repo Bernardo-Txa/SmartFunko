@@ -3,10 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import type { Product } from "@/types/product";
 import { env, hasSupabasePublicEnv, isDevelopmentMockAllowed } from "@/lib/env";
 import {
-  franchises as fallbackFranchises,
   getProductBySlug,
   products as fallbackProducts,
 } from "@/lib/mock-data";
+import { getProductTypeLabel, normalizeProductType } from "@/lib/product-types";
 
 type VariantRow = {
   condition: "new" | "used" | "damaged_box";
@@ -32,6 +32,7 @@ type ProductRow = {
   id: string;
   main_image_url?: string | null;
   name: string;
+  product_type?: string | null;
   slug: string;
   status?: string;
   subcategory_name?: string | null;
@@ -62,6 +63,7 @@ type CatalogCardRow = {
   main_image_url?: string | null;
   market_price: number | string | null;
   name: string;
+  product_type?: string | null;
   sale_price: number | string | null;
   sku: string | null;
   slug: string;
@@ -129,6 +131,7 @@ export type CatalogProductFilters = {
   sort?: CatalogProductSort;
   subcategory?: string;
   supplier?: string;
+  productType?: string;
 };
 
 export type CatalogProductPage = {
@@ -150,6 +153,16 @@ export type CatalogCategory = {
   }>;
 };
 
+export type CatalogFranchise = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type CatalogOptionsFilters = {
+  supplier?: string;
+};
+
 export type CatalogSupplier = {
   accent_color: string | null;
   banner_url: string | null;
@@ -165,9 +178,9 @@ export type CatalogSupplier = {
 
 const fallbackSuppliers: CatalogSupplier[] = [
   {
-    accent_color: null,
+    accent_color: "#fb923c",
     banner_url: null,
-    description: "Coleção especial Piticas.",
+    description: "Colecao oficial Piticas dentro da Smart Funkos.",
     id: "piticas",
     logo_url: "/brand/piticas.webp",
     name: "Piticas",
@@ -177,26 +190,38 @@ const fallbackSuppliers: CatalogSupplier[] = [
     website_url: null,
   },
   {
-    accent_color: null,
+    accent_color: "#60a5fa",
     banner_url: null,
-    description: "Coleção especial Copag.",
-    id: "copag",
-    logo_url: null,
-    name: "Copag",
-    slug: "copag",
+    description: "Colecao oficial NBA Brasil com produtos de basquete, times e cultura esportiva.",
+    id: "nba-brasil",
+    logo_url: "/brand/nba-brasil.png",
+    name: "NBA Brasil",
+    slug: "nba-brasil",
     sort_order: 20,
     status: "active",
     website_url: null,
   },
   {
-    accent_color: null,
+    accent_color: "#f87171",
     banner_url: null,
-    description: "Coleção especial Panini.",
+    description: "Colecao oficial Copag com jogos, cartas e itens colecionaveis.",
+    id: "copag",
+    logo_url: "/brand/copag.png",
+    name: "Copag",
+    slug: "copag",
+    sort_order: 30,
+    status: "active",
+    website_url: null,
+  },
+  {
+    accent_color: "#facc15",
+    banner_url: null,
+    description: "Colecao oficial Panini com albuns, HQs, cards, mangas e itens editoriais.",
     id: "panini",
-    logo_url: null,
+    logo_url: "/brand/panini.png",
     name: "Panini",
     slug: "panini",
-    sort_order: 30,
+    sort_order: 40,
     status: "active",
     website_url: null,
   },
@@ -217,10 +242,10 @@ const CATALOG_DETAIL_REVALIDATE_SECONDS = 300;
 const CATALOG_OPTIONS_REVALIDATE_SECONDS = 900;
 
 const catalogDetailSelect =
-  "id,name,slug,franchise_id,supplier_id,funko_number,category_name,subcategory_name,external_catalog_code,description,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(id,sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
+  "id,name,slug,franchise_id,supplier_id,product_type,funko_number,category_name,subcategory_name,external_catalog_code,description,main_image_url,status,created_at,franchises(name,slug),suppliers(name,slug),product_images(image_url,sort_order),product_variants!inner(id,sku,condition,type,special_label,special_tags,source,sale_price,market_price,status)";
 
 const catalogCardSelect =
-  "id,name,slug,franchise_id,franchise_name,franchise_slug,supplier_id,supplier_name,supplier_slug,funko_number,category_name,subcategory_name,main_image_url,gallery_image_url,status,created_at,variant_id,sku,condition,type,special_label,special_tags,source,sale_price,market_price,variant_status,has_visible_variant,has_ready_variant,has_order_variant,has_preorder_variant,has_special_variant";
+  "id,name,slug,franchise_id,franchise_name,franchise_slug,supplier_id,supplier_name,supplier_slug,product_type,funko_number,category_name,subcategory_name,main_image_url,gallery_image_url,status,created_at,variant_id,sku,condition,type,special_label,special_tags,source,sale_price,market_price,variant_status,has_visible_variant,has_ready_variant,has_order_variant,has_preorder_variant,has_special_variant";
 
 function getPublicSupabase() {
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -265,6 +290,25 @@ function normalizeSlug(value: string) {
 
 function normalizeCatalogToken(value: string | null | undefined) {
   return normalizeSlug((value ?? "").trim());
+}
+
+function isRareCatalogCode(value: string | null | undefined) {
+  return /^(ACERVO|RARO)-/i.test(value?.trim() ?? "");
+}
+
+function isRareCatalogTag(value: string | null | undefined) {
+  return normalizeCatalogToken(value) === "acervo-raro";
+}
+
+function isRareCatalogCardRow(row: CatalogCardRow) {
+  return isRareCatalogCode(row.sku) || (row.special_tags ?? []).some(isRareCatalogTag);
+}
+
+function isRareProductRow(row: ProductRow) {
+  return isRareCatalogCode(row.external_catalog_code) ||
+    (row.product_variants ?? []).some((variant) =>
+      isRareCatalogCode(variant.sku) || (variant.special_tags ?? []).some(isRareCatalogTag),
+    );
 }
 
 function uniqueUrls(urls: Array<string | null | undefined>) {
@@ -382,6 +426,7 @@ function mapProduct(row: ProductRow, index: number, filter: CatalogProductFilter
   const specialTags = variant?.special_tags?.filter(Boolean) ?? [];
   const franchise = getFranchise(row.franchises);
   const supplier = getSupplier(row.suppliers);
+  const productType = normalizeProductType(row.product_type);
 
   return {
     category: row.category_name ?? undefined,
@@ -399,6 +444,8 @@ function mapProduct(row: ProductRow, index: number, filter: CatalogProductFilter
     marketPrice: variant?.market_price ? Number(variant.market_price) : undefined,
     name: row.name,
     price: Number(variant?.sale_price ?? 0),
+    productType,
+    productTypeLabel: getProductTypeLabel(productType),
     sku: variant?.sku ?? "SF-0000",
     slug: row.slug,
     specialLabel: variant?.special_label ?? undefined,
@@ -422,6 +469,7 @@ function mapCatalogCardProduct(
   const images = getCatalogCardImages(row);
   const specialTags = row.special_tags?.filter(Boolean) ?? [];
   const type = row.type ?? "common";
+  const productType = normalizeProductType(row.product_type);
 
   return {
     category: row.category_name ?? undefined,
@@ -443,6 +491,8 @@ function mapCatalogCardProduct(
     marketPrice: row.market_price ? Number(row.market_price) : undefined,
     name: row.name,
     price: Number(row.sale_price ?? 0),
+    productType,
+    productTypeLabel: getProductTypeLabel(productType),
     sku: row.sku ?? "SF-0000",
     slug: row.slug,
     specialLabel: row.special_label ?? undefined,
@@ -510,6 +560,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
         : "relevance";
   const subcategory = category ? normalizeCatalogToken(filters.subcategory?.trim() ?? "") : "";
   const supplier = normalizeCatalogToken(filters.supplier?.trim() ?? "");
+  const productType = normalizeProductType(filters.productType);
 
   return {
     category,
@@ -521,6 +572,7 @@ function normalizeCatalogFilters(filters: CatalogProductFilters = {}) {
     sort,
     subcategory,
     supplier,
+    productType: productType === "funko_pop" && !filters.productType ? "" : productType,
   };
 }
 
@@ -575,10 +627,15 @@ function filterFallbackProducts(filters: ReturnType<typeof normalizeCatalogFilte
     const matchesFranchise = matchesCatalogValue(product.franchise, filters.franchise);
     const matchesCategory = matchesCatalogValue(product.category, filters.category);
     const matchesSubcategory = matchesCatalogValue(product.subcategory, filters.subcategory);
-    const matchesSupplier = filters.supplier ? product.supplierSlug === filters.supplier : true;
+    const matchesSupplier = filters.supplier
+      ? product.supplierSlug === filters.supplier
+      : !product.supplierSlug;
+    const matchesProductType = filters.productType
+      ? normalizeProductType(product.productType) === filters.productType
+      : true;
     const matchesFilter = fallbackProductMatchesFilter(product, filters.filter);
 
-    return matchesQuery && matchesFranchise && matchesCategory && matchesSubcategory && matchesSupplier && matchesFilter;
+    return matchesQuery && matchesFranchise && matchesCategory && matchesSubcategory && matchesSupplier && matchesProductType && matchesFilter;
   });
   const sorted = sortProducts(filtered, filters);
   const totalPages = Math.max(1, Math.ceil(sorted.length / filters.pageSize));
@@ -675,7 +732,7 @@ async function resolveCatalogCategoryFilters(
     };
   }
 
-  const categories = await getCatalogCategories();
+  const categories = await getCatalogCategories({ supplier: filters.supplier });
   const category = categories.find((item) => item.slug === filters.category);
 
   if (!category) {
@@ -724,7 +781,10 @@ async function getCatalogProductsPageUncached(
     let query = supabase
       .from("catalog_product_cards")
       .select(catalogCardSelect, { count: "exact" })
-      .eq("has_visible_variant", true);
+      .eq("has_visible_variant", true)
+      .not("sku", "ilike", "RARO-%")
+      .not("sku", "ilike", "ACERVO-%")
+      .not("special_tags", "cs", "{\"Acervo Raro\"}");
 
     if (filters.franchise) {
       query = query.eq("franchise_slug", filters.franchise);
@@ -732,6 +792,12 @@ async function getCatalogProductsPageUncached(
 
     if (filters.supplier) {
       query = query.eq("supplier_slug", filters.supplier);
+    } else {
+      query = query.is("supplier_id", null);
+    }
+
+    if (filters.productType) {
+      query = query.eq("product_type", filters.productType);
     }
 
     if (categoryFilterValues.categoryName) {
@@ -766,6 +832,7 @@ async function getCatalogProductsPageUncached(
           `slug.ilike.${pattern}`,
           `funko_number.ilike.${pattern}`,
           `category_name.ilike.${pattern}`,
+          `product_type.ilike.${pattern}`,
           `subcategory_name.ilike.${pattern}`,
           `franchise_name.ilike.${pattern}`,
           `supplier_name.ilike.${pattern}`,
@@ -815,8 +882,10 @@ async function getCatalogProductsPageUncached(
       data = lastPageResult.data;
     }
 
+    const rows = ((data ?? []) as CatalogCardRow[]).filter((row) => !isRareCatalogCardRow(row));
+
     return {
-      data: ((data ?? []) as CatalogCardRow[]).map((row, index) =>
+      data: rows.map((row, index) =>
         mapCatalogCardProduct(row, (page - 1) * filters.pageSize + index),
       ),
       meta: {
@@ -916,7 +985,7 @@ async function getCatalogProductBySlugUncached(slug: string) {
 
   const product = data as unknown as ProductRow;
 
-  if (!rowMatchesFilter(product, "all")) {
+  if (isRareProductRow(product) || !rowMatchesFilter(product, "all")) {
     return undefined;
   }
 
@@ -936,24 +1005,106 @@ export async function getCatalogProductBySlug(slug: string) {
   return getCachedCatalogProductBySlug(slug);
 }
 
-async function getCatalogFranchisesUncached() {
+function normalizeCatalogOptionsFilters(filters: CatalogOptionsFilters = {}) {
+  return {
+    supplier: normalizeCatalogToken(filters.supplier),
+  };
+}
+
+function getFallbackCatalogFranchises(
+  filters: ReturnType<typeof normalizeCatalogOptionsFilters>,
+) {
+  const franchiseBySlug = new Map<string, CatalogFranchise>();
+
+  for (const product of fallbackProducts) {
+    const matchesSupplier = filters.supplier
+      ? product.supplierSlug === filters.supplier
+      : !product.supplierSlug;
+
+    if (!matchesSupplier || !product.franchiseSlug) {
+      continue;
+    }
+
+    franchiseBySlug.set(product.franchiseSlug, {
+      id: product.franchiseSlug,
+      name: product.franchise,
+      slug: product.franchiseSlug,
+    });
+  }
+
+  return Array.from(franchiseBySlug.values()).sort((first, second) =>
+    first.name.localeCompare(second.name, "pt-BR"),
+  );
+}
+
+async function getCatalogFranchisesUncached(
+  filters: ReturnType<typeof normalizeCatalogOptionsFilters>,
+) {
   if (!hasSupabasePublicEnv()) {
-    return fallbackOrThrow(fallbackFranchises, "Franquias publicas");
+    return fallbackOrThrow(getFallbackCatalogFranchises(filters), "Franquias publicas");
   }
 
   const supabase = getPublicSupabase();
-  const { data, error } = await supabase
-    .from("franchises")
-    .select("id,name,slug")
-    .eq("status", "active")
-    .order("name", { ascending: true });
+  const rows: CatalogFranchise[] = [];
+  const pageSize = 1000;
 
-  if (error || !data) {
+  try {
+    for (let from = 0; from < 30000; from += pageSize) {
+      let query = supabase
+        .from("catalog_product_cards")
+        .select("franchise_id,franchise_name,franchise_slug")
+        .eq("has_visible_variant", true)
+        .not("sku", "ilike", "RARO-%")
+        .not("sku", "ilike", "ACERVO-%")
+        .not("special_tags", "cs", "{\"Acervo Raro\"}")
+        .not("franchise_slug", "is", null)
+        .order("franchise_name", { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (filters.supplier) {
+        query = query.eq("supplier_slug", filters.supplier);
+      } else {
+        query = query.is("supplier_id", null);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      rows.push(
+        ...((data ?? []) as Array<{
+          franchise_id: string | null;
+          franchise_name: string | null;
+          franchise_slug: string | null;
+        }>)
+          .filter((row) => row.franchise_name && row.franchise_slug)
+          .map((row) => ({
+            id: row.franchise_id ?? row.franchise_slug as string,
+            name: row.franchise_name as string,
+            slug: row.franchise_slug as string,
+          })),
+      );
+
+      if (!data || data.length < pageSize) {
+        break;
+      }
+    }
+  } catch (error) {
     logCatalogError("Failed to load catalog franchises", error);
-    return fallbackOrThrow(fallbackFranchises, "Franquias publicas");
+    return fallbackOrThrow(getFallbackCatalogFranchises(filters), "Franquias publicas");
   }
 
-  return data;
+  const franchiseBySlug = new Map<string, CatalogFranchise>();
+
+  for (const row of rows) {
+    franchiseBySlug.set(row.slug, row);
+  }
+
+  return Array.from(franchiseBySlug.values()).sort((first, second) =>
+    first.name.localeCompare(second.name, "pt-BR"),
+  );
 }
 
 const getCachedCatalogFranchises = unstable_cache(
@@ -965,8 +1116,8 @@ const getCachedCatalogFranchises = unstable_cache(
   },
 );
 
-export async function getCatalogFranchises() {
-  return getCachedCatalogFranchises();
+export async function getCatalogFranchises(filters: CatalogOptionsFilters = {}) {
+  return getCachedCatalogFranchises(normalizeCatalogOptionsFilters(filters));
 }
 
 async function getCatalogSuppliersUncached() {
@@ -1107,16 +1258,25 @@ function buildCatalogCategories(
     });
 }
 
-function getFallbackCatalogCategories() {
+function getFallbackCatalogCategories(
+  filters: ReturnType<typeof normalizeCatalogOptionsFilters>,
+) {
   return buildCatalogCategories(
-    fallbackProducts.map((product) => ({
-      category_name: product.category ?? null,
-      subcategory_name: product.subcategory ?? null,
-    })),
+    fallbackProducts
+      .filter((product) =>
+        filters.supplier ? product.supplierSlug === filters.supplier : !product.supplierSlug,
+      )
+      .map((product) => ({
+        category_name: product.category ?? null,
+        subcategory_name: product.subcategory ?? null,
+      })),
   );
 }
 
-async function loadCatalogCategoryRowsFromProducts(supabase: ReturnType<typeof getPublicSupabase>) {
+async function loadCatalogCategoryRowsFromProducts(
+  supabase: ReturnType<typeof getPublicSupabase>,
+  filters: ReturnType<typeof normalizeCatalogOptionsFilters>,
+) {
   const rows: Array<{
     category_name: string | null;
     subcategory_name: string | null;
@@ -1124,13 +1284,24 @@ async function loadCatalogCategoryRowsFromProducts(supabase: ReturnType<typeof g
   const pageSize = 1000;
 
   for (let from = 0; from < 30000; from += pageSize) {
-    const { data, error } = await supabase
-      .from("products")
+    let query = supabase
+      .from("catalog_product_cards")
       .select("category_name,subcategory_name")
-      .eq("status", "active")
+      .eq("has_visible_variant", true)
+      .not("sku", "ilike", "RARO-%")
+      .not("sku", "ilike", "ACERVO-%")
+      .not("special_tags", "cs", "{\"Acervo Raro\"}")
       .not("category_name", "is", null)
       .order("category_name", { ascending: true })
       .range(from, from + pageSize - 1);
+
+    if (filters.supplier) {
+      query = query.eq("supplier_slug", filters.supplier);
+    } else {
+      query = query.is("supplier_id", null);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw error;
@@ -1151,38 +1322,26 @@ async function loadCatalogCategoryRowsFromProducts(supabase: ReturnType<typeof g
   return rows;
 }
 
-async function getCatalogCategoriesUncached() {
+async function getCatalogCategoriesForScopeUncached(
+  filters: ReturnType<typeof normalizeCatalogOptionsFilters>,
+) {
   if (!hasSupabasePublicEnv()) {
-    return fallbackOrThrow(getFallbackCatalogCategories(), "Categorias publicas");
+    return fallbackOrThrow(getFallbackCatalogCategories(filters), "Categorias publicas");
   }
 
   const supabase = getPublicSupabase();
-  const { data, error } = await supabase
-    .from("catalog_category_options")
-    .select("category_name,subcategory_name")
-    .order("category_name", { ascending: true })
-    .order("subcategory_name", { ascending: true });
 
-  if (error) {
-    try {
-      const rows = await loadCatalogCategoryRowsFromProducts(supabase);
-      return buildCatalogCategories(rows);
-    } catch (fallbackError) {
-      console.error("Failed to load catalog categories", fallbackError);
-      return fallbackOrThrow(getFallbackCatalogCategories(), "Categorias publicas");
-    }
+  try {
+    const rows = await loadCatalogCategoryRowsFromProducts(supabase, filters);
+    return buildCatalogCategories(rows);
+  } catch (fallbackError) {
+    console.error("Failed to load catalog categories", fallbackError);
+    return fallbackOrThrow(getFallbackCatalogCategories(filters), "Categorias publicas");
   }
-
-  return buildCatalogCategories(
-    (data ?? []) as Array<{
-      category_name: string | null;
-      subcategory_name: string | null;
-    }>,
-  );
 }
 
 const getCachedCatalogCategories = unstable_cache(
-  getCatalogCategoriesUncached,
+  getCatalogCategoriesForScopeUncached,
   ["catalog-categories"],
   {
     revalidate: CATALOG_OPTIONS_REVALIDATE_SECONDS,
@@ -1190,6 +1349,6 @@ const getCachedCatalogCategories = unstable_cache(
   },
 );
 
-export async function getCatalogCategories() {
-  return getCachedCatalogCategories();
+export async function getCatalogCategories(filters: CatalogOptionsFilters = {}) {
+  return getCachedCatalogCategories(normalizeCatalogOptionsFilters(filters));
 }

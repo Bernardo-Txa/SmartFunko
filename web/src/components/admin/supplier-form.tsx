@@ -128,7 +128,7 @@ export function SupplierForm({ mode, supplier }: Props) {
           />
         </label>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Cor de destaque</span>
           <input

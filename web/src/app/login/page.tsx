@@ -25,6 +25,7 @@ export default async function LoginPage({ searchParams }: Props) {
       ? "Senha alterada com sucesso. Entre com sua nova senha."
       : undefined;
   const currentUser = await getCurrentUser();
+  const registerHref = nextPath ? `/cadastro?next=${encodeURIComponent(nextPath)}` : "/cadastro";
 
   if (currentUser) {
     redirect(nextPath ?? getDefaultAuthenticatedPath(currentUser.profile.role));
@@ -36,7 +37,7 @@ export default async function LoginPage({ searchParams }: Props) {
         <AuthForm initialMessage={initialMessage} mode="login" nextPath={nextPath} />
         <p className="mt-5 text-sm text-[var(--muted)]">
           Novo por aqui?{" "}
-          <Link href="/cadastro" className="font-semibold text-[var(--accent)]">
+          <Link href={registerHref} className="font-semibold text-[var(--accent)]">
             Criar conta
           </Link>
         </p>

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { OrderDetailActions } from "@/components/admin/order-detail-actions";
@@ -7,7 +6,6 @@ import {
   OrderItemStatusBadge,
   OrderStatusBadge,
   PaymentStatusBadge,
-  PurchaseBatchStatusBadge,
 } from "@/components/ui/status-badge";
 import { env } from "@/lib/env";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -21,10 +19,8 @@ import {
 } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { HttpError } from "@/server/http/errors";
-import { InventoryService } from "@/server/inventory/inventory-service";
 import { OrderService } from "@/server/orders/order-service";
 import { getDefaultOrderMaxInstallments } from "@/server/payments/payment-rules";
-import { PurchaseBatchService } from "@/server/purchase-batches/purchase-batch-service";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -97,14 +93,6 @@ type PaymentItem = {
   status: string;
 };
 
-type InventoryOption = {
-  id: string;
-  location: string | null;
-  product_variant_id: string;
-  sku: string;
-  status: string;
-};
-
 type HistoryItem = {
   id: string;
   created_at: string;
@@ -123,17 +111,6 @@ type AuditLogItem = {
   entity_type: string;
   profiles?: {
     name?: string;
-  } | null;
-};
-
-type OrderBatchLink = {
-  id: string;
-  order_item_id: string | null;
-  purchase_batches?: {
-    code?: string;
-    id?: string;
-    name?: string;
-    status?: string;
   } | null;
 };
 
@@ -181,11 +158,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
     return <AdminOrderDetailErrorState />;
   }
 
-  const [inventory, history, logs, batchLinks] = await Promise.all([
-    new InventoryService(undefined, admin.profile.id).listInventory().catch((error) => {
-      console.error("[AdminOrderDetailPage] failed to load inventory", { id, error });
-      return [];
-    }),
+  const [history, logs] = await Promise.all([
     orderService.listOrderStatusHistory(id).catch((error) => {
       console.error("[AdminOrderDetailPage] failed to load order history", { id, error });
       return [];
@@ -194,16 +167,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
       console.error("[AdminOrderDetailPage] failed to load order audit logs", { id, error });
       return [];
     }),
-    new PurchaseBatchService(undefined, admin.profile.id).listBatchItemsForOrder(id).catch((error) => {
-      console.error("[AdminOrderDetailPage] failed to load batch links", { id, error });
-      return [];
-    }),
   ]);
-  const batchByOrderItem = new Map(
-    (batchLinks as unknown as OrderBatchLink[])
-      .filter((link) => link.order_item_id)
-      .map((link) => [link.order_item_id as string, link]),
-  );
 
   const payments = order.payments ?? [];
   const paidAmount = payments
@@ -250,7 +214,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <MetricCard
             label="Subtotal"
             value={formatCurrency(toNumber(order.subtotal))}
@@ -318,7 +282,6 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                   <th className="px-4 py-3">SKU</th>
                   <th className="px-4 py-3">Origem</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Lote</th>
                   <th className="px-4 py-3">Qtd.</th>
                   <th className="px-4 py-3">Unitario</th>
                   <th className="px-4 py-3">Total</th>
@@ -327,8 +290,6 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               <tbody className="divide-y divide-[var(--border)]">
                 {(order.order_items ?? []).map((item) => {
                   const statusMeta = getOrderItemStatusMeta(item.status);
-                  const batchLink = batchByOrderItem.get(item.id);
-                  const batch = batchLink?.purchase_batches;
 
                   return (
                     <tr key={item.id}>
@@ -339,17 +300,6 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                       <td className="px-4 py-3 text-[var(--muted)]">{getOrderItemSourceLabel(item.source)}</td>
                       <td className="px-4 py-3" title={statusMeta.label}>
                         <OrderItemStatusBadge status={item.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        {batch?.id ? (
-                          <Link href={`/admin/lotes/${batch.id}`} className="grid gap-1 hover:text-[var(--accent)]">
-                            <span className="font-semibold text-[var(--foreground)]">{batch.code}</span>
-                            <span className="text-xs text-[var(--muted)]">{batch.name}</span>
-                            <PurchaseBatchStatusBadge status={batch.status} />
-                          </Link>
-                        ) : (
-                          <span className="text-[var(--muted)]">-</span>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-[var(--muted)]">{toNumber(item.quantity)}</td>
                       <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(toNumber(item.unit_price))}</td>
@@ -408,7 +358,6 @@ export default async function AdminOrderDetailPage({ params }: Props) {
 
         <OrderDetailActions
           customerId={order.customer_id}
-          inventory={inventory as unknown as InventoryOption[]}
           items={(order.order_items ?? []).map((item) => ({ id: item.id, status: item.status }))}
           orderId={order.id}
           orderTotal={orderTotal}
