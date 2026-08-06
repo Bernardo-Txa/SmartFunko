@@ -11,8 +11,9 @@ import type { PreorderItem } from "@/server/preorders/preorder-service";
 
 type ApiResponse = {
   data?: {
-    order?: {
-      order_number?: string;
+    paymentLinkUrl?: string;
+    reservation?: {
+      reservation_number?: string;
     };
   };
   error?: {
@@ -86,15 +87,21 @@ export function PreorderSelectionPanel({
       const payload = (await response.json()) as ApiResponse;
 
       if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Falha ao criar pedido de pre-venda");
+        throw new Error(payload.error?.message ?? "Falha ao gerar pagamento da pre-venda");
       }
 
       setQuantities({});
       setNotes("");
-      setMessage(`Pedido ${payload.data?.order?.order_number ?? ""} criado e aguardando aprovacao.`);
+      setMessage(`Pre-venda ${payload.data?.reservation?.reservation_number ?? ""} criada. Redirecionando para pagamento.`);
+
+      if (payload.data?.paymentLinkUrl) {
+        window.location.assign(payload.data.paymentLinkUrl);
+        return;
+      }
+
       router.refresh();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Falha ao criar pedido de pre-venda");
+      setError(requestError instanceof Error ? requestError.message : "Falha ao gerar pagamento da pre-venda");
     } finally {
       setIsSubmitting(false);
     }
@@ -167,7 +174,7 @@ export function PreorderSelectionPanel({
           <h2 className="text-lg font-black text-[var(--foreground)]">Pedido de pre-venda</h2>
         </div>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          O pedido fica aguardando aprovacao do admin. Depois de aprovado, entra na sua nota do mes e libera pagamento.
+          A pre-venda so confirma depois do pagamento. Assim que a InfinitePay confirmar, ela aparece em Meus pedidos como paga.
         </p>
 
         <div className="mt-5 grid gap-3">
@@ -223,7 +230,7 @@ export function PreorderSelectionPanel({
             onClick={() => void submitPreorder()}
             className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? <SmartButtonLoading message="Criando pedido..." /> : "Criar pedido de pre-venda"}
+            {isSubmitting ? <SmartButtonLoading message="Gerando pagamento..." /> : "Ir para pagamento"}
           </button>
         ) : (
           <Link

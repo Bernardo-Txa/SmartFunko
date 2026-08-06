@@ -150,7 +150,7 @@ export function PreorderAdminPanel({
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--yellow)]">Cadastro temporario</p>
               <h2 className="mt-2 text-xl font-black text-[var(--foreground)]">Nova pre-venda</h2>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Produtos daqui nao entram no catalogo antigo. O cliente seleciona e o sistema cria pedido aguardando aprovacao.
+                Produtos daqui nao entram no catalogo antigo. O cliente seleciona, paga pela InfinitePay e so entao o pedido V2 nasce pago.
               </p>
             </div>
 
@@ -349,7 +349,7 @@ export function PreorderAdminPanel({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="text-xl font-black text-[var(--foreground)]">Pre-vendas cadastradas</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">Reservas criam pedidos V2 aguardando aprovacao.</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">Use a coluna A pedir para comprar somente o que ja foi pago.</p>
           </div>
           <form className="grid gap-2 sm:grid-cols-[minmax(180px,1fr)_160px_auto]">
             <label className="block">
@@ -484,15 +484,15 @@ function PreorderAdminRow({ item }: { item: PreorderItem }) {
               {formatCurrency(item.price)}
             </span>
             <span className="rounded-md border border-[var(--border)] px-3 py-2">
-              <b className="block text-xs uppercase tracking-[0.12em] text-[var(--muted)]">Pedidos</b>
+              <b className="block text-xs uppercase tracking-[0.12em] text-[var(--muted)]">Reservado</b>
               {item.stats.requestedQuantity}
             </span>
             <span className="rounded-md border border-[var(--border)] px-3 py-2">
-              <b className="block text-xs uppercase tracking-[0.12em] text-[var(--muted)]">Aprovar</b>
+              <b className="block text-xs uppercase tracking-[0.12em] text-[var(--muted)]">Aguardando</b>
               {item.stats.pendingQuantity}
             </span>
             <span className="rounded-md border border-[var(--border)] px-3 py-2">
-              <b className="block text-xs uppercase tracking-[0.12em] text-[var(--muted)]">Aprovados</b>
+              <b className="block text-xs uppercase tracking-[0.12em] text-[var(--muted)]">A pedir</b>
               {item.stats.approvedQuantity}
             </span>
           </div>

@@ -55,11 +55,11 @@ export default async function PreordersPage() {
               Pre-vendas
             </p>
             <h1 className="mt-4 text-4xl font-black leading-tight text-[var(--foreground)] sm:text-5xl">
-              Escolha agora. Pague depois da aprovacao.
+              Escolha agora. Confirme pagando.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--muted)]">
-              Itens temporarios entram como pedido de pre-venda na sua conta.
-              O admin aprova, o pedido entra na nota do mes e o pagamento segue pelo sistema.
+              Itens temporarios geram um checkout InfinitePay. Depois que o pagamento confirma,
+              a pre-venda entra nos seus pedidos como paga e segue para o fechamento.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
@@ -82,8 +82,8 @@ export default async function PreordersPage() {
             <h2 className="mt-4 text-xl font-black text-[var(--foreground)]">Fluxo de pre-venda</h2>
             <div className="mt-4 grid gap-3 text-sm text-[var(--muted)]">
               <p>1. Voce seleciona os itens que quer reservar.</p>
-              <p>2. O pedido nasce aguardando aprovacao do admin.</p>
-              <p>3. Aprovado, ele entra na sua nota mensal e libera pagamento.</p>
+              <p>2. O sistema gera um checkout InfinitePay.</p>
+              <p>3. Pago, ele entra em Meus pedidos como pago.</p>
               <p>4. Cancelamento de pre-venda e feito somente pelo admin.</p>
             </div>
           </aside>
@@ -94,7 +94,7 @@ export default async function PreordersPage() {
         <div className="mb-6">
           <h2 className="text-2xl font-black text-[var(--foreground)]">Pre-vendas abertas</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Selecione um ou mais produtos para gerar um pedido unico de pre-venda.
+            Selecione um ou mais produtos para gerar um pagamento unico de pre-venda.
           </p>
         </div>
 

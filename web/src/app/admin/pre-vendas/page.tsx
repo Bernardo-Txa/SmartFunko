@@ -25,6 +25,7 @@ function getParam(value: string | undefined) {
 function getStats(items: PreorderItem[]) {
   return {
     approvedAmount: items.reduce((sum, item) => sum + item.stats.approvedAmount, 0),
+    approvedQuantity: items.reduce((sum, item) => sum + item.stats.approvedQuantity, 0),
     open: items.filter((item) => item.status === "open").length,
     pendingAmount: items.reduce((sum, item) => sum + item.stats.pendingAmount, 0),
     pendingQuantity: items.reduce((sum, item) => sum + item.stats.pendingQuantity, 0),
@@ -56,14 +57,14 @@ export default async function AdminPreordersPage({ searchParams }: Props) {
   return (
     <AdminShell
       title="Pre-vendas"
-      description="Cadastro temporario, reservas do cliente e pedidos V2 aguardando aprovacao."
+      description="Cadastro temporario, checkout InfinitePay e pedidos V2 criados somente apos pagamento."
     >
       <div className="grid gap-6">
         <div className="grid gap-4 md:grid-cols-4">
           <MetricCard label="Pre-vendas" value={`${stats.total}`} detail={`${stats.open} aberta(s)`} />
-          <MetricCard label="Itens pedidos" value={`${stats.requestedQuantity}`} detail="Reservas criadas" />
-          <MetricCard label="Aprovar" value={`${stats.pendingQuantity}`} detail={formatCurrency(stats.pendingAmount)} />
-          <MetricCard label="Aprovado" value={formatCurrency(stats.approvedAmount)} detail="Ja entra no fechamento" />
+          <MetricCard label="A pedir" value={`${stats.approvedQuantity}`} detail="Itens ja pagos" />
+          <MetricCard label="Aguardando pagamento" value={`${stats.pendingQuantity}`} detail={formatCurrency(stats.pendingAmount)} />
+          <MetricCard label="Pago" value={formatCurrency(stats.approvedAmount)} detail="Ja entrou nos pedidos V2" />
         </div>
 
         <PreorderAdminPanel

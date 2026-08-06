@@ -117,6 +117,7 @@ type CreateV2PreorderOrderRequestInput = {
   items: V2OrderItemInput[];
   notes?: string | null;
   orderDate?: string;
+  paidAt?: string;
 };
 
 export type V2OrderListFilters = {
@@ -617,15 +618,16 @@ export class OrderV2Service {
     const items = await Promise.all(input.items.map((item) => this.enrichItem(item)));
 
     return this.insertOrderWithItems({
-      approvalStatus: "aguardando_aprovacao",
+      approvalStatus: "aprovado",
       competence,
       customer,
       fulfillmentStatus: "aguardando_fechamento",
-      internalNotes: "Pedido criado pelo modulo de pre-vendas",
+      internalNotes: "Pedido criado pelo modulo de pre-vendas apos pagamento InfinitePay",
       items,
       notes: input.notes ?? null,
       orderDate,
-      paymentStatus: "nao_pago",
+      paidAt: input.paidAt ?? nowIso(),
+      paymentStatus: "pago",
       source: "preorder",
       visibleActorId: actorProfileId,
     });
@@ -1318,6 +1320,7 @@ export class OrderV2Service {
     items: EnrichedV2OrderItem[];
     notes: string | null;
     orderDate: string;
+    paidAt?: string | null;
     paymentStatus: z.infer<typeof v2PaymentStatusSchema>;
     seller?: "daniel" | "allana" | null;
     source: "admin_whatsapp" | "admin_manual" | "site" | "preorder";
@@ -1342,6 +1345,7 @@ export class OrderV2Service {
         notes: input.notes,
         order_date: input.orderDate,
         order_number: createNumber("SFV2"),
+        paid_at: input.paidAt ?? (input.paymentStatus === "pago" ? now : null),
         payment_status: input.paymentStatus,
         reviewed_at: input.approvalStatus === "aprovado" ? now : null,
         reviewed_by: input.approvalStatus === "aprovado" ? this.actorId ?? null : null,
@@ -1386,7 +1390,7 @@ export class OrderV2Service {
       notes: input.source === "site"
         ? "Pedido criado pelo site aguardando aprovacao"
         : input.source === "preorder"
-          ? "Pedido de pre-venda criado pelo cliente aguardando aprovacao"
+          ? "Pedido de pre-venda criado apos pagamento InfinitePay"
           : "Pedido lancado pelo admin",
       orderId: order.id,
       toStatus: `${input.approvalStatus}/${input.paymentStatus}/${input.fulfillmentStatus}`,
