@@ -1,27 +1,34 @@
-# SEO & Open Graph 1.0
+# SEO e Open Graph
+
+Revisado em 2026-08-07.
 
 ## Objetivo
 
-Deixar links publicos da Smart Funkos com title, description, canonical e imagem de compartilhamento consistentes em Google, WhatsApp, Discord, Telegram e redes sociais.
+Manter links publicos da SmartFunkos com title, description, canonical e imagem de compartilhamento consistentes em Google, WhatsApp e redes sociais.
 
 ## URL publica
 
-Configure em Vercel, para Production e Preview:
+Configure:
 
 ```txt
 NEXT_PUBLIC_SITE_URL=https://seu-dominio.com
 ```
 
-O helper `getSiteUrl()` remove barra final. Em desenvolvimento, usa `http://localhost:3000`. Em producao, use sempre um dominio valido para canonical, sitemap, redirects e mensagens de WhatsApp.
+Sem barra final. Em dev, o fallback e `http://localhost:3000`.
 
 ## Paginas indexaveis
 
 - `/`
 - `/catalogo`
 - `/produto/[slug]`
-- `/rifas` e `/rifas/[slug]`, somente com `NEXT_PUBLIC_ENABLE_RAFFLES=true`
-- `/fornecedores`
-- `/fornecedores/[slug]`
+- `/collabs`
+- `/collabs/[slug]`
+- `/pre-vendas`
+- `/acervo-raro`
+- `/acervo-raro/[slug]`
+- `/rifas` e `/rifas/[slug]`, quando `NEXT_PUBLIC_ENABLE_RAFFLES=true`
+
+PopFlix so deve ser indexavel quando `NEXT_PUBLIC_POPFLIX_ENABLED=true` e o modulo estiver aprovado para publicacao.
 
 ## Paginas noindex
 
@@ -31,9 +38,8 @@ O helper `getSiteUrl()` remove barra final. Em desenvolvimento, usa `http://loca
 - `/conta/*`
 - `/api/*`
 - `/pedido/*`
-- URLs com parametro `token`
-
-`/admin` e `/conta` tambem possuem layouts com `robots: noindex, nofollow`.
+- URLs com `token`
+- rotas legadas que existirem apenas por compatibilidade
 
 ## Open Graph
 
@@ -43,54 +49,57 @@ Imagem fallback:
 web/public/og/smart-funkos-og.png
 ```
 
-Produtos usam imagem principal quando disponivel. Rifas usam imagem do premio. Fornecedores usam banner ou logo. Quando nao houver imagem propria, o fallback acima e usado.
+Regras:
+
+- Produto usa imagem principal do produto.
+- Collab usa logo/banner da collab quando existir.
+- Acervo Raro usa imagem principal da peca.
+- Rifa usa imagem do premio.
+- Quando nao houver imagem propria, usar fallback.
 
 ## Metadata dinamica
 
-Produtos:
+Produto:
 
-- title: `{produto} — Smart Funkos`
-- description do cadastro ou fallback seguro
-- canonical `/produto/{slug}`
-- `twitter: summary_large_image`
-- JSON-LD `Product` com oferta apenas quando houver preco positivo
+- title: `{produto} - SmartFunkos`;
+- canonical: `/produto/{slug}`;
+- JSON-LD `Product` quando houver preco positivo.
 
-Rifas:
+Collab:
 
-- title: `{rifa} — Rifa Smart Funkos`
-- description muda entre rifa aberta e encerrada
-- canonical `/rifas/{slug}`
-- JSON-LD `WebPage`
-- rifa cancelada fica fora do publico e noindex quando detectada
+- title: `{collab} na SmartFunkos`;
+- canonical: `/collabs/{slug}`.
 
-Fornecedores:
+Acervo Raro:
 
-- title: `{fornecedor} na Smart Funkos`
-- description do cadastro ou fallback seguro
-- canonical `/fornecedores/{slug}`
+- title: `{peca} - Acervo Raro SmartFunkos`;
+- canonical: `/acervo-raro/{slug}`;
+- description destacando autenticidade, assinatura ou raridade quando houver.
+
+Rifa:
+
+- title: `{rifa} - Rifa SmartFunkos`;
+- canonical: `/rifas/{slug}`;
+- noindex quando cancelada/indisponivel.
 
 ## Sitemap e robots
 
 - `web/src/app/sitemap.ts` gera `/sitemap.xml`.
 - `web/src/app/robots.ts` gera `/robots.txt`.
-- O sitemap inclui paginas estaticas, fornecedores ativos, ate 60 produtos publicos recentes e rifas publicas quando a feature flag estiver ativa.
-- Se Supabase ou rifas falharem durante a geracao, o sitemap retorna pelo menos as paginas estaticas.
+- Sitemap deve incluir paginas publicas estaticas e itens publicos recentes.
+- Admin, conta, API, pedido privado e parametros sensiveis devem ficar fora.
+- Se Supabase falhar, sitemap deve retornar pelo menos paginas estaticas.
 
-## Testes de preview
+## Teste de preview
 
-Depois do deploy:
+1. Abrir `/sitemap.xml`.
+2. Abrir `/robots.txt`.
+3. Abrir `/og/smart-funkos-og.png`.
+4. Verificar title/description de produto.
+5. Verificar title/description de acervo raro.
+6. Verificar title/description de rifa, se ativa.
+7. Confirmar que `/admin` e `/conta` estao `noindex`.
+8. Enviar links no WhatsApp.
+9. Validar cache com Facebook Sharing Debugger quando necessario.
 
-1. Abra `/sitemap.xml`.
-2. Abra `/robots.txt`.
-3. Abra `/og/smart-funkos-og.png`.
-4. Abra um produto e confira title/description/image no HTML.
-5. Abra uma rifa publica e confira title/description/image no HTML.
-6. Confirme que `/admin` e `/conta` retornam metadata `noindex`.
-7. Envie um link de produto no WhatsApp.
-8. Envie um link de rifa no WhatsApp.
-9. Use Facebook Sharing Debugger para limpar/validar cache.
-10. Use Rich Results Test para validar JSON-LD de produto.
-11. Confirme que o sitemap nao inclui admin, conta, API ou pedido privado.
-12. Confirme que canonical usa o dominio de `NEXT_PUBLIC_SITE_URL` no deploy.
-
-WhatsApp, Discord, Telegram e outras plataformas podem manter cache de OG por algum tempo. Alteracoes de title/image podem demorar ou exigir limpeza no inspetor da plataforma.
+WhatsApp e redes podem manter cache de imagem/title por algum tempo.

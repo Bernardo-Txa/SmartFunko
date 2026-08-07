@@ -1,5 +1,8 @@
 # SmartFunko Mobile
 
+> Nota 2026-08-07: o app mobile esta preservado como MVP cliente, mas nao e a frente principal da versao quase final. O web/admin e a fonte de verdade atual.
+> Antes de publicar mobile, alinhar com Pedidos V2, Pre-vendas e Acervo Raro.
+
 ## Estado atual
 
 O app mobile da SmartFunko é um MVP cliente Flutter funcional e em evolução.

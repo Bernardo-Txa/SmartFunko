@@ -5,6 +5,9 @@
   "scripts": {
     "catalog:import": "node scripts/import-products-csv.mjs",
     "catalog:import:dry-run": "node scripts/import-products-csv.mjs --dry-run --skip-invalid",
+    "catalog:prices:export": "node scripts/export-products-prices-csv.mjs",
+    "catalog:prices:import": "node scripts/import-product-prices-csv.mjs",
+    "catalog:prices:import:dry-run": "node scripts/import-product-prices-csv.mjs --dry-run",
     "supabase": "supabase",
     "supabase:login": "supabase login",
     "supabase:link": "supabase link",

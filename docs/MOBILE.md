@@ -1,5 +1,8 @@
 # Mobile Smart Funkos
 
+> Nota 2026-08-07: o mobile esta como frente secundaria. A fonte de verdade atual da operacao e o web/admin descrito em `docs/ESTADO_ATUAL.md`.
+> Antes de retomar o app, alinhar pedidos, pre-vendas, acervo raro e relatorios ao modelo atual.
+
 ## Arquitetura
 
 O app mobile é um cliente Flutter para a área do cliente da Smart Funkos.

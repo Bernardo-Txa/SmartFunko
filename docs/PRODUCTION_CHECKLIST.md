@@ -1,86 +1,118 @@
-# Checklist de producao SmartFunko
+# Checklist de producao SmartFunkos
 
-Use antes de liberar um ambiente Production ou Preview para teste controlado.
+Revisado em 2026-08-07. Use antes de liberar Preview/Production ou antes de subir uma rodada grande para `main`.
 
-## 1. Vercel
+## 1. Ambiente
 
-- Configurar dominio publico e confirmar que abre no navegador.
-- Configurar env vars em Production e Preview.
-- Fazer redeploy depois de alterar qualquer `NEXT_PUBLIC_*`.
-- Conferir logs de build e runtime apos o deploy.
-- Confirmar que `NEXT_PUBLIC_SITE_URL` aponta para o dominio do ambiente, sem barra final.
+- Confirmar dominio publico abrindo no navegador.
+- Confirmar `NEXT_PUBLIC_SITE_URL` sem barra final.
+- Confirmar env vars de Supabase.
+- Confirmar env vars de InfinitePay.
+- Confirmar `NEXT_PUBLIC_ENABLE_RAFFLES` conforme ambiente.
+- Confirmar `NEXT_PUBLIC_POPFLIX_ENABLED=false` enquanto PopFlix estiver oculto.
+- Fazer redeploy depois de qualquer alteracao em `NEXT_PUBLIC_*`.
 
 ## 2. Supabase
 
-- Aplicar migrations com `npm run supabase:push` na raiz do repo.
-- Em Authentication -> URL Configuration, confirmar `Site URL=https://smartfunko.com.br`.
-- Em Authentication -> URL Configuration, confirmar Redirect URLs `https://smartfunko.com.br/**`.
-- Em Authentication -> Emails -> Reset password, confirmar que o botao usa `{{ .ConfirmationURL }}`.
-- Enviar e-mail de recuperacao de senha e confirmar que o link abre `/redefinir-senha` no dominio correto.
-- Conferir RLS habilitado nas tabelas principais.
-- Confirmar bucket `product-images` publico para leitura e restrito para escrita admin.
-- Confirmar backups e acesso ao painel Supabase.
-- Validar que `SUPABASE_SERVICE_ROLE_KEY` existe somente como secret server-side.
+- Aplicar migrations com `npm run supabase:push`.
+- Conferir se as migrations atuais existem no remoto:
+  - Pedidos V2;
+  - relacao V2 com legado;
+  - seller em V2;
+  - Produtos 2.0/contextos;
+  - Acervo Raro;
+  - Pre-vendas;
+  - Pre-venda paga;
+  - Rifas e InfinitePay;
+  - PopFlix, mesmo oculto.
+- Confirmar RLS nas tabelas publicas, customer e admin.
+- Confirmar bucket de imagens publico para leitura e restrito para escrita admin.
+- Confirmar backups.
+- Confirmar que `SUPABASE_SERVICE_ROLE_KEY` existe apenas server-side.
 
-## 3. InfinitePay
+## 3. Auth
 
-- Configurar `INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io`.
-- Configurar `INFINITEPAY_HANDLE`.
-- Configurar `INFINITEPAY_API_KEY`, se a conta exigir.
-- Configurar `INFINITEPAY_WEBHOOK_SECRET`, se a conta/provedor fornecer assinatura.
-- Cadastrar webhook:
+- Site URL Supabase: `https://smartfunko.com.br`.
+- Redirect URLs Supabase: `https://smartfunko.com.br/**`.
+- Recuperacao de senha abre `/redefinir-senha`.
+- Magic link abre `/conta`.
+- Cliente nao acessa `/admin`.
+- Admin acessa painel.
+- Cliente ve apenas dados/pedidos proprios.
+
+## 4. InfinitePay
+
+- `INFINITEPAY_HANDLE` configurado.
+- `INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io`.
+- `INFINITEPAY_API_KEY` configurado se a conta exigir.
+- Webhook configurado:
 
 ```txt
 https://seu-dominio.com/api/v1/webhooks/infinitepay
 ```
 
-- Testar pagamento de pedido assistido.
-- Testar pagamento de rifa.
-- Reenviar webhook duplicado e confirmar que nao duplica caixa, pagamento ou pontos.
-- Validar que pagamento divergente entra em revisao manual.
+- Testar pagamento de pedido V2.
+- Testar pagamento parcial de pedido V2.
+- Testar pre-venda paga gerando pedido V2.
+- Testar rifa paga.
+- Reenviar webhook duplicado e confirmar idempotencia.
+- Testar evento divergente entrando em `manual_review`.
 
-## 4. SEO
+## 5. Fluxos publicos
+
+- Home sem erros.
+- Catalogo sem acervo raro e sem produtos de collab.
+- Collabs listando Piticas, NBA Brasil, Copag e Panini.
+- Produto geral abre detalhe.
+- Pre-vendas listam itens temporarios e geram checkout.
+- Acervo Raro abre slideshow, cards e detalhe.
+- Rifas abrem quando flag esta ativa.
+- PopFlix nao aparece quando flag esta falsa.
+
+## 6. Fluxos admin
+
+- Dashboard carrega sem overflow.
+- Clientes listam sem chave duplicada.
+- Produtos 2.0 alterna entre geral e collabs sem redimensionamento estranho.
+- Acervo Raro cadastra, edita, arquiva, exclui e controla slideshow.
+- Pre-vendas mostram reservas pagas e quantidade a pedir.
+- Recebimento busca por produto/numero/SKU e marca solicitados como recebidos.
+- Pedidos V2 cria pedido WhatsApp com vendedor e competencia.
+- Pedidos V2 aprova/recusa pedido do site.
+- Pedidos V2 muda operacao para solicitado, recebido e enviado.
+- Rifas mostram metricas do mes e sorteio sem comprador repetido.
+- Relatorios filtram por competencia em Fechamento, BI e Financeiro.
+
+## 7. Cliente
+
+- Cliente entra em `/conta`.
+- Cliente ve pedidos V2 por competencia.
+- Checkbox de competencia seleciona todos os pedidos disponiveis.
+- Pedido pago nao aparece selecionavel.
+- Cliente gera pagamento parcial.
+- Cliente ve pedidos pagos, pendentes, enviados e rastreio quando existir.
+- Cliente ve rifas/reservas proprias.
+- Cliente consegue iniciar pre-venda pelo site.
+
+## 8. SEO
 
 - Abrir `/sitemap.xml`.
 - Abrir `/robots.txt`.
-- Abrir `/og/smart-funkos-og.png`.
+- Abrir imagem OG fallback.
 - Compartilhar produto no WhatsApp.
-- Compartilhar rifa no WhatsApp.
-- Validar com Facebook Sharing Debugger.
-- Validar produto no Rich Results Test.
+- Compartilhar acervo raro no WhatsApp.
+- Compartilhar rifa no WhatsApp, se ativa.
+- Confirmar que admin, conta, API e links privados estao `noindex`.
 
-## 5. Seguranca
+## 9. Responsividade
 
-- Visitante nao acessa `/admin`.
-- Customer nao acessa `/admin`.
-- Customer so ve os proprios pedidos, rifas, wishlist, clube e dados.
-- `/api/v1/admin/*` exige owner/admin.
-- `/api/v1/me/*` exige login.
-- `/api/v1/public/*` nao retorna CPF, dados financeiros internos, margem, custo ou dados de outros clientes.
-- Service role nao aparece em client components.
-- Admin e conta ficam `noindex`.
+- Executar `docs/RESPONSIVE_QA.md`.
+- Validar 360px, 390px, 430px, 768px, 1024px e desktop.
+- Validar tema claro e escuro.
+- Confirmar que admin nao corta conteudo horizontalmente.
+- Confirmar que tabelas usam scroll horizontal controlado quando necessario.
 
-## 6. Fluxos criticos
-
-- Cliente solicita recuperacao em `/esqueci-senha`, recebe mensagem generica e redefine senha via `/redefinir-senha`.
-- Cliente cria pedido pelo carrinho assistido.
-- Admin aprova pedido e gera link InfinitePay.
-- Webhook confirma pagamento e atualiza caixa/payment.
-- Admin recusa pedido e cliente ve estado correto.
-- Cliente reserva rifa e paga via InfinitePay.
-- Rifa expirada com webhook atrasado entra em revisao manual.
-- Conta mostra pedidos, wishlist, rifas e clube quando flags ligadas.
-- BI nao inclui pedido recusado, cancelado ou em analise na receita.
-
-## 7. Responsividade
-
-- Executar o roteiro em `docs/RESPONSIVE_QA.md`.
-- Validar 360px, 390px/430px, 768px, 1024px e desktop.
-- Validar tema claro e escuro nas rotas publicas, conta e admin.
-- Confirmar que tabelas criticas do admin e BI usam scroll horizontal controlado.
-- Confirmar que botoes principais e acoes de icone possuem area de toque confortavel.
-
-## 8. Build
+## 10. Build
 
 Na pasta `web`:
 
@@ -89,8 +121,4 @@ npm run lint
 npm run build
 ```
 
-Na raiz do repo, quando houver migration nova:
-
-```bash
-npm run supabase:push
-```
+Se o build falhar por timeout de consulta Supabase durante geracao estatica, validar se e problema de banco/dados remoto e nao de TypeScript. O build precisa passar em ambiente de producao antes do deploy final.

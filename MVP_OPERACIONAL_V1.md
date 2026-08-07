@@ -1,5 +1,8 @@
 # Smart Funkos - MVP Operacional V1
 
+> Documento historico. A operacao atual esta documentada em `docs/ESTADO_ATUAL.md` e `docs/OPERACAO_MVP.md`.
+> Este arquivo registra a primeira visao do MVP e pode conflitar com Pedidos V2, Produtos 2.0, Pre-vendas, Acervo Raro e Relatorios atuais.
+
 ## 1. Decisao principal
 
 A primeira versao da Smart Funkos nao sera um e-commerce completo.

@@ -1,42 +1,65 @@
 # Variaveis de ambiente
 
+Revisado em 2026-08-07.
+
 ## Publicas
 
-- `NEXT_PUBLIC_SITE_URL`: URL base do app, usada em links publicos, canonical, Open Graph, sitemap, robots, redirect e webhook. Configure sem barra final.
+- `NEXT_PUBLIC_SITE_URL`: URL base do app, sem barra final. Usada em canonical, sitemap, redirects, links de pagamento e mensagens.
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`: numero usado nos CTAs de WhatsApp.
 - `NEXT_PUBLIC_SUPABASE_URL`: URL publica do Supabase.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: anon key publica do Supabase.
-- `NEXT_PUBLIC_ENABLE_RAFFLES`: ativa Rifas quando `true`.
-- `NEXT_PUBLIC_ENABLE_REWARDS`: ativa Clube Smart Funkos, pontos, niveis e ranking mensal quando `true`.
-- `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT`: ativa envio do carrinho para analise quando diferente de `false`.
+- `NEXT_PUBLIC_ENABLE_RAFFLES`: ativa links, paginas e APIs de rifas quando `true`.
+- `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT`: ativa carrinho/envio de pedido pelo site quando diferente de `false`.
+- `NEXT_PUBLIC_POPFLIX_ENABLED`: ativa PopFlix quando `true`. Padrao atual recomendado: `false`.
+- `NEXT_PUBLIC_ENABLE_REWARDS`: legado Smart Clube; manter desligado salvo reativacao planejada.
 
 ## Server-only
 
 - `SUPABASE_SERVICE_ROLE_KEY`: service role usada somente no backend.
-- `CORS_ALLOWED_ORIGINS`: origens extras autorizadas para APIs publicas e `/api/v1/me/*`, separadas por virgula. Exemplo: `http://localhost:3000,http://localhost:33539,https://smartfunko.com.br`.
+- `CORS_ALLOWED_ORIGINS`: origens extras autorizadas para APIs publicas e `/api/v1/me/*`, separadas por virgula.
 - `INFINITEPAY_API_BASE_URL`: base da API InfinitePay. Use `https://api.checkout.infinitepay.io`.
 - `INFINITEPAY_API_KEY`: chave privada da InfinitePay, se a conta exigir autenticacao por header.
-- `INFINITEPAY_HANDLE`: InfiniteTag da conta. Para a SmartFunko use `smartfunko`. Se for preenchido como `@smartfunko`, o backend remove o `@` antes de enviar para a InfinitePay.
-- `INFINITEPAY_WEBHOOK_SECRET`: segredo HMAC para validar webhook, se configurado no provedor/conta.
-- `INFINITEPAY_WEBHOOK_ENABLED`: flag operacional para webhook. Padrao esperado: `true`.
+- `INFINITEPAY_HANDLE`: InfiniteTag da conta. Exemplo: `smartfunko`. Se vier como `@smartfunko`, o backend remove o `@`.
+- `INFINITEPAY_WEBHOOK_SECRET`: segredo HMAC para validar webhook, se a conta/provedor fornecer assinatura.
+- `INFINITEPAY_WEBHOOK_ENABLED`: controla processamento de webhook. Padrao esperado: `true`.
+
+## Exemplo local
+
+```txt
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_WHATSAPP_NUMBER=5511999999999
+NEXT_PUBLIC_POPFLIX_ENABLED=false
+NEXT_PUBLIC_ENABLE_RAFFLES=true
+NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT=true
+
+INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io
+INFINITEPAY_API_KEY=
+INFINITEPAY_HANDLE=smartfunko
+INFINITEPAY_WEBHOOK_SECRET=
+INFINITEPAY_WEBHOOK_ENABLED=true
+
+NEXT_PUBLIC_SUPABASE_URL=https://project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=replace-with-anon-key
+SUPABASE_SERVICE_ROLE_KEY=replace-with-service-role-key
+```
 
 ## Vercel
 
-Configure as variaveis em Production e Preview conforme o ambiente. Depois de alterar qualquer env, faca redeploy para o Next.js receber os novos valores.
+Configure as variaveis em Production e Preview conforme o ambiente.
 
-Para producao SmartFunko, configure:
+Depois de alterar qualquer `NEXT_PUBLIC_*`, faca redeploy para atualizar bundle, navegacao, SEO e feature flags publicas.
+
+Para producao SmartFunkos:
 
 ```txt
 NEXT_PUBLIC_SITE_URL=https://smartfunko.com.br
 ```
 
-`INFINITEPAY_API_KEY`, `INFINITEPAY_HANDLE`, `INFINITEPAY_WEBHOOK_SECRET` e `SUPABASE_SERVICE_ROLE_KEY` nunca devem ser expostas como `NEXT_PUBLIC_*`.
-
-Variaveis `NEXT_PUBLIC_*` sao embutidas no bundle no build. Alterar essas variaveis na Vercel exige novo deploy para atualizar navegacao, SEO, Supabase anon client e feature flags publicas.
+Secrets nunca devem usar prefixo `NEXT_PUBLIC_*`.
 
 ## Supabase Auth URLs
 
-Em Supabase -> Authentication -> URL Configuration, configure:
+Em Supabase -> Authentication -> URL Configuration:
 
 ```txt
 Site URL:
@@ -46,136 +69,68 @@ Redirect URLs:
 https://smartfunko.com.br/**
 ```
 
-Os templates de e-mail do Supabase devem manter `{{ .ConfirmationURL }}`. Nao substitua por URLs manuais no HTML do template.
+Templates de e-mail devem manter `{{ .ConfirmationURL }}`.
 
-Fluxos de Auth usados pelo web:
+Fluxos web:
 
-- cadastro e reenvio de confirmacao redirecionam para `/auth/confirmado`;
-- troca de e-mail autenticada redireciona a confirmacao para `/auth/confirmado`;
-- recuperacao de senha redireciona para `/redefinir-senha`;
-- magic link redireciona para `/conta` e o proxy troca o `code` por sessao antes do guard.
-
-O browser usa somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` para solicitar esses fluxos e atualizar senha/e-mail com a sessao do usuario autenticado.
+- cadastro e confirmacao: `/auth/confirmado`;
+- recuperacao de senha: `/redefinir-senha`;
+- magic link: `/conta`;
+- troca de senha/e-mail usa Supabase Auth com sessao do usuario.
 
 ## Feature flags
 
 `NEXT_PUBLIC_ENABLE_RAFFLES=true`:
 
-- exibe links e paginas de rifa;
-- libera APIs publicas/customer/admin de rifa;
-- com `false` ou vazio, paginas mostram modulo desativado ou APIs retornam erro controlado.
+- mostra Rifas na navegacao;
+- libera paginas publicas/customer/admin;
+- permite reservas e pagamentos.
 
-`NEXT_PUBLIC_ENABLE_REWARDS=true`:
+`NEXT_PUBLIC_POPFLIX_ENABLED=false`:
 
-- exibe Clube Smart Funkos na conta/admin;
-- libera pontos, niveis e ranking mensal;
-- com `false` ou vazio, services retornam estado vazio/desativado e links somem.
+- oculta PopFlix da navegacao;
+- mantem codigo e rotas preservados para reativacao futura;
+- evita publicar assinatura antes de validacao final.
 
 `NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT`:
 
 - padrao: ativo;
-- com `false`, cliente nao cria pedido assistido pelo carrinho;
-- fluxo manual/admin continua existindo.
+- com `false`, cliente nao cria pedido pelo carrinho;
+- pedidos admin continuam funcionando.
 
-## Regras de seguranca
+`NEXT_PUBLIC_ENABLE_REWARDS`:
 
-- `SUPABASE_SERVICE_ROLE_KEY`, `INFINITEPAY_API_KEY` e `INFINITEPAY_WEBHOOK_SECRET` ficam somente server-side.
-- Client/browser usa somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-- Helpers de InfinitePay validam `INFINITEPAY_HANDLE` antes de chamar o gateway e retornam erro amigavel quando a configuracao esta faltando.
-- Nao registrar secrets em logs.
-- CORS permite Flutter Web local em `http://localhost:*` e `http://127.0.0.1:*`, `NEXT_PUBLIC_SITE_URL`, `https://smartfunko.com.br` e origens extras em `CORS_ALLOWED_ORIGINS`.
-- CORS nao substitui autenticacao: endpoints `/api/v1/me/*` continuam exigindo Bearer token/sessao valida.
-- `/api/v1/admin/*` nao e liberado para mobile.
-- O proxy publico `/api/v1/public/image-proxy` aceita apenas URLs de imagem em allowlist: `cdn.awsli.com.br`, `smartfunko.com.br` e hosts terminando exatamente em `.supabase.co`. Nao adicione dominios sem revisar SSRF e tipo de conteudo.
+- legado do Smart Clube;
+- manter desligado ate o modulo ser redesenhado.
 
 ## Webhook InfinitePay
 
-Antes de usar em producao/preview, confirme que a URL base abre no navegador. Se a Vercel responder `DEPLOYMENT_NOT_FOUND`, o dominio nao esta apontando para um deployment valido e nenhum redirect/webhook funcionara nesse host.
-
-Configure na InfinitePay:
+URL principal:
 
 ```txt
 https://seu-dominio.com/api/v1/webhooks/infinitepay
 ```
 
-Aliases aceitos para evitar 404 em configuracoes legadas:
+Aliases aceitos para configuracoes antigas:
 
 ```txt
 https://seu-dominio.com/webhook-infinitepay
 https://seu-dominio.com/api/webhook-infinitepay
 ```
 
-O redirect_url enviado no link aponta para:
+Tipos de checkout tratados pelo webhook:
 
-```txt
-{NEXT_PUBLIC_SITE_URL}/pedido/{orderNumber}?token={publicToken}
-```
+- `order_v2`;
+- `preorder`;
+- `raffle`;
+- `popflix`, se ativo;
+- `order`, legado.
 
-Links de rifa usam o mesmo webhook e redirecionam para:
+## Regras de seguranca
 
-```txt
-{NEXT_PUBLIC_SITE_URL}/conta/rifas/{raffleOrderId}
-```
-
-Para rifa, o `order_nsu` enviado a InfinitePay sempre usa:
-
-```txt
-RAFFLE-{raffleOrderId}
-```
-
-O redirect nao confirma pagamento por si so. Quando a InfinitePay devolve `slug`, `transaction_nsu` ou `receipt_url`, a pagina publica consulta `payment_check` no servidor e baixa o pedido se a InfinitePay responder `paid: true`. O webhook continua sendo o caminho principal.
-
-Se o valor pago vier ausente ou menor que o esperado, o evento fica em `manual_review` e nao cria baixa automatica de caixa/pagamento. Para rifa, pagamentos atrasados ou numeros ja liberados tambem entram em `manual_review`.
-
-Parcelamento e taxa:
-
-- pedidos abaixo de R$ 150,00 usam regra interna de ate 1x;
-- pedidos a partir de R$ 150,00 usam regra interna de ate 3x;
-- admin pode aumentar o limite na aprovacao, ate o teto operacional de 12x;
-- rifa usa regra propria de 1x e `payment_fee_mode=customer_pays`;
-- a documentacao atual de `/links` nao expõe campo de payload para limite de parcelas ou repasse de taxa, entao a aplicacao salva esses dados para auditoria e depende da configuracao da conta InfinitePay para enforcement real de taxa/parcelas.
-
-Os links gerados pelo painel admin usam o dominio real da requisicao admin como base. Ainda assim, mantenha `NEXT_PUBLIC_SITE_URL` apontando para o dominio valido do ambiente, por exemplo:
-
-```txt
-NEXT_PUBLIC_SITE_URL=https://dominio-valido.vercel.app
-```
-
-Em desenvolvimento, `getSiteUrl()` usa `http://localhost:3000` para evitar canonical vazio ou instavel.
-
-## Valores recomendados SmartFunko
-
-```txt
-NEXT_PUBLIC_ENABLE_ASSISTED_CHECKOUT=true
-NEXT_PUBLIC_ENABLE_RAFFLES=true
-NEXT_PUBLIC_ENABLE_REWARDS=true
-INFINITEPAY_API_BASE_URL=https://api.checkout.infinitepay.io
-INFINITEPAY_HANDLE=smartfunko
-INFINITEPAY_API_KEY=
-INFINITEPAY_WEBHOOK_SECRET=
-INFINITEPAY_WEBHOOK_ENABLED=true
-```
-
-`INFINITEPAY_API_KEY` e `INFINITEPAY_WEBHOOK_SECRET` ficam vazios se a conta/documentacao da InfinitePay nao fornecer chave ou assinatura. Caso a conta forneca, configure somente como variavel server-side.
-
-## Consulta manual de status
-
-O admin pode usar `Verificar pagamento` no detalhe do pedido normal ou da reserva de rifa. O backend chama:
-
-```txt
-POST https://api.checkout.infinitepay.io/payment_check
-```
-
-Com corpo:
-
-```json
-{
-  "handle": "smartfunko",
-  "order_nsu": "SF-...",
-  "slug": "codigo-da-fatura"
-}
-```
-
-Se a resposta vier com `success: true` e `paid: true`, o sistema registra pagamento e caixa pelo mesmo fluxo financeiro usado no webhook.
-
-Para rifas, `order_nsu` deve ser `RAFFLE-{raffleOrderId}`. Pagamento de link de rifa depois da expiracao da reserva vai para revisao manual e nao marca numeros como vendidos automaticamente.
+- Service role e secrets InfinitePay ficam somente no servidor.
+- Client/browser usa apenas Supabase URL e anon key.
+- Nao registrar secrets em logs.
+- CORS nao substitui autenticacao.
+- `/api/v1/admin/*` exige admin/owner.
+- `/api/v1/me/*` exige usuario autenticado.

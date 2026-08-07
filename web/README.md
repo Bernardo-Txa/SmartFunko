@@ -1,84 +1,101 @@
-# SmartFunko Web
+# SmartFunkos Web
 
-Aplicacao Next.js da V1.
+Aplicacao Next.js do site publico, area do cliente, painel admin e APIs.
 
-## Scripts
+## Como rodar
 
 ```bash
+npm install
 npm run dev
+```
+
+Validar:
+
+```bash
 npm run lint
 npm run build
 ```
 
-Na raiz do repositorio:
+Migrations Supabase sao aplicadas a partir da raiz:
 
 ```bash
 npm run supabase:push
 ```
 
+## Rotas principais
+
+Publico:
+
+- `/`
+- `/catalogo`
+- `/produto/[slug]`
+- `/collabs`
+- `/collabs/[slug]`
+- `/pre-vendas`
+- `/acervo-raro`
+- `/acervo-raro/[slug]`
+- `/rifas`
+- `/rifas/[slug]`
+- `/carrinho`
+- `/login`
+- `/cadastro`
+- `/redefinir-senha`
+
+Cliente:
+
+- `/conta`
+- `/conta/pedidos-v2`
+- `/conta/rifas`
+- `/conta/popflix`, se PopFlix estiver ativo
+
+Admin:
+
+- `/admin/dashboard`
+- `/admin/clientes`
+- `/admin/produtos`
+- `/admin/pre-vendas`
+- `/admin/acervo-raro`
+- `/admin/recebimento`
+- `/admin/v2/pedidos`
+- `/admin/cupons`
+- `/admin/rifas`
+- `/admin/relatorios`
+- `/admin/relatorios/financeiro`
+
+## Modulos atuais
+
+- Pedidos V2: fluxo principal de pedidos, competencias e pagamento parcial.
+- Produtos 2.0: catalogo geral e collabs separadas.
+- Pre-vendas: pagamento antes de criar pedido V2.
+- Acervo Raro: cadastro especial separado do catalogo.
+- Recebimento: conferencia de carga por produto e mudanca para recebido.
+- Rifas: cotas, pagamento e sorteio interno.
+- Relatorios: fechamento mensal, BI e financeiro por competencia.
+- PopFlix: oculto por `NEXT_PUBLIC_POPFLIX_ENABLED=false`.
+
 ## Variaveis
 
-Copie `.env.example` para `.env.local` e preencha:
+Copie `.env.example` para `.env.local` e configure as variaveis descritas em `../docs/ENV_VARS.md`.
+
+Principais:
 
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_WHATSAPP_NUMBER`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `INFINITEPAY_API_BASE_URL`
+- `INFINITEPAY_HANDLE`
+- `INFINITEPAY_API_KEY`
+- `INFINITEPAY_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_ENABLE_RAFFLES`
+- `NEXT_PUBLIC_POPFLIX_ENABLED`
 
-`NEXT_PUBLIC_SITE_URL` deve apontar para o dominio publico do ambiente em Vercel, sem barra final, por exemplo `https://seu-dominio.com`. Em desenvolvimento o app usa `http://localhost:3000` para canonical e compartilhamento.
+## Docs relacionadas
 
-## Rotas iniciais
-
-- `/`
-- `/catalogo` com busca, vitrine, categoria, linha, fornecedor e ordenacao premium
-- `/pronta-entrega`
-- `/pre-venda`
-- `/specials`
-- `/novidades`
-- `/encomendas`
-- `/produto/[slug]`
-- `/rifas`
-- `/rifas/[slug]`
-- `/carrinho`
-- `/login`
-- `/login/magic-link`
-- `/esqueci-senha`
-- `/redefinir-senha`
-- `/cadastro`
-- `/reenviar-confirmacao`
-- `/auth/confirmado`
-- `/conta`
-- `/conta/pedidos`
-- `/conta/wishlist`
-- `/admin/dashboard`
-- `/admin/demanda`
-- `/api/v1/health`
-- `/api/v1/public/products`
-
-## Premium Pack
-
-O Premium Pack estabilizado mantém descoberta comercial sem checkout completo:
-
-- cards com favorito e carrinho local em ações compactas;
-- vitrines comerciais reaproveitando filtros por busca, categoria, fornecedor e ordenação;
-- `/catalogo` usando a mesma experiência visual das vitrines, com filtro de vitrine e linha;
-- carrinho assistido persistido no navegador e finalizado por WhatsApp.
-
-Não há Pix, reserva automática, frete, pedido automático, Flutter ou leilão nesta etapa.
-
-## SEO & Open Graph
-
-- metadata global com fallback `/og/smart-funkos-og.png`;
-- metadata dinamica para produto, rifa e fornecedor;
-- `/sitemap.xml` e `/robots.txt` gerados pelo App Router;
-- `/admin`, `/conta`, `/api` e `/pedido/*` ficam fora de indexacao.
-
-Detalhes operacionais em `../docs/SEO.md`.
-
-## Producao e hardening
-
-- checklist de producao: `../docs/PRODUCTION_CHECKLIST.md`;
-- checklist de seguranca: `../docs/SECURITY_CHECKLIST.md`;
-- variaveis e feature flags: `../docs/ENV_VARS.md`;
-- operacao de checkout, rifas, BI e clube: `../docs/OPERACAO_MVP.md`.
+- `../docs/ESTADO_ATUAL.md`
+- `../docs/OPERACAO_MVP.md`
+- `../docs/PAYMENTS.md`
+- `../docs/INFINITEPAY.md`
+- `../docs/PRODUCTION_CHECKLIST.md`
+- `../docs/RESPONSIVE_QA.md`

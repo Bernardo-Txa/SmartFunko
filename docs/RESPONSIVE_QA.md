@@ -1,41 +1,72 @@
-# QA responsivo SmartFunko
+# QA responsivo SmartFunkos
 
-Use este roteiro antes de liberar Preview ou Production com foco em navegador mobile.
+Revisado em 2026-08-07.
+
+Use este roteiro antes de liberar Preview/Production.
 
 ## Viewports minimos
 
 - 360px: celular pequeno.
 - 390px e 430px: celulares comuns.
 - 768px: tablet portrait.
-- 1024px: tablet landscape ou desktop pequeno.
+- 1024px: tablet landscape/desktop pequeno.
 - Desktop normal.
 
-## Publico e cliente
-
-- Home sem overflow horizontal, hero legivel e CTAs empilhados quando necessario.
-- Catalogo com filtros, paginacao e cards usaveis em 360px.
-- Produto com galeria, thumbnails, preco, status e CTAs sem sobreposicao.
-- Rifas com cards legiveis, compartilhamento visivel e seletor de numeros com toque confortavel.
-- Carrinho assistido com quantidade, remover, cupom, total, WhatsApp e envio para analise acessiveis.
-- Login/cadastro com inputs grandes, mensagens de erro legiveis e sem overflow.
-- Conta, pedidos, detalhe de pedido, wishlist e clube usando cards ou grids confortaveis.
-- Tema claro e escuro em todas as rotas acima.
-
-## Admin e BI
-
-- Admin abre em tablet e celular sem quebrar a viewport geral.
-- Navegacao admin rola horizontalmente no mobile e vira sidebar em desktop.
-- Filtros de pedidos, estoque, pagamentos, caixa, lotes e rifas empilham ou rolam sem cortar controles.
-- Tabelas criticas usam scroll horizontal controlado.
-- Modais e formularios longos cabem na tela com scroll interno quando aplicavel.
-- BI empilha cards, contem graficos Recharts e permite ler tabelas por scroll horizontal.
-
-## Tecnico
+## Regras gerais
 
 - Sem overflow horizontal global em `body`.
-- Sem erro de hydration no console.
-- Botoes e links principais com area de toque minima proxima de 44px.
-- Imagens preservam proporcao e fallback visual.
-- SEO, JSON-LD, sitemap, robots e Open Graph sem regressao.
-- `npm run lint` passa.
-- `npm run build` passa.
+- Header nao deve quebrar nem cortar botoes.
+- Botoes com area de toque confortavel.
+- Textos nao podem sobrepor cards, imagens ou botoes.
+- Cards devem manter dimensoes estaveis.
+- Tabelas admin devem usar scroll horizontal controlado.
+- Imagens preservam proporcao e exibem fallback.
+- Tema claro e escuro precisam permanecer legiveis.
+
+## Publico
+
+- Home: hero, slideshow, CTAs e secoes abaixo sem corte.
+- Catalogo: filtros, cards, paginacao e menu de catalogo.
+- Produto: galeria, preco, badges e CTA.
+- Collabs: cards de collab e catalogo exclusivo.
+- Pre-vendas: cards, selecao, total e checkout.
+- Acervo Raro: slideshow, cards, detalhe e imagens.
+- Rifas: cards, grade de numeros e checkout.
+- Login/cadastro/reset: formularios legiveis.
+
+## Cliente
+
+- `/conta`: resumo e dados.
+- `/conta/pedidos-v2`: competencias como dropdown/agrupamento, selecao parcial e pagamento.
+- Pedidos pagos sem checkbox.
+- Mensagens de estado vazio/erro.
+- Rifas do cliente.
+- Pre-vendas/reservas quando aplicavel.
+
+## Admin
+
+- Sidebar nao deve ocupar espaco demais em desktop pequeno.
+- Dashboard com cards sem valor quebrando.
+- Clientes sem tabela cortada.
+- Produtos 2.0 alternando catalogo/collab sem redimensionar pagina de forma estranha.
+- Pre-vendas com cadastro e agregados visiveis.
+- Acervo Raro com lista e manutencao sem cortar botoes.
+- Recebimento com filtros, resumo por produto e lista de pedidos sem corte.
+- Pedidos V2 com formulario e tabela dentro da largura disponivel.
+- Rifas com metricas, ranking, sorteio e lista de compradores.
+- Relatorios com Fechamento, BI e Financeiro filtrando por competencia.
+
+## Validacao tecnica
+
+```bash
+cd web
+npm run lint
+npm run build
+```
+
+Tambem conferir console do navegador:
+
+- sem erro de hydration;
+- sem warnings de chave duplicada em listas;
+- sem erro de HMR permanente;
+- sem falha de API inesperada.

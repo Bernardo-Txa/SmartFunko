@@ -132,6 +132,14 @@ export type V2OrderListFilters = {
   source?: string;
 };
 
+export type V2ReceivingFilters = {
+  competenceId?: string;
+  funkoNumber?: string;
+  limit?: number;
+  productSearch?: string;
+  status?: "aguardando_fechamento" | "cancelado" | "enviado" | "recebido" | "solicitado" | "all";
+};
+
 type CustomerRow = {
   email: string | null;
   id: string;
@@ -215,6 +223,10 @@ type VariantCartRow = {
 
 type AreaOrderItemRow = {
   order_id: string;
+};
+
+type ProductIdRow = {
+  id: string;
 };
 
 const ORDER_ID_FILTER_CHUNK_SIZE = 80;
@@ -424,6 +436,143 @@ export class OrderV2Service {
     }
 
     return uniqueValues(((data ?? []) as AreaOrderItemRow[]).map((item) => item.order_id));
+  }
+
+  private async getOrderIdsForItemText(value: string, message: string) {
+    const search = value.trim();
+
+    if (!search) {
+      return undefined;
+    }
+
+    const safeSearch = escapeIlike(search);
+    const { data: itemMatches, error: itemError } = await this.supabase
+      .from("v2_order_items")
+      .select("order_id")
+      .or(`product_name.ilike.%${safeSearch}%,product_sku.ilike.%${safeSearch}%`)
+      .limit(5000);
+
+    if (itemError) {
+      throwQueryError(itemError, `Falha ao buscar pedidos por ${message}`);
+    }
+
+    const { data: productMatches, error: productError } = await this.supabase
+      .from("products")
+      .select("id")
+      .or(`name.ilike.%${safeSearch}%,funko_number.ilike.%${safeSearch}%,external_catalog_code.ilike.%${safeSearch}%`)
+      .limit(500);
+
+    if (productError) {
+      throwQueryError(productError, `Falha ao buscar produtos por ${message}`);
+    }
+
+    const orderIds = new Set(((itemMatches ?? []) as AreaOrderItemRow[]).map((item) => item.order_id));
+    const productIds = ((productMatches ?? []) as ProductIdRow[]).map((product) => product.id);
+
+    if (productIds.length > 0) {
+      for (const productIdChunk of chunkValues(productIds, ORDER_ID_FILTER_CHUNK_SIZE)) {
+        const { data: productItemMatches, error: productItemError } = await this.supabase
+          .from("v2_order_items")
+          .select("order_id")
+          .in("product_id", productIdChunk)
+          .limit(5000);
+
+        if (productItemError) {
+          throwQueryError(productItemError, `Falha ao localizar pedidos vinculados ao produto por ${message}`);
+        }
+
+        ((productItemMatches ?? []) as AreaOrderItemRow[]).forEach((item) => orderIds.add(item.order_id));
+      }
+    }
+
+    return Array.from(orderIds);
+  }
+
+  private async getOrderIdsForReceivingFilters(filters: V2ReceivingFilters) {
+    const sets: string[][] = [];
+    const productOrderIds = filters.productSearch
+      ? await this.getOrderIdsForItemText(filters.productSearch, "nome do produto")
+      : undefined;
+    const numberOrderIds = filters.funkoNumber
+      ? await this.getOrderIdsForItemText(filters.funkoNumber, "numero ou SKU")
+      : undefined;
+
+    if (productOrderIds) {
+      sets.push(productOrderIds);
+    }
+
+    if (numberOrderIds) {
+      sets.push(numberOrderIds);
+    }
+
+    if (sets.length === 0) {
+      return undefined;
+    }
+
+    return sets.reduce((current, next) => {
+      const nextSet = new Set(next);
+      return current.filter((orderId) => nextSet.has(orderId));
+    });
+  }
+
+  async listReceivingOrders(filters: V2ReceivingFilters = {}) {
+    const limit = Math.min(1000, Math.max(1, Number(filters.limit ?? 400)));
+    const status = filters.status ?? "all";
+    const orderIds = await this.getOrderIdsForReceivingFilters(filters);
+
+    if (orderIds && orderIds.length === 0) {
+      return [];
+    }
+
+    const buildQuery = (ids?: string[]) => {
+      let query = this.supabase
+        .from("v2_orders")
+        .select(orderSelect())
+        .eq("approval_status", "aprovado")
+        .order("order_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (filters.competenceId) {
+        query = query.eq("competence_id", filters.competenceId);
+      }
+
+      if (status === "all") {
+        query = query.neq("payment_status", "cancelado").neq("fulfillment_status", "cancelado");
+      } else {
+        query = query.eq("fulfillment_status", status);
+      }
+
+      if (ids) {
+        query = query.in("id", ids);
+      }
+
+      return query;
+    };
+
+    if (orderIds && orderIds.length > ORDER_ID_FILTER_CHUNK_SIZE) {
+      const orders: V2OrderRow[] = [];
+
+      for (const orderIdChunk of chunkValues(orderIds, ORDER_ID_FILTER_CHUNK_SIZE)) {
+        const { data, error } = await buildQuery(orderIdChunk);
+
+        if (error) {
+          throwQueryError(error, "Falha ao listar pedidos para recebimento");
+        }
+
+        orders.push(...((data ?? []) as unknown as V2OrderRow[]));
+      }
+
+      return sortOrderRows(orders).slice(0, limit);
+    }
+
+    const { data, error } = await buildQuery(orderIds);
+
+    if (error) {
+      throwQueryError(error, "Falha ao listar pedidos para recebimento");
+    }
+
+    return data ?? [];
   }
 
   async listAdminOrders(filters: V2OrderListFilters = {}) {
