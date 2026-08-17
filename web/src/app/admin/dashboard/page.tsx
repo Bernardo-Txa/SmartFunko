@@ -69,6 +69,12 @@ function productSummary(order: DashboardV2Order) {
     .join(", ");
 }
 
+function buyerName(order: DashboardV2Order) {
+  const customer = firstRelation(order.customers);
+  const temporaryCustomer = firstRelation(order.temporary_customers);
+  return customer?.name?.trim() || temporaryCustomer?.name?.trim() || "Cliente";
+}
+
 function attentionInfo(order: DashboardV2Order, competenceId?: string) {
   if (order.approval_status === "aguardando_aprovacao") {
     return {
@@ -209,8 +215,6 @@ function StatusPills({ order }: { order: DashboardV2Order }) {
 }
 
 function LatestOrderRow({ order }: { order: DashboardV2Order }) {
-  const customer = firstRelation(order.customers);
-
   return (
     <Link
       href={`/admin/v2/pedidos/${order.id}`}
@@ -222,7 +226,7 @@ function LatestOrderRow({ order }: { order: DashboardV2Order }) {
           <StatusPills order={order} />
         </div>
         <p className="mt-1 truncate text-sm text-[var(--muted)]">
-          {customer?.name ?? "Cliente"} · {v2SourceLabels[order.source] ?? order.source} · {productSummary(order) || "Produto"}
+          {buyerName(order)} · {v2SourceLabels[order.source] ?? order.source} · {productSummary(order) || "Produto"}
         </p>
       </div>
       <strong className="text-sm text-[var(--foreground)] md:text-right">{formatCurrency(Number(order.total))}</strong>
@@ -402,7 +406,6 @@ export default async function AdminDashboardPage() {
             </div>
             <div className="mt-4 divide-y divide-[var(--border)]">
               {dashboard.attentionOrders.length > 0 ? dashboard.attentionOrders.map((order) => {
-                const customer = firstRelation(order.customers);
                 const info = attentionInfo(order, competenceId);
 
                 return (
@@ -417,7 +420,7 @@ export default async function AdminDashboardPage() {
                         <span className="text-xs font-semibold text-[var(--muted)]">{order.order_number}</span>
                       </div>
                       <p className="mt-1 truncate text-sm text-[var(--muted)]">
-                        {customer?.name ?? "Cliente"} · {info.detail}
+                        {buyerName(order)} · {info.detail}
                       </p>
                     </div>
                     <span className="text-sm font-semibold text-[var(--foreground)]">{formatCurrency(Number(order.total))}</span>

@@ -50,7 +50,7 @@ const paymentMethodOptions = [
 const originOptions = [
   { label: "Catalogo/site", value: "stock" },
   { label: "WhatsApp", value: "whatsapp" },
-  { label: "Encomenda", value: "national_order" },
+  { label: "Pre-venda", value: "preorder" },
   { label: "Leilao", value: "auction" },
   { label: "Rifa", value: "raffle" },
   { label: "Admin/manual", value: "manual" },
@@ -88,6 +88,7 @@ export default async function AdminBiReportsPage({ searchParams }: Props) {
   const competence = competenceService.resolveSelected(competencies, competenceId);
   const range = competence ? getCompetenceRange(competence) : null;
   const filters = {
+    competenceId: competence?.id,
     from: range?.from,
     origin: origin || undefined,
     paymentMethod: paymentMethod || undefined,

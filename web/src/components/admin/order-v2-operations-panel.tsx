@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Eye, PackageCheck, Search, SquareCheckBig } from "lucide-react";
+import { Banknote, Check, Eye, PackageCheck, Search, SquareCheckBig } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import {
   getV2StatusBadgeClassName,
@@ -29,6 +29,13 @@ export type AdminOrderV2ListOrder = {
     phone?: string | null;
   } | Array<{
     email?: string | null;
+    name?: string | null;
+    phone?: string | null;
+  }> | null;
+  temporary_customers?: {
+    name?: string | null;
+    phone?: string | null;
+  } | Array<{
     name?: string | null;
     phone?: string | null;
   }> | null;
@@ -80,7 +87,7 @@ type QuickView = {
   label: string;
 };
 
-type BulkAction = "approve" | "mark_requested" | "mark_received";
+type BulkAction = "approve" | "mark_paid" | "mark_requested" | "mark_received";
 const quickViewIds = new Set(["all", "approval", "receivable", "paid", "closing", "requested", "received", "refund"]);
 
 function firstRelation<T>(relation: T | T[] | null | undefined) {
@@ -93,12 +100,54 @@ function getProductSummary(order: AdminOrderV2ListOrder) {
     .join(", ");
 }
 
+function getOrderBuyer(order: AdminOrderV2ListOrder) {
+  const customer = firstRelation(order.customers);
+  const temporaryCustomer = firstRelation(order.temporary_customers);
+
+  if (customer) {
+    return {
+      email: customer.email ?? null,
+      isTemporary: false,
+      name: customer.name?.trim() || "Cliente",
+      phone: customer.phone ?? null,
+    };
+  }
+
+  if (temporaryCustomer) {
+    return {
+      email: null,
+      isTemporary: true,
+      name: temporaryCustomer.name?.trim() || "Cliente temporario",
+      phone: temporaryCustomer.phone ?? null,
+    };
+  }
+
+  return {
+    email: null,
+    isTemporary: false,
+    name: "Cliente",
+    phone: null,
+  };
+}
+
 function isActionable(order: AdminOrderV2ListOrder) {
+  if (canManualPayment(order)) {
+    return true;
+  }
+
   if (order.approval_status === "aguardando_aprovacao") {
     return true;
   }
 
   return order.payment_status === "pago" && ["aguardando_fechamento", "solicitado"].includes(order.fulfillment_status);
+}
+
+function canManualPayment(order: AdminOrderV2ListOrder) {
+  return (
+    order.approval_status !== "recusado" &&
+    order.fulfillment_status !== "cancelado" &&
+    ["nao_pago", "checkout_gerado"].includes(order.payment_status)
+  );
 }
 
 function matchesView(order: AdminOrderV2ListOrder, view: string) {
@@ -170,14 +219,15 @@ function getQuickViews(orders: AdminOrderV2ListOrder[]): QuickView[] {
 function getSelectedActionState(orders: AdminOrderV2ListOrder[]) {
   return {
     canApprove: orders.length > 0 && orders.every((order) => order.approval_status === "aguardando_aprovacao"),
+    canMarkPaid: orders.length > 0 && orders.every(canManualPayment),
     canMarkReceived: orders.length > 0 && orders.every((order) => order.payment_status === "pago" && order.fulfillment_status === "solicitado"),
     canMarkRequested: orders.length > 0 && orders.every((order) => order.payment_status === "pago" && order.fulfillment_status === "aguardando_fechamento"),
   };
 }
 
-async function postBulkAction(action: BulkAction, orderIds: string[]) {
+async function postBulkAction(action: BulkAction, orderIds: string[], notes?: string | null) {
   const response = await fetch("/api/v1/admin/orders-v2/bulk", {
-    body: JSON.stringify({ action, orderIds }),
+    body: JSON.stringify({ action, notes, orderIds }),
     headers: { "content-type": "application/json" },
     method: "POST",
   });
@@ -248,12 +298,20 @@ export function OrderV2OperationsPanel({
   }
 
   async function runBulkAction(action: BulkAction) {
+    const notes = action === "mark_paid"
+      ? window.prompt("Observacao da baixa manual (opcional)")
+      : null;
+
+    if (action === "mark_paid" && notes === null) {
+      return;
+    }
+
     setError("");
     setMessage("");
     setIsSubmitting(true);
 
     try {
-      const updated = await postBulkAction(action, Array.from(selectedIds));
+      const updated = await postBulkAction(action, Array.from(selectedIds), notes);
       setSelectedIds(new Set());
       setMessage(`${updated} pedido${updated === 1 ? "" : "s"} atualizado${updated === 1 ? "" : "s"}.`);
       router.refresh();
@@ -271,7 +329,7 @@ export function OrderV2OperationsPanel({
           <div>
             <h2 className="text-lg font-bold text-[var(--foreground)]">Operacao dos pedidos</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Selecione pedidos compatíveis para aprovar ou atualizar a etapa do fechamento.
+              Selecione pedidos compativeis para aprovar, dar baixa manual ou atualizar a etapa do fechamento.
             </p>
           </div>
           <div className="grid gap-1 text-sm sm:grid-cols-3 lg:min-w-[420px]">
@@ -420,6 +478,15 @@ export function OrderV2OperationsPanel({
             </button>
             <button
               type="button"
+              disabled={isSubmitting || !actionState.canMarkPaid}
+              onClick={() => void runBulkAction("mark_paid")}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-yellow-300/50 px-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-300/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Banknote size={16} aria-hidden="true" />
+              Baixa manual
+            </button>
+            <button
+              type="button"
               disabled={isSubmitting || !actionState.canMarkRequested}
               onClick={() => void runBulkAction("mark_requested")}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -473,7 +540,7 @@ export function OrderV2OperationsPanel({
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {visibleOrders.map((order) => {
-              const customer = firstRelation(order.customers);
+              const buyer = getOrderBuyer(order);
               const competence = firstRelation(order.v2_order_competencies);
               const productSummary = getProductSummary(order);
               const canSelect = isActionable(order);
@@ -500,8 +567,13 @@ export function OrderV2OperationsPanel({
                     </p>
                   </td>
                   <td className="px-4 py-3 align-top text-[var(--muted)]">
-                    <span className="block font-semibold text-[var(--foreground)]">{customer?.name ?? "Cliente"}</span>
-                    {customer?.phone ? <span className="mt-1 block text-xs">{customer.phone}</span> : null}
+                    <span className="block font-semibold text-[var(--foreground)]">{buyer.name}</span>
+                    {buyer.phone ? <span className="mt-1 block text-xs">{buyer.phone}</span> : null}
+                    {buyer.isTemporary ? (
+                      <span className="mt-1 inline-flex rounded-full border border-yellow-300/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-yellow-100">
+                        Temporario
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 align-top text-[var(--muted)]">{competence?.label ?? "-"}</td>
                   <td className="max-w-[280px] px-4 py-3 align-top text-[var(--muted)]">

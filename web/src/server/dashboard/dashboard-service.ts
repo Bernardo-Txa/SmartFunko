@@ -7,6 +7,11 @@ type CustomerRelation = {
   phone?: string | null;
 };
 
+type TemporaryCustomerRelation = {
+  name?: string | null;
+  phone?: string | null;
+};
+
 type CompetenceRelation = {
   code?: string;
   ends_on?: string;
@@ -20,7 +25,7 @@ export type DashboardV2Order = {
   approval_status: string;
   competence_id: string;
   created_at: string;
-  customer_id: string;
+  customer_id: string | null;
   fulfillment_status: string;
   id: string;
   order_date: string;
@@ -31,6 +36,7 @@ export type DashboardV2Order = {
   total: number | string;
   updated_at: string;
   customers?: CustomerRelation | CustomerRelation[] | null;
+  temporary_customers?: TemporaryCustomerRelation | TemporaryCustomerRelation[] | null;
   v2_order_competencies?: CompetenceRelation | CompetenceRelation[] | null;
   v2_order_items?: Array<{
     product_name: string;
@@ -74,9 +80,10 @@ type TrendPaymentRow = {
 };
 
 const dashboardOrderSelect = `
-  id,order_number,customer_id,competence_id,source,order_date,
+  id,order_number,customer_id,temporary_customer_id,competence_id,source,order_date,
   approval_status,payment_status,fulfillment_status,total,paid_at,created_at,updated_at,
   customers(name,phone),
+  temporary_customers(name,phone),
   v2_order_competencies(id,code,label,starts_on,ends_on,status),
   v2_order_items(product_name,quantity)
 `;
@@ -204,7 +211,11 @@ export class DashboardService {
     const receivedToday = trendPayments
       .filter((payment) => payment.paid_at && dateInSaoPaulo(new Date(payment.paid_at)) === today)
       .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
-    const customersWithPending = uniqueValues(receivableOrders.map((order) => order.customer_id)).length;
+    const customersWithPending = uniqueValues(
+      receivableOrders
+        .map((order) => order.customer_id)
+        .filter((customerId): customerId is string => Boolean(customerId)),
+    ).length;
     const attentionOrders = [...currentOrders]
       .filter(isAttentionOrder)
       .sort((first, second) => {

@@ -338,6 +338,7 @@ export class MonthlyClosingReportService {
       `)
       .eq("competence_id", competenceId)
       .eq("approval_status", "aprovado")
+      .not("customer_id", "is", null)
       .neq("fulfillment_status", "cancelado")
       .in("payment_status", ["nao_pago", "checkout_gerado", "pago"])
       .order("order_date", { ascending: true })

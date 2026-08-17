@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, PackageCheck, RotateCcw, Send, X } from "lucide-react";
+import { Banknote, Check, PackageCheck, RotateCcw, Send, X } from "lucide-react";
 
 type Props = {
   approvalStatus: string;
@@ -47,6 +47,11 @@ export function OrderV2Actions({
   const [nextTrackingCode, setNextTrackingCode] = useState(trackingCode ?? "");
   const [nextTrackingUrl, setNextTrackingUrl] = useState(trackingUrl ?? "");
   const canUpdateFulfillment = paymentStatus === "pago" && fulfillmentStatus !== "cancelado";
+  const canManualPayment = (
+    approvalStatus !== "recusado" &&
+    fulfillmentStatus !== "cancelado" &&
+    ["nao_pago", "checkout_gerado"].includes(paymentStatus)
+  );
 
   async function run(action: () => Promise<void>) {
     setError("");
@@ -94,6 +99,24 @@ export function OrderV2Actions({
               Recusar
             </button>
           </>
+        ) : null}
+
+        {canManualPayment ? (
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => {
+              const notes = window.prompt("Observacao da baixa manual (opcional)");
+
+              if (notes !== null) {
+                void run(() => postJson(`/api/v1/admin/orders-v2/${orderId}/manual-payment`, { notes }));
+              }
+            }}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-yellow-300/50 px-3 text-sm font-semibold text-yellow-100 hover:bg-yellow-300/10 disabled:opacity-60"
+          >
+            <Banknote size={16} aria-hidden="true" />
+            Baixa manual
+          </button>
         ) : null}
 
         <button

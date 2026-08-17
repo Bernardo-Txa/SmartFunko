@@ -4,10 +4,19 @@ import { isPopFlixEnabled } from "@/lib/env";
 export function SiteFooter() {
   return (
     <footer className="border-t border-[var(--border)] bg-[#020617]/72">
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm text-[var(--muted)] sm:px-6 md:grid-cols-3 lg:px-8">
-        <div>
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 text-sm text-[var(--muted)] sm:px-6 md:grid-cols-[1.6fr_1fr_0.8fr] lg:px-8">
+        <div className="space-y-3">
           <strong className="block text-[var(--foreground)]">Smart Funkos</strong>
-          <span>Vendas assistidas com carrinho, link de pagamento e historico de pedidos.</span>
+          <p>Vendas assistidas com carrinho, link de pagamento e historico de pedidos.</p>
+          <div className="space-y-1 text-xs leading-5">
+            <p>
+              <span className="font-semibold text-[var(--foreground)]">CNPJ:</span> 57.923.879/0001-60
+            </p>
+            <p>
+              <span className="font-semibold text-[var(--foreground)]">Sede:</span> Avenida Anders, 14,
+              Edificio Santos 4, sala 410, Nova Itaparica, Vila Velha - ES
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-3 md:justify-center">
           {isPopFlixEnabled() ? (

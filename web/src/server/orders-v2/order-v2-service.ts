@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { couponCodeSchema, DiscountCouponService } from "@/server/coupons/discount-coupon-service";
+import { TemporaryCustomerService } from "@/server/customers/temporary-customer-service";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
 import {
   checkInfinitePayPaymentStatus,
@@ -49,12 +50,16 @@ export const createV2OrderItemSchema = z.object({
 });
 
 export const createV2AdminOrderBatchSchema = z.object({
-  customerId: z.string().uuid(),
+  customerId: z.string().uuid().optional().nullable(),
   internalNotes: z.string().trim().optional().nullable(),
   items: z.array(createV2OrderItemSchema).min(1).max(50),
   notes: z.string().trim().optional().nullable(),
   orderDate: isoDateSchema.optional(),
   seller: z.enum(["daniel", "allana"]).optional().nullable(),
+  temporaryCustomerId: z.string().uuid().optional().nullable(),
+}).refine((input) => Boolean(input.customerId) !== Boolean(input.temporaryCustomerId), {
+  message: "Selecione cliente cadastrado ou cliente temporario",
+  path: ["customerId"],
 });
 
 export const createV2SiteOrderSchema = z.object({
@@ -95,12 +100,16 @@ export const markV2OrderRefundedSchema = z.object({
   notes: z.string().trim().optional().nullable(),
 });
 
+export const markV2OrderPaidManuallySchema = z.object({
+  notes: z.string().trim().optional().nullable(),
+});
+
 export const createV2PaymentSessionSchema = z.object({
   orderIds: z.array(z.string().uuid()).min(1).max(50),
 });
 
 export const bulkV2OrderActionSchema = z.object({
-  action: z.enum(["approve", "mark_requested", "mark_received"]),
+  action: z.enum(["approve", "mark_paid", "mark_requested", "mark_received"]),
   notes: z.string().trim().optional().nullable(),
   orderIds: z.array(z.string().uuid()).min(1).max(100),
 });
@@ -140,11 +149,39 @@ export type V2ReceivingFilters = {
   status?: "aguardando_fechamento" | "cancelado" | "enviado" | "recebido" | "solicitado" | "all";
 };
 
+type V2OrderCore = {
+  approval_status: string;
+  competence_id: string;
+  customer_id: string | null;
+  fulfillment_status: string;
+  id: string;
+  order_number: string;
+  paid_at: string | null;
+  payment_status: string;
+  received_at: string | null;
+  refund_notes: string | null;
+  requested_at: string | null;
+  shipped_at: string | null;
+  temporary_customer_id: string | null;
+  total: number | string;
+  tracking_code: string | null;
+  tracking_url: string | null;
+};
+
 type CustomerRow = {
   email: string | null;
   id: string;
   name: string;
   phone: string | null;
+  status: string;
+};
+
+type TemporaryCustomerRow = {
+  id: string;
+  merged_customer_id?: string | null;
+  name: string;
+  phone: string;
+  phone_normalized?: string | null;
   status: string;
 };
 
@@ -174,7 +211,7 @@ type V2OrderRow = {
   approval_status: string;
   competence_id: string;
   created_at: string;
-  customer_id: string;
+  customer_id: string | null;
   customers?: CustomerRow | CustomerRow[] | null;
   fulfillment_status: string;
   id: string;
@@ -183,6 +220,8 @@ type V2OrderRow = {
   payment_status: string;
   seller: string | null;
   source: string;
+  temporary_customer_id?: string | null;
+  temporary_customers?: TemporaryCustomerRow | TemporaryCustomerRow[] | null;
   total: number | string;
   v2_order_competencies?: CompetenceRow | CompetenceRow[] | null;
   v2_order_items?: Array<{
@@ -233,12 +272,13 @@ const ORDER_ID_FILTER_CHUNK_SIZE = 80;
 
 function orderSelect() {
   return `
-    id,order_number,customer_id,competence_id,source,order_date,
+    id,order_number,customer_id,temporary_customer_id,competence_id,source,order_date,
     approval_status,payment_status,fulfillment_status,seller,
     subtotal,discount,total,coupon_id,coupon_code,customer_visible,notes,internal_notes,rejection_reason,cancellation_reason,refund_notes,
     tracking_code,tracking_url,requested_at,received_at,shipped_at,paid_at,refund_requested_at,refunded_at,
     created_by,reviewed_by,reviewed_at,created_at,updated_at,
     customers(id,name,email,phone,status),
+    temporary_customers(id,name,phone,status,merged_customer_id),
     v2_order_competencies(id,code,label,starts_on,ends_on,status),
     v2_order_items(id,product_variant_id,product_id,supplier_id,item_context,product_name,product_sku,quantity,unit_price,total_price,created_at,updated_at),
     v2_payment_session_orders(
@@ -258,7 +298,7 @@ function paymentSessionSelect() {
     v2_payment_session_orders(
       amount,
       v2_orders(
-        id,order_number,customer_id,competence_id,source,order_date,
+        id,order_number,customer_id,temporary_customer_id,competence_id,source,order_date,
         approval_status,payment_status,fulfillment_status,total,
         v2_order_items(id,product_name,product_sku,quantity,unit_price,total_price)
       )
@@ -579,6 +619,7 @@ export class OrderV2Service {
     const limit = Math.min(1000, Math.max(1, Number(filters.limit ?? 500)));
     const search = filters.search?.trim();
     let customerIds: string[] = [];
+    let temporaryCustomerIds: string[] = [];
     const areaOrderIds = filters.area ? await this.getOrderIdsForArea(filters.area) : undefined;
 
     if (areaOrderIds && areaOrderIds.length === 0) {
@@ -598,6 +639,18 @@ export class OrderV2Service {
       }
 
       customerIds = (customers ?? []).map((customer) => customer.id);
+
+      const { data: temporaryCustomers, error: temporaryCustomerError } = await this.supabase
+        .from("temporary_customers")
+        .select("id")
+        .or(`name.ilike.%${safeSearch}%,phone.ilike.%${safeSearch}%,phone_normalized.ilike.%${safeSearch}%`)
+        .limit(100);
+
+      if (temporaryCustomerError) {
+        throwQueryError(temporaryCustomerError, "Falha ao buscar clientes temporarios para filtro V2");
+      }
+
+      temporaryCustomerIds = (temporaryCustomers ?? []).map((customer) => customer.id);
     }
 
     const buildQuery = (orderIds?: string[]) => {
@@ -642,6 +695,10 @@ export class OrderV2Service {
 
         if (customerIds.length > 0) {
           clauses.push(`customer_id.in.(${customerIds.join(",")})`);
+        }
+
+        if (temporaryCustomerIds.length > 0) {
+          clauses.push(`temporary_customer_id.in.(${temporaryCustomerIds.join(",")})`);
         }
 
         query = query.or(clauses.join(","));
@@ -710,7 +767,10 @@ export class OrderV2Service {
   }
 
   async createAdminWhatsAppOrders(input: CreateV2AdminOrderBatchInput) {
-    const customer = await this.getActiveCustomer(input.customerId);
+    const customer = input.customerId ? await this.getActiveCustomer(input.customerId) : null;
+    const temporaryCustomer = input.temporaryCustomerId
+      ? await new TemporaryCustomerService(this.supabase, this.actorId).getActiveTemporaryCustomer(input.temporaryCustomerId)
+      : null;
     const orderDate = input.orderDate ?? todayInSaoPaulo();
     const competence = await this.getCompetenceForDate(orderDate);
     const enrichedItems = await Promise.all(input.items.map((item) => this.enrichItem(item)));
@@ -729,6 +789,7 @@ export class OrderV2Service {
         paymentStatus: "nao_pago",
         seller: input.seller ?? null,
         source: "admin_whatsapp",
+        temporaryCustomer,
       });
       orders.push(order);
     }
@@ -914,6 +975,14 @@ export class OrderV2Service {
     return this.getAdminOrderById(orderId);
   }
 
+  async markOrderPaidManually(orderId: string, notes?: string | null, actorProfileId = this.actorId) {
+    const order = await this.getOrderCore(orderId);
+
+    await this.markOrderCorePaidManually(order, notes, actorProfileId);
+
+    return this.getAdminOrderById(orderId);
+  }
+
   async updateFulfillment(orderId: string, input: UpdateV2FulfillmentInput, actorProfileId = this.actorId) {
     const order = await this.getOrderCore(orderId);
     const trackingCode = input.trackingCode?.trim() || order.tracking_code || null;
@@ -975,7 +1044,7 @@ export class OrderV2Service {
       throwQueryError(error, "Falha ao atualizar operacao do pedido V2");
     }
 
-    if (input.status === "enviado") {
+    if (input.status === "enviado" && order.customer_id) {
       await this.supabase.from("v2_shipments").insert({
         carrier: null,
         created_by: actorProfileId ?? null,
@@ -1015,6 +1084,21 @@ export class OrderV2Service {
 
       for (const order of orders) {
         await this.approveOrder(order.id, actorProfileId);
+      }
+
+      return {
+        action: input.action,
+        updated: orders.length,
+      };
+    }
+
+    if (input.action === "mark_paid") {
+      const orders = await this.getOrderCores(orderIds);
+
+      orders.forEach((order) => this.assertOrderCanBeMarkedPaidManually(order));
+
+      for (const order of orders) {
+        await this.markOrderCorePaidManually(order, input.notes ?? null, actorProfileId);
       }
 
       return {
@@ -1462,7 +1546,7 @@ export class OrderV2Service {
     competence: CompetenceRow;
     couponCode?: string | null;
     couponId?: string | null;
-    customer: CustomerRow;
+    customer: CustomerRow | null;
     discount?: number;
     fulfillmentStatus: z.infer<typeof v2FulfillmentStatusSchema>;
     internalNotes: string | null;
@@ -1473,6 +1557,7 @@ export class OrderV2Service {
     paymentStatus: z.infer<typeof v2PaymentStatusSchema>;
     seller?: "daniel" | "allana" | null;
     source: "admin_whatsapp" | "admin_manual" | "site" | "preorder";
+    temporaryCustomer?: TemporaryCustomerRow | null;
     visibleActorId?: string;
   }) {
     const subtotal = roundMoney(
@@ -1487,7 +1572,7 @@ export class OrderV2Service {
         coupon_code: input.couponCode ?? null,
         coupon_id: input.couponId ?? null,
         created_by: input.visibleActorId ?? this.actorId ?? null,
-        customer_id: input.customer.id,
+        customer_id: input.customer?.id ?? null,
         discount: input.discount ?? 0,
         fulfillment_status: input.fulfillmentStatus,
         internal_notes: input.internalNotes,
@@ -1501,8 +1586,9 @@ export class OrderV2Service {
         seller: input.seller ?? null,
         source: input.source,
         subtotal,
+        temporary_customer_id: input.temporaryCustomer?.id ?? null,
       })
-      .select("id,order_number,customer_id")
+      .select("id,order_number,customer_id,temporary_customer_id")
       .single();
 
     if (error) {
@@ -1530,11 +1616,12 @@ export class OrderV2Service {
 
     await this.addEvent({
       actorId: input.visibleActorId ?? this.actorId,
-      customerId: input.customer.id,
+      customerId: input.customer?.id ?? null,
       eventType: "order.created",
       metadata: {
         competenceCode: input.competence.code,
         source: input.source,
+        temporaryCustomerId: input.temporaryCustomer?.id ?? null,
       },
       notes: input.source === "site"
         ? "Pedido criado pelo site aguardando aprovacao"
@@ -1552,26 +1639,11 @@ export class OrderV2Service {
     const { data, error } = await this.supabase
       .from("v2_orders")
       .select(`
-        id,order_number,customer_id,competence_id,approval_status,payment_status,fulfillment_status,
-        total,tracking_code,tracking_url,requested_at,received_at,shipped_at,refund_notes
+        id,order_number,customer_id,temporary_customer_id,competence_id,approval_status,payment_status,fulfillment_status,
+        total,tracking_code,tracking_url,requested_at,received_at,shipped_at,paid_at,refund_notes
       `)
       .eq("id", orderId)
-      .maybeSingle<{
-        approval_status: string;
-        competence_id: string;
-        customer_id: string;
-        fulfillment_status: string;
-        id: string;
-        order_number: string;
-        payment_status: string;
-        received_at: string | null;
-        refund_notes: string | null;
-        requested_at: string | null;
-        shipped_at: string | null;
-        total: number | string;
-        tracking_code: string | null;
-        tracking_url: string | null;
-      }>();
+      .maybeSingle<V2OrderCore>();
 
     if (error) {
       throwQueryError(error, "Falha ao buscar pedido V2");
@@ -1588,8 +1660,8 @@ export class OrderV2Service {
     const { data, error } = await this.supabase
       .from("v2_orders")
       .select(`
-        id,order_number,customer_id,competence_id,approval_status,payment_status,fulfillment_status,
-        total,tracking_code,tracking_url,requested_at,received_at,shipped_at,refund_notes
+        id,order_number,customer_id,temporary_customer_id,competence_id,approval_status,payment_status,fulfillment_status,
+        total,tracking_code,tracking_url,requested_at,received_at,shipped_at,paid_at,refund_notes
       `)
       .in("id", orderIds);
 
@@ -1601,22 +1673,63 @@ export class OrderV2Service {
       throw notFound("Um ou mais pedidos V2 nao foram encontrados");
     }
 
-    return data as Array<{
-      approval_status: string;
-      competence_id: string;
-      customer_id: string;
-      fulfillment_status: string;
-      id: string;
-      order_number: string;
-      payment_status: string;
-      received_at: string | null;
-      refund_notes: string | null;
-      requested_at: string | null;
-      shipped_at: string | null;
-      total: number | string;
-      tracking_code: string | null;
-      tracking_url: string | null;
-    }>;
+    return data as V2OrderCore[];
+  }
+
+  private assertOrderCanBeMarkedPaidManually(order: V2OrderCore) {
+    if (order.payment_status === "pago") {
+      throw conflict(`Pedido ${order.order_number} ja esta pago`);
+    }
+
+    if (["cancelado", "reembolso_pendente", "reembolsado"].includes(order.payment_status)) {
+      throw conflict(`Pedido ${order.order_number} nao pode receber baixa manual`);
+    }
+
+    if (order.approval_status === "recusado") {
+      throw conflict(`Pedido ${order.order_number} foi recusado`);
+    }
+
+    if (order.fulfillment_status === "cancelado") {
+      throw conflict(`Pedido ${order.order_number} esta cancelado`);
+    }
+  }
+
+  private async markOrderCorePaidManually(order: V2OrderCore, notes?: string | null, actorProfileId = this.actorId) {
+    this.assertOrderCanBeMarkedPaidManually(order);
+
+    const now = nowIso();
+    const patch: Record<string, unknown> = {
+      paid_at: order.paid_at ?? now,
+      payment_status: "pago",
+      updated_at: now,
+    };
+
+    if (order.approval_status !== "aprovado") {
+      patch.approval_status = "aprovado";
+      patch.reviewed_at = now;
+      patch.reviewed_by = actorProfileId ?? null;
+    }
+
+    await this.supersedePendingSessionsForManualPayment([order.id]);
+
+    const { error } = await this.supabase.from("v2_orders").update(patch).eq("id", order.id);
+
+    if (error) {
+      throwQueryError(error, "Falha ao marcar pedido V2 como pago manualmente");
+    }
+
+    await this.addEvent({
+      actorId: actorProfileId,
+      customerId: order.customer_id,
+      eventType: "payment.manual_paid",
+      fromStatus: order.payment_status,
+      metadata: {
+        autoApproved: order.approval_status !== "aprovado",
+      },
+      notes: notes?.trim() || "Baixa manual de pagamento pelo painel",
+      orderId: order.id,
+      toStatus: "pago",
+    });
   }
 
   private async getOrdersForPayment(orderIds: string[]) {
@@ -1654,6 +1767,78 @@ export class OrderV2Service {
         unitAmountCents: Math.round(Number(item.unit_price) * 100),
       }));
     });
+  }
+
+  private async supersedePendingSessionsForManualPayment(manualPaidOrderIds: string[]) {
+    const { data, error } = await this.supabase
+      .from("v2_payment_session_orders")
+      .select("payment_session_id,v2_payment_sessions(id,status)")
+      .in("order_id", manualPaidOrderIds);
+
+    if (error) {
+      throwQueryError(error, "Falha ao validar checkouts pendentes V2");
+    }
+
+    const pendingSessionIds = uniqueValues(
+      ((data ?? []) as Array<{
+        payment_session_id: string;
+        v2_payment_sessions?: { id?: string; status?: string } | Array<{ id?: string; status?: string }> | null;
+      }>)
+        .map((row) => firstRelation(row.v2_payment_sessions))
+        .filter((session) => session?.status === "pending")
+        .map((session) => session?.id)
+        .filter((id): id is string => Boolean(id)),
+    );
+
+    if (pendingSessionIds.length === 0) {
+      return;
+    }
+
+    const now = nowIso();
+    const { error: sessionError } = await this.supabase
+      .from("v2_payment_sessions")
+      .update({
+        status: "superseded",
+        updated_at: now,
+      })
+      .in("id", pendingSessionIds);
+
+    if (sessionError) {
+      throwQueryError(sessionError, "Falha ao substituir checkout antigo V2");
+    }
+
+    const { data: linkedOrders, error: linkedOrdersError } = await this.supabase
+      .from("v2_payment_session_orders")
+      .select("order_id")
+      .in("payment_session_id", pendingSessionIds);
+
+    if (linkedOrdersError) {
+      throwQueryError(linkedOrdersError, "Falha ao liberar pedidos de checkout antigo V2");
+    }
+
+    const manualPaidOrderIdSet = new Set(manualPaidOrderIds);
+    const linkedOrderIds = uniqueValues(
+      (linkedOrders ?? [])
+        .map((link) => link.order_id)
+        .filter((orderId): orderId is string => Boolean(orderId) && !manualPaidOrderIdSet.has(orderId)),
+    );
+
+    if (linkedOrderIds.length === 0) {
+      return;
+    }
+
+    const { error: resetError } = await this.supabase
+      .from("v2_orders")
+      .update({
+        payment_status: "nao_pago",
+        updated_at: now,
+      })
+      .in("id", linkedOrderIds)
+      .eq("payment_status", "checkout_gerado");
+
+    if (resetError) {
+      throwQueryError(resetError, "Falha ao liberar pedidos de checkout antigo V2");
+    }
   }
 
   private async supersedePendingSessionsForOrders(orderIds: string[], customerId: string) {

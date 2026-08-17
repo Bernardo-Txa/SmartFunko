@@ -39,6 +39,13 @@ export type ReceivingOrder = {
     name?: string | null;
     phone?: string | null;
   }> | null;
+  temporary_customers?: {
+    name?: string | null;
+    phone?: string | null;
+  } | Array<{
+    name?: string | null;
+    phone?: string | null;
+  }> | null;
   v2_order_competencies?: {
     id?: string;
     label?: string;
@@ -89,7 +96,20 @@ function firstRelation<T>(relation: T | T[] | null | undefined) {
 
 function getCustomerName(order: ReceivingOrder) {
   const customer = firstRelation(order.customers);
-  return customer?.name?.trim() || "Cliente";
+  const temporaryCustomer = firstRelation(order.temporary_customers);
+  return customer?.name?.trim() || temporaryCustomer?.name?.trim() || "Cliente";
+}
+
+function getOrderBuyer(order: ReceivingOrder) {
+  const customer = firstRelation(order.customers);
+  const temporaryCustomer = firstRelation(order.temporary_customers);
+
+  return {
+    email: customer?.email ?? null,
+    isTemporary: !customer && Boolean(temporaryCustomer),
+    name: customer?.name?.trim() || temporaryCustomer?.name?.trim() || "Cliente",
+    phone: customer?.phone ?? temporaryCustomer?.phone ?? null,
+  };
 }
 
 function getOrderItems(order: ReceivingOrder) {
@@ -455,7 +475,7 @@ export function ReceivingWorkbench({
 
         <div className="divide-y divide-[var(--border)]">
           {orders.map((order) => {
-            const customer = firstRelation(order.customers);
+            const buyer = getOrderBuyer(order);
             const competence = firstRelation(order.v2_order_competencies);
               const canReceive = canReceiveOrder(order);
 
@@ -492,9 +512,10 @@ export function ReceivingWorkbench({
                     {getOrderProductSummary(order) || "Produto sem descricao"}
                   </h3>
                   <p className="mt-2 text-sm text-[var(--muted)]">
-                    {customer?.name ?? "Cliente"}{customer?.phone ? ` · ${customer.phone}` : ""}
+                    {buyer.name}{buyer.phone ? ` · ${buyer.phone}` : ""}
+                    {buyer.isTemporary ? " · Temporario" : ""}
                   </p>
-                  {customer?.email ? <p className="mt-1 text-xs text-[var(--muted)]">{customer.email}</p> : null}
+                  {buyer.email ? <p className="mt-1 text-xs text-[var(--muted)]">{buyer.email}</p> : null}
                 </div>
 
                 <div className="flex flex-wrap gap-2">

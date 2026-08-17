@@ -4,6 +4,7 @@ import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/su
 import { throwQueryError } from "@/server/supabase/query-error";
 
 export type BiFilters = {
+  competenceId?: string;
   from?: string;
   origin?: string;
   paymentMethod?: string;
@@ -11,73 +12,49 @@ export type BiFilters = {
   to?: string;
 };
 
-type SaleCashEntryRow = {
-  amount: number | string;
-  occurred_at: string;
-  order_id: string | null;
-  orders?: {
-    coupon_code?: string | null;
-    channel?: string | null;
-    created_at?: string;
-    customer_id?: string | null;
-    customers?: {
-      email?: string | null;
-      name?: string | null;
-    } | null;
-    discount?: number | string | null;
-    id?: string;
-    order_items?: Array<{
-      source: string;
-      status: string;
-    }>;
-    order_number?: string | null;
-    payment_provider?: string | null;
-    review_status?: string | null;
-    seller?: string | null;
-    shipping_amount?: number | string | null;
-    status?: string | null;
-    total?: number | string | null;
-  } | null;
-  payments?: {
-    amount?: number | string | null;
-    fee_amount?: number | string | null;
-    method?: string | null;
-    net_amount?: number | string | null;
+type Relation<T> = T | T[] | null | undefined;
+
+type V2PaymentSessionOrderRow = {
+  amount?: number | string | null;
+  v2_payment_sessions?: Relation<{
     paid_at?: string | null;
     status?: string | null;
-  } | null;
+  }>;
 };
 
-type OrderAggregateRow = {
+type V2OrderItemRow = {
+  id?: string;
+  item_context?: string | null;
+  product_id?: string | null;
+  product_name: string;
+  product_sku: string | null;
+  quantity: number | string;
+  total_price: number | string;
+  unit_price?: number | string;
+};
+
+type V2BiOrderRow = {
+  approval_status: string;
   coupon_code: string | null;
+  created_at: string;
   customer_id: string | null;
-  channel?: string;
-  customers?: {
+  customers?: Relation<{
     email?: string | null;
+    id?: string | null;
     name?: string | null;
-  } | null;
-  discount: number | string;
-  id: string;
-  order_items?: Array<{
-    id?: string;
-    quantity: number;
-    source: string;
-    status: string;
-    total_price: number | string;
-    product_variants?: {
-      products?: {
-        id?: string;
-        name?: string | null;
-        slug?: string | null;
-      } | null;
-      sku?: string | null;
-    } | null;
   }>;
+  discount: number | string;
+  fulfillment_status: string;
+  id: string;
+  order_date: string;
   order_number: string;
-  review_status: string;
+  paid_at: string | null;
+  payment_status: string;
   seller: string | null;
-  status: string;
+  source: string;
   total: number | string;
+  v2_order_items?: V2OrderItemRow[];
+  v2_payment_session_orders?: V2PaymentSessionOrderRow[];
 };
 
 type RankingEntryRow = {
@@ -240,32 +217,16 @@ function money(value: number | string | null | undefined) {
   return Number(value ?? 0);
 }
 
-function uniqueOrdersFromEntries(rows: SaleCashEntryRow[]) {
-  return Array.from(new Set(rows.map((row) => row.order_id).filter((value): value is string => Boolean(value))));
-}
-
-function isExcludedOrderStatus(status: string | null | undefined) {
-  return ["cancelled", "refunded"].includes(String(status ?? "").toLowerCase());
-}
-
-function isExcludedReviewStatus(status: string | null | undefined) {
-  return ["under_review", "rejected", "cancelled"].includes(String(status ?? "").toLowerCase());
-}
-
-function isConfirmedSaleEntry(row: SaleCashEntryRow) {
-  if (!row.order_id || !row.orders) {
-    return false;
+function relationList<T>(value: Relation<T>): T[] {
+  if (!value) {
+    return [];
   }
 
-  if (isExcludedOrderStatus(row.orders.status) || isExcludedReviewStatus(row.orders.review_status)) {
-    return false;
-  }
+  return Array.isArray(value) ? value : [value];
+}
 
-  if (row.payments?.status && row.payments.status !== "paid") {
-    return false;
-  }
-
-  return money(row.amount) > 0;
+function firstRelation<T>(value: Relation<T>) {
+  return relationList(value)[0] ?? null;
 }
 
 function periodBucketKey(date: Date, daily: boolean) {
@@ -327,133 +288,142 @@ function paymentMethodMatchesFilter(method: string | null | undefined, filter: s
   return normalizedMethod === normalizedFilter;
 }
 
-function originLabel(origin: string | null | undefined) {
-  const normalized = String(origin ?? "");
+function v2OriginLabel(source: string | null | undefined) {
+  const normalized = String(source ?? "");
 
-  if (normalized === "stock") {
+  if (normalized === "site") {
     return "Catalogo/site";
   }
 
-  if (normalized === "website") {
-    return "Catalogo/site";
-  }
-
-  if (normalized === "whatsapp") {
+  if (normalized === "admin_whatsapp") {
     return "WhatsApp";
   }
 
-  if (normalized === "admin") {
+  if (normalized === "admin_manual") {
     return "Admin/manual";
   }
 
-  if (normalized === "national_order" || normalized === "international_order" || normalized === "preorder") {
-    return "Encomenda";
-  }
-
-  if (normalized === "auction") {
-    return "Leilao";
-  }
-
-  if (normalized === "raffle") {
-    return "Rifa";
+  if (normalized === "preorder") {
+    return "Pre-venda";
   }
 
   return normalized || "Outros";
 }
 
-function orderPrimaryOrigin(order: OrderAggregateRow) {
-  const channel = String(order.channel ?? "");
-
-  if (channel === "website") {
-    return "Catalogo/site";
+function v2OrderOriginMatchesFilter(order: V2BiOrderRow, filter: string | undefined) {
+  if (!filter) {
+    return true;
   }
 
-  if (channel === "whatsapp") {
-    return "WhatsApp";
-  }
-
-  if (channel === "admin") {
-    return "Admin/manual";
-  }
-
-  if (channel === "preorder") {
-    return "Encomenda";
-  }
-
-  const itemOrigins = (order.order_items ?? [])
-    .filter((item) => item.status !== "cancelled")
-    .map((item) => originLabel(item.source));
-
-  if (itemOrigins.includes("Leilao")) {
-    return "Leilao";
-  }
-
-  if (itemOrigins.includes("Encomenda")) {
-    return "Encomenda";
-  }
-
-  if (itemOrigins.includes("Catalogo/site")) {
-    return "Catalogo/site";
-  }
-
-  return "Outros";
-}
-
-function orderOriginMatchesFilter(order: OrderAggregateRow, filter: string) {
   const normalizedFilter = filter.toLowerCase();
-  const primary = orderPrimaryOrigin(order).toLowerCase();
 
-  if (normalizedFilter === "stock" || normalizedFilter === "website") {
-    return primary === "catalogo/site";
+  if (normalizedFilter === "stock" || normalizedFilter === "website" || normalizedFilter === "site") {
+    return order.source === "site";
   }
 
   if (normalizedFilter === "manual" || normalizedFilter === "admin") {
-    return primary === "admin/manual";
+    return order.source === "admin_manual";
   }
 
   if (normalizedFilter === "whatsapp") {
-    return primary === "whatsapp";
-  }
-
-  if (normalizedFilter === "raffle") {
-    return primary === "rifa";
+    return order.source === "admin_whatsapp";
   }
 
   if (normalizedFilter === "national_order" || normalizedFilter === "international_order" || normalizedFilter === "preorder") {
-    return primary === "encomenda";
+    return order.source === "preorder";
   }
 
-  if (normalizedFilter === "auction") {
-    return primary === "leilao";
+  return v2OriginLabel(order.source).toLowerCase() === normalizedFilter;
+}
+
+function v2ReportDate(order: V2BiOrderRow) {
+  const date = order.order_date || order.created_at || order.paid_at;
+
+  if (!date) {
+    return new Date(0);
   }
 
-  return primary === normalizedFilter;
+  return new Date(/^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T12:00:00.000Z` : date);
+}
+
+function v2ReportDateIso(order: V2BiOrderRow) {
+  return v2ReportDate(order).toISOString();
+}
+
+function isActiveV2Order(order: V2BiOrderRow) {
+  return (
+    order.approval_status !== "recusado" &&
+    order.fulfillment_status !== "cancelado" &&
+    !["cancelado", "reembolsado"].includes(order.payment_status)
+  );
+}
+
+function isPaidV2Order(order: V2BiOrderRow) {
+  return isActiveV2Order(order) && order.payment_status === "pago";
+}
+
+function isPendingPaymentV2Order(order: V2BiOrderRow) {
+  return (
+    isActiveV2Order(order) &&
+    order.approval_status === "aprovado" &&
+    ["nao_pago", "checkout_gerado"].includes(order.payment_status)
+  );
+}
+
+function isUnderReviewV2Order(order: V2BiOrderRow) {
+  return order.approval_status === "aguardando_aprovacao" && order.fulfillment_status !== "cancelado";
+}
+
+function v2PaymentMethod(order: V2BiOrderRow) {
+  const sessionOrders = order.v2_payment_session_orders ?? [];
+  const hasSession = sessionOrders.some((sessionOrder) => firstRelation(sessionOrder.v2_payment_sessions));
+
+  return hasSession ? "infinitepay" : "manual";
+}
+
+function v2OrderMatchesFilters(order: V2BiOrderRow, filters: BiFilters, includePaymentMethod = false) {
+  if (filters.seller && order.seller !== filters.seller) {
+    return false;
+  }
+
+  if (!v2OrderOriginMatchesFilter(order, filters.origin)) {
+    return false;
+  }
+
+  if (includePaymentMethod && !paymentMethodMatchesFilter(v2PaymentMethod(order), filters.paymentMethod)) {
+    return false;
+  }
+
+  return true;
+}
+
+function rangeDate(value: string) {
+  return value.slice(0, 10);
 }
 
 export class BIService {
   constructor(private readonly supabase: SupabaseAdminClient = createSupabaseAdminClient()) {}
 
   async getBiOverview(filters: BiFilters = {}): Promise<BiOverview> {
-    const [salesEntries, cashflowSummary, pendingRevenue, underReviewOrders, awaitingPaymentOrders, raffleRevenue] =
-      await Promise.all([
-        this.listSaleCashEntries(filters),
-        this.getCashflowSummary(filters),
-        this.countCurrentPendingOrders(filters),
-        this.countOrdersByReviewStatus("under_review", filters),
-        this.countAwaitingPaymentOrders(filters),
-        this.getRaffleRevenue(filters),
-      ]);
-
-    const confirmedRevenue = salesEntries.reduce((sum, entry) => sum + money(entry.amount), 0);
-    const paidOrders = uniqueOrdersFromEntries(salesEntries).length;
+    const [orders, cashflowSummary, raffleRevenue] = await Promise.all([
+      this.loadV2Orders(filters),
+      this.getCashflowSummary(filters),
+      this.getRaffleRevenue(filters),
+    ]);
+    const paidOrders = orders.filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
+    const pendingOrders = orders.filter((order) => isPendingPaymentV2Order(order) && v2OrderMatchesFilters(order, filters));
+    const underReviewOrders = orders.filter((order) => isUnderReviewV2Order(order) && v2OrderMatchesFilters(order, filters)).length;
+    const awaitingPaymentOrders = pendingOrders.length;
+    const confirmedRevenue = paidOrders.reduce((sum, order) => sum + money(order.total), 0);
+    const pendingRevenue = pendingOrders.reduce((sum, order) => sum + money(order.total), 0);
 
     return {
-      averageTicket: paidOrders > 0 ? confirmedRevenue / paidOrders : 0,
+      averageTicket: paidOrders.length > 0 ? confirmedRevenue / paidOrders.length : 0,
       awaitingPaymentOrders,
       cashflowNet: cashflowSummary.netInPeriod,
       confirmedRevenue,
       pendingRevenue,
-      paidOrders,
+      paidOrders: paidOrders.length,
       raffleRevenue: raffleRevenue.amount,
       underReviewOrders,
     };
@@ -461,21 +431,18 @@ export class BIService {
 
   async getSalesByPeriod(filters: BiFilters = {}): Promise<BiPeriodBucket[]> {
     const range = resolveRange(filters);
-    const salesEntries = await this.listSaleCashEntries(filters);
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
     const from = new Date(range.from);
     const to = new Date(range.to);
     const diffDays = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
     const daily = diffDays <= 35;
     const buckets = new Map<string, { amount: number; orders: Set<string> }>();
 
-    for (const entry of salesEntries) {
-      const date = new Date(entry.occurred_at);
-      const key = periodBucketKey(date, daily);
+    for (const order of orders) {
+      const key = periodBucketKey(v2ReportDate(order), daily);
       const bucket = buckets.get(key) ?? { amount: 0, orders: new Set<string>() };
-      bucket.amount += money(entry.amount);
-      if (entry.order_id) {
-        bucket.orders.add(entry.order_id);
-      }
+      bucket.amount += money(order.total);
+      bucket.orders.add(order.id);
       buckets.set(key, bucket);
     }
 
@@ -490,16 +457,14 @@ export class BIService {
   }
 
   async getSalesBySeller(filters: BiFilters = {}): Promise<BiSellerRow[]> {
-    const entries = await this.listSaleCashEntries(filters);
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
     const totals = new Map<string, { amount: number; orders: Set<string> }>();
 
-    for (const entry of entries) {
-      const seller = entry.orders?.seller ?? "unassigned";
+    for (const order of orders) {
+      const seller = order.seller ?? "unassigned";
       const bucket = totals.get(seller) ?? { amount: 0, orders: new Set<string>() };
-      bucket.amount += money(entry.amount);
-      if (entry.order_id) {
-        bucket.orders.add(entry.order_id);
-      }
+      bucket.amount += money(order.total);
+      bucket.orders.add(order.id);
       totals.set(seller, bucket);
     }
 
@@ -513,27 +478,14 @@ export class BIService {
   }
 
   async getSalesByOrigin(filters: BiFilters = {}): Promise<BiOriginRow[]> {
-    const orders = await this.loadPaidOrders(filters);
-    const saleEntries = await this.listSaleCashEntries(filters);
-    const paidByOrder = new Map<string, number>();
-
-    for (const entry of saleEntries) {
-      if (!entry.order_id) {
-        continue;
-      }
-
-      paidByOrder.set(entry.order_id, (paidByOrder.get(entry.order_id) ?? 0) + money(entry.amount));
-    }
-
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
     const totals = new Map<string, { amount: number; items: number }>();
 
     for (const order of orders) {
-      const key = orderPrimaryOrigin(order);
+      const key = v2OriginLabel(order.source);
       const bucket = totals.get(key) ?? { amount: 0, items: 0 };
-      bucket.amount += paidByOrder.get(order.id) ?? money(order.total);
-      bucket.items += (order.order_items ?? [])
-        .filter((item) => item.status !== "cancelled")
-        .reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+      bucket.amount += money(order.total);
+      bucket.items += (order.v2_order_items ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
       totals.set(key, bucket);
     }
 
@@ -547,13 +499,13 @@ export class BIService {
   }
 
   async getSalesByPaymentMethod(filters: BiFilters = {}): Promise<BiPaymentMethodRow[]> {
-    const entries = await this.listSaleCashEntries(filters);
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
     const totals = new Map<string, { amount: number; count: number }>();
 
-    for (const entry of entries) {
-      const method = paymentMethodLabel(entry.payments?.method);
+    for (const order of orders) {
+      const method = paymentMethodLabel(v2PaymentMethod(order));
       const bucket = totals.get(method) ?? { amount: 0, count: 0 };
-      bucket.amount += money(entry.amount);
+      bucket.amount += money(order.total);
       bucket.count += 1;
       totals.set(method, bucket);
     }
@@ -568,32 +520,27 @@ export class BIService {
   }
 
   async getTopCustomers(filters: BiFilters = {}): Promise<BiTopCustomerRow[]> {
-    const orders = await this.loadPaidOrders(filters);
-    const salesEntries = await this.listSaleCashEntries(filters);
-    const orderById = new Map(orders.map((order) => [order.id, order]));
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
     const totals = new Map<
       string,
       { amount: number; email: string | null; lastOrderAt: string | null; name: string; orders: Set<string> }
     >();
 
-    for (const entry of salesEntries) {
-      if (!entry.order_id) {
-        continue;
-      }
-
-      const order = orderById.get(entry.order_id);
-      const customerId = order?.customer_id ?? order?.customers?.email ?? order?.customers?.name ?? entry.order_id;
+    for (const order of orders) {
+      const customer = firstRelation(order.customers);
+      const customerId = order.customer_id ?? customer?.email ?? customer?.name ?? order.id;
+      const orderDate = v2ReportDateIso(order);
       const bucket = totals.get(customerId) ?? {
         amount: 0,
-        email: order?.customers?.email ?? null,
+        email: customer?.email ?? null,
         lastOrderAt: null,
-        name: order?.customers?.name ?? "Cliente",
+        name: customer?.name ?? "Cliente",
         orders: new Set<string>(),
       };
-      bucket.amount += money(entry.amount);
-      bucket.orders.add(entry.order_id);
-      if (!bucket.lastOrderAt || entry.occurred_at > bucket.lastOrderAt) {
-        bucket.lastOrderAt = entry.occurred_at;
+      bucket.amount += money(order.total);
+      bucket.orders.add(order.id);
+      if (!bucket.lastOrderAt || orderDate > bucket.lastOrderAt) {
+        bucket.lastOrderAt = orderDate;
       }
       totals.set(customerId, bucket);
     }
@@ -615,27 +562,22 @@ export class BIService {
   }
 
   async getTopProducts(filters: BiFilters = {}): Promise<BiTopProductRow[]> {
-    const orders = await this.loadPaidOrders(filters);
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
     const totals = new Map<
       string,
       { amount: number; averageItemTicket: number; quantity: number; productId: string | null; productName: string; sku: string | null }
     >();
 
     for (const order of orders) {
-      for (const item of order.order_items ?? []) {
-        if (item.status === "cancelled") {
-          continue;
-        }
-
-        const product = item.product_variants?.products ?? null;
-        const key = item.product_variants?.sku ?? product?.id ?? `${item.source}:${item.total_price}`;
+      for (const item of order.v2_order_items ?? []) {
+        const key = item.product_sku ?? item.product_id ?? item.product_name;
         const bucket = totals.get(key) ?? {
           amount: 0,
           averageItemTicket: 0,
           quantity: 0,
-          productId: product?.id ?? null,
-          productName: product?.name ?? item.product_variants?.sku ?? "Produto sem nome",
-          sku: item.product_variants?.sku ?? null,
+          productId: item.product_id ?? null,
+          productName: item.product_name || item.product_sku || "Produto sem nome",
+          sku: item.product_sku ?? null,
         };
         bucket.amount += money(item.total_price);
         bucket.quantity += Number(item.quantity ?? 0);
@@ -648,35 +590,20 @@ export class BIService {
   }
 
   async getTopOrders(filters: BiFilters = {}): Promise<BiTopOrderRow[]> {
-    const orders = await this.loadPaidOrders(filters);
-    const salesEntries = await this.listSaleCashEntries(filters);
-    const paidByOrder = new Map<string, { amount: number; method: string; paidAt: string | null }>();
-
-    for (const entry of salesEntries) {
-      if (!entry.order_id) {
-        continue;
-      }
-
-      const current = paidByOrder.get(entry.order_id) ?? { amount: 0, method: "Outros", paidAt: null };
-      current.amount += money(entry.amount);
-      current.method = paymentMethodLabel(entry.payments?.method);
-      if (!current.paidAt || entry.occurred_at > current.paidAt) {
-        current.paidAt = entry.occurred_at;
-      }
-      paidByOrder.set(entry.order_id, current);
-    }
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
 
     return orders
       .map((order) => {
-        const paid = paidByOrder.get(order.id);
+        const customer = firstRelation(order.customers);
+
         return {
-          amount: paid?.amount ?? money(order.total),
-          customerName: order.customers?.name ?? "Cliente",
-          method: paid?.method ?? "Outros",
-          origin: orderPrimaryOrigin(order),
+          amount: money(order.total),
+          customerName: customer?.name ?? "Cliente",
+          method: paymentMethodLabel(v2PaymentMethod(order)),
+          origin: v2OriginLabel(order.source),
           orderId: order.id,
           orderNumber: order.order_number,
-          paidAt: paid?.paidAt ?? null,
+          paidAt: order.paid_at ?? v2ReportDateIso(order),
           seller: order.seller,
         };
       })
@@ -825,11 +752,11 @@ export class BIService {
   }
 
   async getCouponUsage(filters: BiFilters = {}): Promise<BiCouponUsageRow[]> {
-    const orders = await this.loadPaidOrders(filters);
+    const orders = (await this.loadV2Orders(filters)).filter((order) => isPaidV2Order(order) && v2OrderMatchesFilters(order, filters, true));
     const totals = new Map<string, { discount: number; orders: Set<string> }>();
 
     for (const order of orders) {
-      if (!order.coupon_code || order.status === "cancelled" || order.status === "refunded") {
+      if (!order.coupon_code) {
         continue;
       }
 
@@ -900,221 +827,43 @@ export class BIService {
     };
   }
 
-  private async listSaleCashEntries(filters: BiFilters = {}) {
+  private async loadV2Orders(filters: BiFilters = {}) {
     const range = resolveRange(filters);
-    const { data, error } = await this.supabase
-      .from("cash_entries")
-      .select(
-        `
-          amount,occurred_at,order_id,
-          orders(
-            id,order_number,total,status,review_status,seller,discount,shipping_amount,coupon_code,created_at,payment_provider,
-            customers(id,name,email),
-            order_items(source,status)
-          ),
-          payments(id,method,status,paid_at,amount,fee_amount,net_amount)
-        `,
-      )
-      .eq("type", "income")
-      .eq("category", "sale")
-      .gte("occurred_at", range.from)
-      .lte("occurred_at", range.to)
-      .order("occurred_at", { ascending: false })
-      .limit(1500);
-
-    if (error) {
-      throwQueryError(error, "Falha ao carregar vendas do BI");
-    }
-
-    const entries = ((data ?? []) as unknown as SaleCashEntryRow[]).filter((row) => {
-      if (!inRange(row.occurred_at, range)) {
-        return false;
-      }
-
-      if (!isConfirmedSaleEntry(row)) {
-        return false;
-      }
-
-      if (filters.seller && row.orders?.seller !== filters.seller) {
-        return false;
-      }
-
-      if (!paymentMethodMatchesFilter(row.payments?.method, filters.paymentMethod)) {
-        return false;
-      }
-
-      if (filters.origin) {
-        if (!row.orders || !orderOriginMatchesFilter(row.orders as OrderAggregateRow, filters.origin)) {
-          return false;
-        }
-      }
-
-      if (filters.origin === "raffle" || filters.paymentMethod === "raffle") {
-        return false;
-      }
-
-      return true;
-    });
-
-    return entries;
-  }
-
-  private async loadPaidOrders(filters: BiFilters = {}) {
-    const saleEntries = await this.listSaleCashEntries(filters);
-    const orderIds = uniqueOrdersFromEntries(saleEntries);
-
-    if (orderIds.length === 0) {
-      return [] as OrderAggregateRow[];
-    }
-
-    const { data, error } = await this.supabase
-      .from("orders")
-      .select(
-        `
-          id,customer_id,order_number,total,status,review_status,seller,discount,coupon_code,channel,
-          customers(id,name,email),
-          order_items(
-            id,quantity,total_price,source,status,
-            product_variants(
-              sku,
-              products(id,name,slug)
-            )
-          )
-        `,
-      )
-      .in("id", orderIds)
-      .not("status", "in", "(cancelled,refunded)")
+    let query = this.supabase
+      .from("v2_orders")
+      .select(`
+        id,order_number,customer_id,competence_id,source,order_date,created_at,
+        approval_status,payment_status,fulfillment_status,seller,total,discount,coupon_code,paid_at,
+        customers(id,name,email),
+        v2_order_items(id,product_id,item_context,product_name,product_sku,quantity,unit_price,total_price),
+        v2_payment_session_orders(
+          amount,
+          v2_payment_sessions(status,paid_at)
+        )
+      `)
+      .order("order_date", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(1500);
+      .limit(5000);
 
-    if (error) {
-      throwQueryError(error, "Falha ao carregar pedidos pagos do BI");
+    if (filters.competenceId) {
+      query = query.eq("competence_id", filters.competenceId);
+    } else {
+      query = query.gte("order_date", rangeDate(range.from)).lte("order_date", rangeDate(range.to));
     }
 
-    return ((data ?? []) as unknown as OrderAggregateRow[]).filter((order) => {
-      if (isExcludedReviewStatus(order.review_status)) {
+    const { data, error } = await query;
+
+    if (error) {
+      throwQueryError(error, "Falha ao carregar pedidos V2 do BI");
+    }
+
+    return ((data ?? []) as unknown as V2BiOrderRow[]).filter((order) => {
+      if (!filters.competenceId && !inRange(v2ReportDateIso(order), range)) {
         return false;
       }
 
-      if (filters.seller && order.seller !== filters.seller) {
-        return false;
-      }
-
-      if (filters.origin) {
-        if (!orderOriginMatchesFilter(order, filters.origin)) {
-          return false;
-        }
-      }
-
-      return true;
+      return isActiveV2Order(order) || isUnderReviewV2Order(order);
     });
-  }
-
-  private async countOrdersByReviewStatus(status: string, filters: BiFilters = {}) {
-    const range = resolveRange(filters);
-    const { data, error } = await this.supabase
-      .from("orders")
-      .select("id,seller,channel,order_items(source,status),review_status,status,created_at")
-      .eq("review_status", status)
-      .gte("created_at", range.from)
-      .lte("created_at", range.to)
-      .limit(1500);
-
-    if (error) {
-      throwQueryError(error, "Falha ao contar pedidos por status de analise");
-    }
-
-    return ((data ?? []) as unknown as OrderAggregateRow[])
-      .filter((order) => {
-        if (filters.seller && order.seller !== filters.seller) {
-          return false;
-        }
-
-        if (filters.origin && !orderOriginMatchesFilter(order, filters.origin)) {
-          return false;
-        }
-
-        return true;
-      })
-      .length;
-  }
-
-  private async countAwaitingPaymentOrders(filters: BiFilters = {}) {
-    const range = resolveRange(filters);
-    const { data, error } = await this.supabase
-      .from("orders")
-      .select("id,seller,channel,order_items(source,status),review_status,status,created_at,payments(amount,status)")
-      .or("review_status.eq.awaiting_payment,status.in.(pending_payment,partially_paid)")
-      .not("review_status", "in", "(under_review,rejected,cancelled)")
-      .not("status", "in", "(cancelled,refunded)")
-      .gte("created_at", range.from)
-      .lte("created_at", range.to)
-      .limit(1500);
-
-    if (error) {
-      throwQueryError(error, "Falha ao contar pedidos aguardando pagamento");
-    }
-
-    return ((data ?? []) as unknown as OrderAggregateRow[])
-      .filter((order) => {
-        if (filters.seller && order.seller !== filters.seller) {
-          return false;
-        }
-
-        if (filters.origin && !orderOriginMatchesFilter(order, filters.origin)) {
-          return false;
-        }
-
-        return true;
-      })
-      .length;
-  }
-
-  private async countCurrentPendingOrders(filters: BiFilters = {}) {
-    const range = resolveRange(filters);
-    const { data, error } = await this.supabase
-      .from("orders")
-      .select("total,status,review_status,seller,channel,created_at,payments(amount,status),order_items(source,status)")
-      .not("status", "in", "(cancelled,refunded)")
-      .gte("created_at", range.from)
-      .lte("created_at", range.to);
-
-    if (error) {
-      throwQueryError(error, "Falha ao calcular pendencias atuais");
-    }
-
-    return ((data ?? []) as Array<{
-      payments?: Array<{ amount: number | string; status: string }>;
-      review_status?: string | null;
-      seller?: string | null;
-      status: string;
-      total: number | string;
-    }>)
-      .filter((order) => {
-        if (isExcludedReviewStatus(order.review_status)) {
-          return false;
-        }
-
-        if (filters.seller && order.seller !== filters.seller) {
-          return false;
-        }
-
-        if (filters.origin && !orderOriginMatchesFilter(order as OrderAggregateRow, filters.origin)) {
-          return false;
-        }
-
-        const reviewStatus = String(order.review_status ?? "");
-        return (
-          ["approved_for_payment", "awaiting_payment", "paid"].includes(reviewStatus) ||
-          ["pending_payment", "partially_paid"].includes(order.status)
-        );
-      })
-      .reduce((sum, order) => {
-        const paid = (order.payments ?? [])
-          .filter((payment) => payment.status === "paid")
-          .reduce((paymentSum, payment) => paymentSum + money(payment.amount), 0);
-        return sum + Math.max(0, money(order.total) - paid);
-      }, 0);
   }
 
   private async loadRewardLevels(customerIds: string[]) {

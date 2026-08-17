@@ -11,6 +11,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/format";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { CustomerService } from "@/server/customers/customer-service";
+import { TemporaryCustomerService } from "@/server/customers/temporary-customer-service";
 import { OrderV2Service } from "@/server/orders-v2/order-v2-service";
 
 export const metadata: Metadata = {
@@ -31,6 +32,12 @@ type Props = {
 
 type Customer = {
   email: string | null;
+  id: string;
+  name: string;
+  phone: string | null;
+};
+
+type TemporaryCustomer = {
   id: string;
   name: string;
   phone: string | null;
@@ -87,7 +94,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
   const source = getParam(params?.source);
   const view = getParam(params?.view);
   const service = new OrderV2Service(undefined, admin.profile.id);
-  const [orders, competencies, customers] = await Promise.all([
+  const [orders, competencies, customers, temporaryCustomers] = await Promise.all([
     service.listAdminOrders({
       approvalStatus: approvalStatus || undefined,
       competenceId: competenceId || undefined,
@@ -98,6 +105,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
     }) as unknown as Promise<AdminOrderV2ListOrder[]>,
     service.listCompetencies() as unknown as Promise<OrderV2CompetenceOption[]>,
     new CustomerService(undefined, admin.profile.id).listCustomers() as unknown as Promise<Customer[]>,
+    new TemporaryCustomerService(undefined, admin.profile.id).listTemporaryCustomers() as unknown as Promise<TemporaryCustomer[]>,
   ]);
   const stats = getStats(orders);
   const filters: OrderV2ListFilters = {
@@ -123,6 +131,7 @@ export default async function AdminOrdersV2Page({ searchParams }: Props) {
         <OrderV2CreateForm
           customers={customers}
           defaultOrderDate={todayInput()}
+          temporaryCustomers={temporaryCustomers}
         />
 
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">

@@ -34,6 +34,13 @@ type AdminOrderV2Detail = {
     name?: string;
     phone?: string | null;
   }> | null;
+  temporary_customers?: {
+    name?: string | null;
+    phone?: string | null;
+  } | Array<{
+    name?: string | null;
+    phone?: string | null;
+  }> | null;
   fulfillment_status: string;
   id: string;
   internal_notes: string | null;
@@ -89,11 +96,41 @@ function Badge({ label, status }: { label: string; status: string }) {
   return <span className={getV2StatusBadgeClassName(status)}>{label}</span>;
 }
 
+function getOrderBuyer(order: AdminOrderV2Detail) {
+  const customer = firstRelation(order.customers);
+  const temporaryCustomer = firstRelation(order.temporary_customers);
+
+  if (customer) {
+    return {
+      email: customer.email ?? null,
+      isTemporary: false,
+      name: customer.name?.trim() || "Cliente",
+      phone: customer.phone ?? null,
+    };
+  }
+
+  if (temporaryCustomer) {
+    return {
+      email: null,
+      isTemporary: true,
+      name: temporaryCustomer.name?.trim() || "Cliente temporario",
+      phone: temporaryCustomer.phone ?? null,
+    };
+  }
+
+  return {
+    email: null,
+    isTemporary: false,
+    name: "Cliente",
+    phone: null,
+  };
+}
+
 export default async function AdminOrderV2DetailPage({ params }: Props) {
   const { id } = await params;
   const admin = await requireAdminPage(`/admin/v2/pedidos/${id}`);
   const order = await new OrderV2Service(undefined, admin.profile.id).getAdminOrderById(id) as unknown as AdminOrderV2Detail;
-  const customer = firstRelation(order.customers);
+  const buyer = getOrderBuyer(order);
   const competence = firstRelation(order.v2_order_competencies);
 
   return (
@@ -123,19 +160,26 @@ export default async function AdminOrderV2DetailPage({ params }: Props) {
 
         <section className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-            <h2 className="text-lg font-bold text-[var(--foreground)]">Cliente</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-bold text-[var(--foreground)]">Cliente</h2>
+              {buyer.isTemporary ? (
+                <span className="rounded-full border border-yellow-300/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-yellow-100">
+                  Temporario
+                </span>
+              ) : null}
+            </div>
             <dl className="mt-4 grid gap-2 text-sm">
               <div>
                 <dt className="text-[var(--muted)]">Nome</dt>
-                <dd className="font-semibold text-[var(--foreground)]">{customer?.name ?? "Cliente"}</dd>
+                <dd className="font-semibold text-[var(--foreground)]">{buyer.name}</dd>
               </div>
               <div>
                 <dt className="text-[var(--muted)]">E-mail</dt>
-                <dd className="text-[var(--foreground)]">{customer?.email ?? "-"}</dd>
+                <dd className="text-[var(--foreground)]">{buyer.email ?? "-"}</dd>
               </div>
               <div>
                 <dt className="text-[var(--muted)]">Telefone</dt>
-                <dd className="text-[var(--foreground)]">{customer?.phone ?? "-"}</dd>
+                <dd className="text-[var(--foreground)]">{buyer.phone ?? "-"}</dd>
               </div>
             </dl>
           </div>

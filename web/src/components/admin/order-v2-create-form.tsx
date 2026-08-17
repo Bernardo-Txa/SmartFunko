@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Send, Trash2 } from "lucide-react";
+import { Plus, Send, Trash2, UserPlus } from "lucide-react";
 import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
@@ -12,6 +12,12 @@ import { orderSellerOptions } from "@/lib/order-labels";
 
 type CustomerOption = {
   email: string | null;
+  id: string;
+  name: string;
+  phone: string | null;
+};
+
+type TemporaryCustomerOption = {
   id: string;
   name: string;
   phone: string | null;
@@ -32,6 +38,29 @@ type ApiResponse = {
     message?: string;
   };
 };
+
+type TemporaryCustomerApiResponse = {
+  data?: TemporaryCustomerOption;
+  error?: {
+    message?: string;
+  };
+};
+
+type CustomerSelectionKind = "customer" | "temporary";
+
+function getSelectionKey(kind: CustomerSelectionKind, id: string) {
+  return `${kind}:${id}`;
+}
+
+function parseSelectionKey(value: string) {
+  const [kind, id] = value.split(":");
+
+  if ((kind === "customer" || kind === "temporary") && id) {
+    return { id, kind };
+  }
+
+  return null;
+}
 
 function createDraftItem(): OrderDraftItem {
   return {
@@ -54,20 +83,34 @@ export function OrderV2CreateForm({
   customers,
   defaultOrderDate,
   supplierId,
+  temporaryCustomers,
 }: {
   customers: CustomerOption[];
   defaultOrderDate: string;
   supplierId?: string | null;
+  temporaryCustomers: TemporaryCustomerOption[];
 }) {
   const router = useRouter();
-  const [customerId, setCustomerId] = useState(customers[0]?.id ?? "");
   const [error, setError] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
+  const [isCreatingTemporaryCustomer, setIsCreatingTemporaryCustomer] = useState(false);
+  const [isTemporaryFormOpen, setIsTemporaryFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<OrderDraftItem[]>([createDraftItem()]);
+  const [localTemporaryCustomers, setLocalTemporaryCustomers] = useState(temporaryCustomers);
   const [notes, setNotes] = useState("");
   const [orderDate, setOrderDate] = useState(defaultOrderDate);
+  const [selectedCustomerKey, setSelectedCustomerKey] = useState(
+    customers[0]?.id
+      ? getSelectionKey("customer", customers[0].id)
+      : temporaryCustomers[0]?.id
+        ? getSelectionKey("temporary", temporaryCustomers[0].id)
+        : "",
+  );
   const [seller, setSeller] = useState("daniel");
+  const [temporaryCustomerName, setTemporaryCustomerName] = useState("");
+  const [temporaryCustomerNotes, setTemporaryCustomerNotes] = useState("");
+  const [temporaryCustomerPhone, setTemporaryCustomerPhone] = useState("");
   const total = useMemo(
     () => items.reduce((sum, item) => sum + parseMoney(item.unitPrice) * Number(item.quantity || 1), 0),
     [items],
@@ -91,12 +134,19 @@ export function OrderV2CreateForm({
     setIsSubmitting(true);
 
     try {
+      const selectedCustomer = parseSelectionKey(selectedCustomerKey);
+
+      if (!selectedCustomer) {
+        throw new Error("Selecione um cliente cadastrado ou temporario");
+      }
+
       const payload = {
-        customerId,
+        customerId: selectedCustomer.kind === "customer" ? selectedCustomer.id : null,
         internalNotes: internalNotes || null,
         notes: notes || null,
         orderDate,
         seller,
+        temporaryCustomerId: selectedCustomer.kind === "temporary" ? selectedCustomer.id : null,
         items: items.map((item) => ({
           productName: item.productName,
           productSku: item.productSku || null,
@@ -127,6 +177,47 @@ export function OrderV2CreateForm({
     }
   }
 
+  async function createTemporaryCustomer() {
+    setError("");
+    setIsCreatingTemporaryCustomer(true);
+
+    try {
+      const response = await fetch("/api/v1/admin/temporary-customers", {
+        body: JSON.stringify({
+          name: temporaryCustomerName,
+          notes: temporaryCustomerNotes || null,
+          phone: temporaryCustomerPhone,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      const body = (await response.json()) as TemporaryCustomerApiResponse;
+
+      if (!response.ok || !body.data) {
+        throw new Error(body.error?.message ?? "Falha ao criar cliente temporario");
+      }
+
+      const createdCustomer = body.data;
+
+      setLocalTemporaryCustomers((current) => {
+        if (current.some((customer) => customer.id === createdCustomer.id)) {
+          return current;
+        }
+
+        return [createdCustomer, ...current];
+      });
+      setSelectedCustomerKey(getSelectionKey("temporary", createdCustomer.id));
+      setTemporaryCustomerName("");
+      setTemporaryCustomerPhone("");
+      setTemporaryCustomerNotes("");
+      setIsTemporaryFormOpen(false);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Falha ao criar cliente temporario");
+    } finally {
+      setIsCreatingTemporaryCustomer(false);
+    }
+  }
+
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -148,17 +239,39 @@ export function OrderV2CreateForm({
 
       <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(150px,180px)_minmax(150px,180px)]">
         <label className="block min-w-0">
-          <span className="text-sm font-semibold text-[var(--foreground)]">Cliente</span>
+          <span className="flex items-center justify-between gap-3 text-sm font-semibold text-[var(--foreground)]">
+            Cliente
+            <button
+              type="button"
+              onClick={() => setIsTemporaryFormOpen((current) => !current)}
+              className="inline-flex h-8 items-center gap-2 rounded-md border border-[var(--border)] px-2 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+            >
+              <UserPlus size={14} aria-hidden="true" />
+              Temporario
+            </button>
+          </span>
           <select
-            value={customerId}
-            onChange={(event) => setCustomerId(event.target.value)}
+            value={selectedCustomerKey}
+            onChange={(event) => setSelectedCustomerKey(event.target.value)}
             className="mt-2 h-11 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
           >
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name} {customer.phone ? `- ${customer.phone}` : ""}
-              </option>
-            ))}
+            <option value="">Selecione</option>
+            <optgroup label="Clientes cadastrados">
+              {customers.map((customer) => (
+                <option key={customer.id} value={getSelectionKey("customer", customer.id)}>
+                  {customer.name} {customer.phone ? `- ${customer.phone}` : ""}
+                </option>
+              ))}
+            </optgroup>
+            {localTemporaryCustomers.length > 0 ? (
+              <optgroup label="Clientes temporarios">
+                {localTemporaryCustomers.map((customer) => (
+                  <option key={customer.id} value={getSelectionKey("temporary", customer.id)}>
+                    {customer.name} {customer.phone ? `- ${customer.phone}` : ""} (temporario)
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
         </label>
         <label className="block min-w-0">
@@ -185,6 +298,49 @@ export function OrderV2CreateForm({
           />
         </label>
       </div>
+
+      {isTemporaryFormOpen ? (
+        <div className="mt-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--background)] p-3">
+          <div className="grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(150px,220px)_auto] md:items-end">
+            <label className="block min-w-0">
+              <span className="text-sm font-semibold text-[var(--foreground)]">Nome temporario</span>
+              <input
+                value={temporaryCustomerName}
+                onChange={(event) => setTemporaryCustomerName(event.target.value)}
+                className="mt-2 h-10 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                placeholder="Nome do cliente no WhatsApp"
+              />
+            </label>
+            <label className="block min-w-0">
+              <span className="text-sm font-semibold text-[var(--foreground)]">WhatsApp</span>
+              <input
+                value={temporaryCustomerPhone}
+                onChange={(event) => setTemporaryCustomerPhone(event.target.value)}
+                className="mt-2 h-10 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+                placeholder="11999999999"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={isCreatingTemporaryCustomer}
+              onClick={() => void createTemporaryCustomer()}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--accent)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <UserPlus size={15} aria-hidden="true" />
+              Criar e selecionar
+            </button>
+          </div>
+          <label className="mt-3 block min-w-0">
+            <span className="text-sm font-semibold text-[var(--foreground)]">Observacao do temporario</span>
+            <input
+              value={temporaryCustomerNotes}
+              onChange={(event) => setTemporaryCustomerNotes(event.target.value)}
+              className="mt-2 h-10 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+              placeholder="Opcional"
+            />
+          </label>
+        </div>
+      ) : null}
 
       <div className="mt-5 grid gap-4">
         {items.map((item, index) => (
@@ -264,7 +420,7 @@ export function OrderV2CreateForm({
       <button
         type="button"
         onClick={submit}
-        disabled={isSubmitting || !customerId}
+        disabled={isSubmitting || !selectedCustomerKey}
         className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-5 text-sm font-black text-slate-950 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <Send size={17} aria-hidden="true" />
