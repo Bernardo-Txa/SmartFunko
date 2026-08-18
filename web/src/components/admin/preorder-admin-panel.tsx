@@ -104,7 +104,7 @@ export function PreorderAdminPanel({
 
       const response = await fetch("/api/v1/admin/preorders", {
         body: JSON.stringify({
-          categoryName: String(formData.get("categoryName") ?? "").trim() || null,
+          categoryName: null,
           code: String(formData.get("code") ?? "").trim() || null,
           description: String(formData.get("description") ?? "").trim() || null,
           expectedArrival: String(formData.get("expectedArrival") ?? "").trim() || null,
@@ -114,7 +114,7 @@ export function PreorderAdminPanel({
           maxPerCustomer: Number(formData.get("maxPerCustomer") || 0) || null,
           orderDeadline: String(formData.get("orderDeadline") ?? "").trim() || null,
           price,
-          shortDescription: String(formData.get("shortDescription") ?? "").trim() || null,
+          shortDescription: null,
           status: String(formData.get("status") ?? "open"),
           title,
         }),
@@ -155,7 +155,7 @@ export function PreorderAdminPanel({
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_160px_160px]">
+              <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_160px_160px_160px]">
                 <label className="block">
                   <span className="text-sm font-semibold text-[var(--foreground)]">Produto</span>
                   <input
@@ -191,17 +191,6 @@ export function PreorderAdminPanel({
                     ))}
                   </select>
                 </label>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
-                <label className="block">
-                  <span className="text-sm font-semibold text-[var(--foreground)]">Resumo curto</span>
-                  <input
-                    name="shortDescription"
-                    placeholder="Texto curto que aparece no card"
-                    className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-                  />
-                </label>
                 <label className="block">
                   <span className="text-sm font-semibold text-[var(--foreground)]">Limite por pedido</span>
                   <input
@@ -234,20 +223,12 @@ export function PreorderAdminPanel({
                 </label>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
                   <span className="text-sm font-semibold text-[var(--foreground)]">Chegada prevista</span>
                   <input
                     name="expectedArrival"
                     placeholder="Ex: setembro/2026"
-                    className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-semibold text-[var(--foreground)]">Categoria</span>
-                  <input
-                    name="categoryName"
-                    placeholder="Funko Pop, Cards, Boneco..."
                     className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
                   />
                 </label>
@@ -341,6 +322,9 @@ export function PreorderAdminPanel({
             {description.trim() ? (
               <p className="mt-3 line-clamp-5 text-sm leading-6 text-[var(--muted)]">{description.trim()}</p>
             ) : null}
+            <div className="mt-4 rounded-md border border-yellow-300/25 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
+              Pre-venda confirmada somente apos pagamento. Envio apenas depois do lancamento ou chegada prevista.
+            </div>
           </aside>
         </div>
       </section>

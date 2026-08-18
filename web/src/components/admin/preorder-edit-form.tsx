@@ -74,7 +74,7 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
 
       const response = await fetch(`/api/v1/admin/preorders/${item.id}`, {
         body: JSON.stringify({
-          categoryName: String(formData.get("categoryName") ?? "").trim() || null,
+          categoryName: null,
           code: String(formData.get("code") ?? "").trim() || null,
           description: String(formData.get("description") ?? "").trim() || null,
           expectedArrival: String(formData.get("expectedArrival") ?? "").trim() || null,
@@ -84,7 +84,7 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
           maxPerCustomer: Number(formData.get("maxPerCustomer") || 0) || null,
           orderDeadline: String(formData.get("orderDeadline") ?? "").trim() || null,
           price,
-          shortDescription: String(formData.get("shortDescription") ?? "").trim() || null,
+          shortDescription: null,
           status: String(formData.get("status") ?? item.status),
           title,
         }),
@@ -119,7 +119,7 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_160px_160px]">
+            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_160px_160px_160px]">
               <label className="block">
                 <span className="text-sm font-semibold text-[var(--foreground)]">Produto</span>
                 <input
@@ -152,17 +152,6 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
-              </label>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
-              <label className="block">
-                <span className="text-sm font-semibold text-[var(--foreground)]">Resumo curto</span>
-                <input
-                  name="shortDescription"
-                  defaultValue={item.shortDescription ?? ""}
-                  className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-                />
               </label>
               <label className="block">
                 <span className="text-sm font-semibold text-[var(--foreground)]">Limite por pedido</span>
@@ -197,20 +186,12 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
               </label>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
                 <span className="text-sm font-semibold text-[var(--foreground)]">Chegada prevista</span>
                 <input
                   name="expectedArrival"
                   defaultValue={item.expectedArrival ?? ""}
-                  className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-semibold text-[var(--foreground)]">Categoria</span>
-                <input
-                  name="categoryName"
-                  defaultValue={item.categoryName ?? ""}
                   className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
                 />
               </label>
@@ -296,6 +277,9 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
             </span>
             <strong className="mt-3 block text-base text-[var(--foreground)]">{titleDraft || item.title}</strong>
             <p className="mt-2 text-xs text-[var(--muted)]">{item.code}</p>
+            <div className="mt-4 rounded-md border border-yellow-300/25 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
+              Pre-venda confirmada somente apos pagamento. Envio apenas depois do lancamento ou chegada prevista.
+            </div>
           </aside>
         </form>
       </section>
