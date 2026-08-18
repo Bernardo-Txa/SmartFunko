@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { OrdersV2PaymentPanel, type CustomerOrderV2 } from "@/components/account/orders-v2-payment-panel";
+import {
+  PreorderReservationsPanel,
+  type CustomerPreorderReservation,
+} from "@/components/account/preorder-reservations-panel";
 import { requireUserPage } from "@/server/auth/require-user-page";
 import { OrderV2Service } from "@/server/orders-v2/order-v2-service";
+import { PreorderService } from "@/server/preorders/preorder-service";
 
 export const metadata: Metadata = {
   title: "Meus pedidos V2",
@@ -9,9 +14,12 @@ export const metadata: Metadata = {
 
 export default async function CustomerOrdersV2Page() {
   const { customer, profile } = await requireUserPage("/conta/pedidos-v2");
-  const orders = customer
-    ? await new OrderV2Service().getCustomerOrders(customer.id) as unknown as CustomerOrderV2[]
-    : [];
+  const [orders, pendingPreorders] = customer
+    ? await Promise.all([
+      new OrderV2Service().getCustomerOrders(customer.id) as unknown as Promise<CustomerOrderV2[]>,
+      new PreorderService().listCustomerPendingReservations(customer.id) as Promise<CustomerPreorderReservation[]>,
+    ])
+    : [[], []] as [CustomerOrderV2[], CustomerPreorderReservation[]];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -21,6 +29,7 @@ export default async function CustomerOrdersV2Page() {
           {profile.name} · pedidos agrupados por competencia.
         </p>
       </div>
+      <PreorderReservationsPanel reservations={pendingPreorders} />
       <OrdersV2PaymentPanel orders={orders} />
     </div>
   );

@@ -84,7 +84,7 @@ export default async function PreordersPage() {
               <p>1. Voce seleciona os itens que quer reservar.</p>
               <p>2. O sistema gera um checkout InfinitePay.</p>
               <p>3. Pago, ele entra em Meus pedidos como pago.</p>
-              <p>4. Cancelamento de pre-venda e feito somente pelo admin.</p>
+              <p>4. Enquanto nao pagar, voce pode retomar ou cancelar o checkout em Meus pedidos.</p>
             </div>
           </aside>
         </div>

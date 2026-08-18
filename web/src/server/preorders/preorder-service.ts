@@ -105,6 +105,28 @@ export type PreorderItem = {
   updatedAt: string;
 };
 
+export type CustomerPreorderReservation = {
+  canCancel: boolean;
+  canPay: boolean;
+  checkoutNumber: string | null;
+  createdAt: string;
+  id: string;
+  items: Array<{
+    code: string;
+    quantity: number;
+    title: string;
+    totalPrice: number;
+    unitPrice: number;
+  }>;
+  notes: string | null;
+  paymentLinkUrl: string | null;
+  paymentStatus: string | null;
+  reservationNumber: string;
+  status: string;
+  totalAmount: number;
+  updatedAt: string;
+};
+
 type PreorderItemRow = {
   category_name: string | null;
   code: string;
@@ -180,6 +202,12 @@ type PreorderReservationCoreRow = {
   total_amount: number | string;
   transaction_nsu: string | null;
   v2_order_id: string | null;
+};
+
+type CustomerPreorderReservationRow = PreorderReservationCoreRow & {
+  created_at: string;
+  preorder_reservation_items?: PreorderReservationItemRow[] | null;
+  updated_at: string;
 };
 
 type PreorderReservationItemRow = {
@@ -300,6 +328,47 @@ function isPubliclyOpen(item: PreorderItemRow) {
   return !item.order_deadline || item.order_deadline >= todayInSaoPaulo();
 }
 
+function canCancelCustomerReservation(row: PreorderReservationCoreRow) {
+  return (
+    !row.v2_order_id &&
+    !["paid", "cancelled", "expired", "failed", "rejected"].includes(row.status) &&
+    ["pending", "checkout_generated"].includes(row.payment_status ?? "")
+  );
+}
+
+function canAutoConfirmPaidReservation(row: PreorderReservationCoreRow) {
+  return (
+    !["cancelled", "expired", "failed", "rejected"].includes(row.status) &&
+    !["cancelled", "expired", "failed"].includes(row.payment_status ?? "")
+  );
+}
+
+function mapCustomerReservation(row: CustomerPreorderReservationRow): CustomerPreorderReservation {
+  const canCancel = canCancelCustomerReservation(row);
+
+  return {
+    canCancel,
+    canPay: canCancel && Boolean(row.payment_link_url) && row.payment_status === "checkout_generated",
+    checkoutNumber: row.checkout_number,
+    createdAt: row.created_at,
+    id: row.id,
+    items: (row.preorder_reservation_items ?? []).map((item) => ({
+      code: item.item_code,
+      quantity: Number(item.quantity),
+      title: item.item_title,
+      totalPrice: Number(item.total_price),
+      unitPrice: Number(item.unit_price),
+    })),
+    notes: row.notes,
+    paymentLinkUrl: row.payment_link_url,
+    paymentStatus: row.payment_status,
+    reservationNumber: row.reservation_number,
+    status: row.status,
+    totalAmount: Number(row.total_amount),
+    updatedAt: row.updated_at,
+  };
+}
+
 export class PreorderService {
   private readonly audit: AuditLogService;
 
@@ -351,6 +420,27 @@ export class PreorderService {
     return ((data ?? []) as unknown as PreorderItemRow[])
       .filter(isPubliclyOpen)
       .map((row) => mapItem(row));
+  }
+
+  async listCustomerPendingReservations(customerId: string) {
+    const { data, error } = await this.supabase
+      .from("preorder_reservations")
+      .select(`
+        id,reservation_number,checkout_number,customer_id,v2_order_id,status,payment_status,total_amount,notes,
+        payment_link_url,provider_reference,invoice_slug,transaction_nsu,paid_at,created_at,updated_at,
+        preorder_reservation_items(item_code,item_title,quantity,unit_price,total_price)
+      `)
+      .eq("customer_id", customerId)
+      .is("v2_order_id", null)
+      .in("status", ["awaiting_approval", "approved", "pending_payment"])
+      .in("payment_status", ["pending", "checkout_generated", "manual_review"])
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throwQueryError(error, "Falha ao listar pre-vendas pendentes");
+    }
+
+    return ((data ?? []) as unknown as CustomerPreorderReservationRow[]).map(mapCustomerReservation);
   }
 
   async createPreorderItem(input: CreatePreorderItemInput) {
@@ -643,6 +733,63 @@ export class PreorderService {
     }
   }
 
+  async cancelCustomerReservation(reservationId: string, customerId: string, actorProfileId?: string | null) {
+    const { data, error } = await this.supabase
+      .from("preorder_reservations")
+      .select(`
+        id,reservation_number,checkout_number,customer_id,v2_order_id,status,payment_status,total_amount,notes,
+        payment_link_url,provider_reference,invoice_slug,transaction_nsu,paid_at
+      `)
+      .eq("id", reservationId)
+      .eq("customer_id", customerId)
+      .maybeSingle<PreorderReservationCoreRow>();
+
+    if (error) {
+      throwQueryError(error, "Falha ao buscar pre-venda para cancelamento");
+    }
+
+    if (!data) {
+      throw notFound("Pre-venda nao encontrada");
+    }
+
+    if (!canCancelCustomerReservation(data)) {
+      throw conflict("Esta pre-venda nao pode mais ser cancelada pelo cliente");
+    }
+
+    const updatedAt = nowIso();
+    const { error: updateError } = await this.supabase
+      .from("preorder_reservations")
+      .update({
+        payment_status: "cancelled",
+        status: "cancelled",
+        updated_at: updatedAt,
+      })
+      .eq("id", reservationId)
+      .eq("customer_id", customerId);
+
+    if (updateError) {
+      throwQueryError(updateError, "Falha ao cancelar pre-venda");
+    }
+
+    await this.audit.createAdminActionLog({
+      action: "preorder_reservation.customer_cancel",
+      adminId: actorProfileId ?? this.actorId,
+      entityId: reservationId,
+      entityType: "preorder_reservation",
+      newValue: {
+        reservationNumber: data.reservation_number,
+      },
+    });
+    revalidateTag("preorders", "max");
+
+    return {
+      id: reservationId,
+      payment_status: "cancelled",
+      status: "cancelled",
+      updated_at: updatedAt,
+    };
+  }
+
   async handleInfinitePayWebhook(payload: unknown) {
     const normalized = normalizeInfinitePayWebhook(payload);
 
@@ -701,6 +848,23 @@ export class PreorderService {
 
     const receivedAmount = centsToCurrency(normalized.paidAmountCents ?? normalized.amountCents);
     const expectedAmount = Number(reservation.total_amount);
+
+    if (!canAutoConfirmPaidReservation(reservation)) {
+      await this.supabase
+        .from("preorder_reservations")
+        .update({
+          paid_amount: receivedAmount,
+          paid_at: nowIso(),
+          payment_status: "manual_review",
+          provider_payload: payload ?? null,
+          updated_at: nowIso(),
+        })
+        .eq("id", reservation.id);
+      await this.markProviderEvent(eventId, "manual_review", "Pre-venda paga depois de cancelada ou expirada");
+      revalidateTag("preorders", "max");
+
+      return { status: "manual_review", reason: "Pre-venda paga depois de cancelada ou expirada" };
+    }
 
     if (receivedAmount === null) {
       await this.markProviderEvent(eventId, "manual_review", "Valor pago nao informado");
@@ -850,7 +1014,12 @@ export class PreorderService {
         ["cancelled", "expired", "failed", "rejected"].includes(reservationStatus) ||
         ["cancelled", "expired", "failed"].includes(reservationPaymentStatus) ||
         order?.approval_status === "recusado" ||
-        order?.payment_status === "cancelado";
+        ["cancelado", "reembolso_pendente", "reembolsado"].includes(order?.payment_status ?? "");
+
+      if (isCancelled) {
+        stats.set(row.preorder_item_id, current);
+        continue;
+      }
 
       current.reservationItems += 1;
       current.requestedQuantity += quantity;
@@ -858,7 +1027,7 @@ export class PreorderService {
       if (isPaid) {
         current.approvedQuantity += quantity;
         current.approvedAmount += amount;
-      } else if (!isCancelled) {
+      } else {
         current.pendingQuantity += quantity;
         current.pendingAmount += amount;
       }
