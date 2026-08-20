@@ -188,7 +188,7 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-semibold text-[var(--foreground)]">Chegada prevista</span>
+                <span className="text-sm font-semibold text-[var(--foreground)]">Lancamento previsto</span>
                 <input
                   name="expectedArrival"
                   defaultValue={item.expectedArrival ?? ""}
@@ -278,7 +278,7 @@ export function PreorderEditForm({ item }: { item: PreorderItem }) {
             <strong className="mt-3 block text-base text-[var(--foreground)]">{titleDraft || item.title}</strong>
             <p className="mt-2 text-xs text-[var(--muted)]">{item.code}</p>
             <div className="mt-4 rounded-md border border-yellow-300/25 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
-              Pre-venda confirmada somente apos pagamento. Envio apenas depois do lancamento ou chegada prevista.
+              Pre-venda confirmada somente apos pagamento. Envio apenas depois do lancamento previsto.
             </div>
           </aside>
         </form>

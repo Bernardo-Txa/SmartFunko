@@ -156,7 +156,7 @@ export function PreorderSelectionPanel({
                 <h2 className="mt-2 line-clamp-2 min-h-[44px] text-[15px] font-extrabold leading-[22px] text-[var(--foreground)]">{item.title}</h2>
                 <div className="mt-3 text-xs text-[var(--muted)]">
                   <span className="flex items-center justify-between gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1.5">
-                    <b className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--muted)]">Chegada</b>
+                    <b className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--muted)]">Lancamento</b>
                     <span className="truncate font-bold text-[var(--foreground)]">{item.expectedArrival || "A confirmar"}</span>
                   </span>
                 </div>
@@ -262,7 +262,7 @@ export function PreorderSelectionPanel({
                 <div className="flex gap-2">
                   <CalendarClock size={17} className="mt-0.5 shrink-0" aria-hidden="true" />
                   <p>
-                    Este pedido e de pre-venda. Separacao e envio acontecem somente apos a data de lancamento ou chegada prevista de cada item.
+                    Este pedido e de pre-venda. Separacao e envio acontecem somente apos a data de lancamento de cada item.
                   </p>
                 </div>
               </div>
@@ -286,7 +286,7 @@ export function PreorderSelectionPanel({
                           <strong className="shrink-0 text-[var(--foreground)]">{formatCurrency(quantity * item.price)}</strong>
                         </div>
                         <p className="mt-1 text-xs text-[var(--muted)]">
-                          {item.expectedArrival ? `Lancamento/chegada: ${item.expectedArrival}` : item.code}
+                          {item.expectedArrival ? `Lancamento: ${item.expectedArrival}` : item.code}
                         </p>
                       </div>
                     </div>

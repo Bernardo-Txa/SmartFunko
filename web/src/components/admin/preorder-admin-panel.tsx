@@ -225,7 +225,7 @@ export function PreorderAdminPanel({
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
-                  <span className="text-sm font-semibold text-[var(--foreground)]">Chegada prevista</span>
+                <span className="text-sm font-semibold text-[var(--foreground)]">Lancamento previsto</span>
                   <input
                     name="expectedArrival"
                     placeholder="Ex: setembro/2026"
@@ -323,7 +323,7 @@ export function PreorderAdminPanel({
               <p className="mt-3 line-clamp-5 text-sm leading-6 text-[var(--muted)]">{description.trim()}</p>
             ) : null}
             <div className="mt-4 rounded-md border border-yellow-300/25 bg-yellow-300/10 p-3 text-xs leading-5 text-yellow-100">
-              Pre-venda confirmada somente apos pagamento. Envio apenas depois do lancamento ou chegada prevista.
+              Pre-venda confirmada somente apos pagamento. Envio apenas depois do lancamento previsto.
             </div>
           </aside>
         </div>
@@ -481,7 +481,7 @@ function PreorderAdminRow({ item }: { item: PreorderItem }) {
             </span>
           </div>
           <p className="mt-3 text-xs text-[var(--muted)]">
-            {item.expectedArrival ? `Chegada prevista: ${item.expectedArrival}` : "Sem chegada prevista"}
+            {item.expectedArrival ? `Lancamento previsto: ${item.expectedArrival}` : "Sem lancamento previsto"}
             {item.orderDeadline ? ` · Pedidos ate ${formatDate(item.orderDeadline)}` : ""}
           </p>
         </div>
