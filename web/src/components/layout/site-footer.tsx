@@ -13,8 +13,8 @@ export function SiteFooter() {
               <span className="font-semibold text-[var(--foreground)]">CNPJ:</span> 57.923.879/0001-60
             </p>
             <p>
-              <span className="font-semibold text-[var(--foreground)]">Sede:</span> Avenida Anders, 14,
-              Edificio Santos 4, sala 410, Nova Itaparica, Vila Velha - ES
+              <span className="font-semibold text-[var(--foreground)]">Sede:</span> R. Humaita,
+              Golden Business Center, sala 410, Divino Espirito Santo, Vila Velha - ES, 29107-250
             </p>
           </div>
         </div>
