@@ -149,6 +149,10 @@ function productSummary(items: MonthlyClosingOrderItem[]) {
     .join(", ") + (items.length > 2 ? ` +${items.length - 2}` : "");
 }
 
+function formatCurrencyValue(value: number) {
+  return `R$ ${value.toFixed(2).replace(".", ",")}`;
+}
+
 function getLatestPaymentLink(order: ReportOrderRow) {
   const sessions = (order.v2_payment_session_orders ?? [])
     .map((link) => firstRelation(link.v2_payment_sessions))
@@ -183,26 +187,36 @@ function mapOrder(row: ReportOrderRow): MonthlyClosingOrder {
 function createClosingMessage(input: {
   competence: CompetenceRow;
   customerName: string;
+  paidOrders: MonthlyClosingOrder[];
   paidTotal: number;
   pendingOrders: MonthlyClosingOrder[];
   pendingTotal: number;
   siteAccountUrl: string;
 }) {
-  const pendingLines = input.pendingOrders
-    .slice(0, 8)
-    .map((order) => `- ${order.orderNumber}: ${order.productSummary}`);
-  const extra = input.pendingOrders.length > pendingLines.length
-    ? `- e mais ${input.pendingOrders.length - pendingLines.length} pedido(s)`
-    : null;
+  const formatOrderLines = (orders: MonthlyClosingOrder[], empty: string) => {
+    if (orders.length === 0) {
+      return [empty];
+    }
+
+    return orders.flatMap((order) => {
+      if (order.items.length === 0) {
+        return [`- ${order.productSummary} - ${formatCurrencyValue(order.total)}`];
+      }
+
+      return order.items.map((item) => `- ${item.quantity}x ${item.productName} - ${formatCurrencyValue(item.total)}`);
+    });
+  };
   const lines = [
     `Oi, ${input.customerName}! Segue o fechamento Smart Funkos de ${input.competence.label}.`,
-    `Total da nota: R$ ${(input.paidTotal + input.pendingTotal).toFixed(2).replace(".", ",")}`,
-    `Ja pago: R$ ${input.paidTotal.toFixed(2).replace(".", ",")}`,
-    `Pendente: R$ ${input.pendingTotal.toFixed(2).replace(".", ",")}`,
+    `Total da nota: ${formatCurrencyValue(input.paidTotal + input.pendingTotal)}`,
+    `Ja pago: ${formatCurrencyValue(input.paidTotal)}`,
+    `Pendente: ${formatCurrencyValue(input.pendingTotal)}`,
     "",
-    input.pendingOrders.length > 0 ? "Pedidos pendentes:" : "Nenhum pedido pendente para pagamento.",
-    ...pendingLines,
-    extra,
+    "Pedidos pendentes:",
+    ...formatOrderLines(input.pendingOrders, "Nenhum pedido pendente para pagamento."),
+    "",
+    "Pedidos pagos:",
+    ...formatOrderLines(input.paidOrders, "Nenhum pedido pago."),
     "",
     `Para acompanhar e pagar pelo site: ${input.siteAccountUrl}`,
   ].filter((line): line is string => line !== null);
@@ -286,6 +300,7 @@ export class MonthlyClosingReportService {
         whatsappUrl: createWhatsAppUrl(row.customer.phone, createClosingMessage({
           competence,
           customerName: row.customer.name,
+          paidOrders: row.paidOrders,
           paidTotal: row.paidTotal,
           pendingOrders: row.pendingOrders,
           pendingTotal: row.pendingTotal,

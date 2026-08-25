@@ -43,19 +43,11 @@ function formatOrderDetails(orders: MonthlyClosingOrder[], statusLabel: string) 
   }
 
   return orders.flatMap((order) => {
-    const itemLines = order.items.length > 0
-      ? order.items.map((item) => [
-        `  ${item.quantity}x ${item.productName}`,
-        item.productSku ? `SKU ${item.productSku}` : null,
-        `${formatCurrency(item.unitPrice)} un.`,
-        `Total ${formatCurrency(item.total)}`,
-      ].filter(Boolean).join(" - "))
-      : [`  ${order.productSummary}`];
+    if (order.items.length === 0) {
+      return [`- ${order.productSummary} - ${formatCurrency(order.total)}`];
+    }
 
-    return [
-      `${order.orderNumber} - ${formatDate(order.orderDate)} - ${statusLabel} - ${formatCurrency(order.total)}`,
-      ...itemLines,
-    ];
+    return order.items.map((item) => `- ${item.quantity}x ${item.productName} - ${formatCurrency(item.total)}`);
   });
 }
 

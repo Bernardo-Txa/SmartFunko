@@ -1,16 +1,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BarChart3, FileText, WalletCards } from "lucide-react";
+import { BarChart3, ClipboardList, FileText, PackageSearch, WalletCards } from "lucide-react";
 
 type ReportTab = {
   href: string;
   icon: typeof BarChart3;
-  id: "bi" | "closing" | "finance";
+  id: "bi" | "closing" | "customer_map" | "finance" | "supplier_request";
   label: string;
 };
 
 const reportTabs: ReportTab[] = [
   { href: "/admin/relatorios/fechamento", icon: FileText, id: "closing", label: "Fechamento mensal" },
+  { href: "/admin/relatorios/depara", icon: ClipboardList, id: "customer_map", label: "De/para mensal" },
+  { href: "/admin/relatorios/a-pedir", icon: PackageSearch, id: "supplier_request", label: "A pedir" },
   { href: "/admin/relatorios", icon: BarChart3, id: "bi", label: "BI" },
   { href: "/admin/relatorios/financeiro", icon: WalletCards, id: "finance", label: "Financeiro" },
 ];
