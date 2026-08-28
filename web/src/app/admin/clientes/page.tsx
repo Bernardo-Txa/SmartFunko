@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { CustomerAdminTabs } from "@/components/admin/customer-admin-tabs";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { CustomerService } from "@/server/customers/customer-service";
 
@@ -19,6 +20,7 @@ export default async function AdminCustomersPage() {
 
   return (
     <AdminShell title="Clientes" description="Cadastro e vinculo com pedidos do WhatsApp.">
+      <CustomerAdminTabs active="customers" />
       <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-[var(--surface-strong)] text-[var(--muted)]">
