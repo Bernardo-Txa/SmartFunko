@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { formatPhoneNumber, isValidPhoneNumber, normalizePhoneDigits } from "@/lib/format";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
@@ -66,7 +67,7 @@ export type TemporaryCustomerMergeCandidate = {
 };
 
 export function normalizeTemporaryCustomerPhone(phone: string) {
-  return phone.replace(/\D/g, "");
+  return normalizePhoneDigits(phone);
 }
 
 export class TemporaryCustomerService {
@@ -168,9 +169,10 @@ export class TemporaryCustomerService {
 
   async createTemporaryCustomer(input: CreateTemporaryCustomerInput) {
     const phoneNormalized = normalizeTemporaryCustomerPhone(input.phone);
+    const phone = formatPhoneNumber(phoneNormalized);
 
-    if (phoneNormalized.length < 8) {
-      throw badRequest("Informe um WhatsApp valido para o cliente temporario");
+    if (!isValidPhoneNumber(input.phone)) {
+      throw badRequest("Informe um WhatsApp no formato (00) 00000-0000 para o cliente temporario");
     }
 
     const { data: existing, error: existingError } = await this.supabase
@@ -194,7 +196,7 @@ export class TemporaryCustomerService {
         created_by: this.actorId ?? null,
         name: input.name,
         notes: input.notes ?? null,
-        phone: input.phone,
+        phone,
         phone_normalized: phoneNormalized,
       })
       .select("id,name,phone,phone_normalized,notes,status,merged_customer_id,merged_at,created_at,updated_at")

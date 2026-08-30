@@ -8,7 +8,7 @@ import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
 } from "@/components/admin/product-variant-search-select";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatPhoneNumber } from "@/lib/format";
 import {
   orderItemSourceOptions,
   orderSellerOptions,
@@ -58,6 +58,10 @@ function emptyItem(): DraftItem {
     source: "national_order",
     unitPrice: 0,
   };
+}
+
+function formatCustomerPhone(phone: string | null) {
+  return formatPhoneNumber(phone) || phone || "";
 }
 
 export function OrderCreateForm({
@@ -219,7 +223,7 @@ export function OrderCreateForm({
               <option value="">Selecione</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.name} {customer.phone ? `- ${customer.phone}` : ""}
+                  {customer.name} {customer.phone ? `- ${formatCustomerPhone(customer.phone)}` : ""}
                 </option>
               ))}
             </select>
@@ -248,7 +252,10 @@ export function OrderCreateForm({
               <span className="text-sm font-semibold text-[var(--foreground)]">Telefone</span>
               <input
                 value={newCustomer.phone}
-                onChange={(event) => setNewCustomer((current) => ({ ...current, phone: event.target.value }))}
+                onChange={(event) => setNewCustomer((current) => ({ ...current, phone: formatPhoneNumber(event.target.value) }))}
+                inputMode="tel"
+                maxLength={15}
+                placeholder="(00) 00000-0000"
                 className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
               />
             </label>

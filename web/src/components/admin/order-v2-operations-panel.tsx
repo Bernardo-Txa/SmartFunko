@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Banknote, Check, Eye, PackageCheck, Search, SquareCheckBig } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import {
   getV2StatusBadgeClassName,
   v2ApprovalStatusLabels,
@@ -568,7 +568,7 @@ export function OrderV2OperationsPanel({
                   </td>
                   <td className="px-4 py-3 align-top text-[var(--muted)]">
                     <span className="block font-semibold text-[var(--foreground)]">{buyer.name}</span>
-                    {buyer.phone ? <span className="mt-1 block text-xs">{buyer.phone}</span> : null}
+                    {buyer.phone ? <span className="mt-1 block text-xs">{formatPhoneNumber(buyer.phone) || buyer.phone}</span> : null}
                     {buyer.isTemporary ? (
                       <span className="mt-1 inline-flex rounded-full border border-yellow-300/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-yellow-100">
                         Temporario

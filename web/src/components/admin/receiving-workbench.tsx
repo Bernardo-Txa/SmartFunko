@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCheck, ExternalLink, PackageCheck, Search, SquareCheckBig } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import {
   getV2StatusBadgeClassName,
   v2FulfillmentStatusLabels,
@@ -512,7 +512,7 @@ export function ReceivingWorkbench({
                     {getOrderProductSummary(order) || "Produto sem descricao"}
                   </h3>
                   <p className="mt-2 text-sm text-[var(--muted)]">
-                    {buyer.name}{buyer.phone ? ` · ${buyer.phone}` : ""}
+                    {buyer.name}{buyer.phone ? ` · ${formatPhoneNumber(buyer.phone) || buyer.phone}` : ""}
                     {buyer.isTemporary ? " · Temporario" : ""}
                   </p>
                   {buyer.email ? <p className="mt-1 text-xs text-[var(--muted)]">{buyer.email}</p> : null}

@@ -7,7 +7,7 @@ import {
   ProductVariantSearchSelect,
   type ProductVariantSearchOption,
 } from "@/components/admin/product-variant-search-select";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatPhoneNumber } from "@/lib/format";
 import { orderSellerOptions } from "@/lib/order-labels";
 
 type CustomerOption = {
@@ -77,6 +77,10 @@ function parseMoney(value: string) {
   const normalized = value.replace(",", ".");
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatCustomerPhone(phone: string | null) {
+  return formatPhoneNumber(phone) || phone || "";
 }
 
 export function OrderV2CreateForm({
@@ -259,7 +263,7 @@ export function OrderV2CreateForm({
             <optgroup label="Clientes cadastrados">
               {customers.map((customer) => (
                 <option key={customer.id} value={getSelectionKey("customer", customer.id)}>
-                  {customer.name} {customer.phone ? `- ${customer.phone}` : ""}
+                  {customer.name} {customer.phone ? `- ${formatCustomerPhone(customer.phone)}` : ""}
                 </option>
               ))}
             </optgroup>
@@ -267,7 +271,7 @@ export function OrderV2CreateForm({
               <optgroup label="Clientes temporarios">
                 {localTemporaryCustomers.map((customer) => (
                   <option key={customer.id} value={getSelectionKey("temporary", customer.id)}>
-                    {customer.name} {customer.phone ? `- ${customer.phone}` : ""} (temporario)
+                    {customer.name} {customer.phone ? `- ${formatCustomerPhone(customer.phone)}` : ""} (temporario)
                   </option>
                 ))}
               </optgroup>
@@ -315,9 +319,11 @@ export function OrderV2CreateForm({
               <span className="text-sm font-semibold text-[var(--foreground)]">WhatsApp</span>
               <input
                 value={temporaryCustomerPhone}
-                onChange={(event) => setTemporaryCustomerPhone(event.target.value)}
+                onChange={(event) => setTemporaryCustomerPhone(formatPhoneNumber(event.target.value))}
+                inputMode="tel"
+                maxLength={15}
                 className="mt-2 h-10 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-[var(--accent)]"
-                placeholder="11999999999"
+                placeholder="(00) 00000-0000"
               />
             </label>
             <button

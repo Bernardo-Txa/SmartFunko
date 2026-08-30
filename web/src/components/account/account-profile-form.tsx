@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Save, X } from "lucide-react";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
+import { formatPhoneNumber } from "@/lib/format";
 
 type AccountCustomer = {
   cpf: string | null;
@@ -39,6 +40,7 @@ export function AccountProfileForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(formatPhoneNumber(customer?.phone ?? ""));
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,7 +55,7 @@ export function AccountProfileForm({
           cpf: String(formData.get("cpf") ?? ""),
           instagram: String(formData.get("instagram") ?? ""),
           name: String(formData.get("name") ?? ""),
-          phone: String(formData.get("phone") ?? ""),
+          phone: phoneInput,
         }),
         headers: { "content-type": "application/json" },
         method: "PATCH",
@@ -98,6 +100,7 @@ export function AccountProfileForm({
           <button
             type="button"
             onClick={() => {
+              setPhoneInput(formatPhoneNumber(customer.phone ?? ""));
               setEditing(true);
               setError("");
               setMessage("");
@@ -122,7 +125,7 @@ export function AccountProfileForm({
           </div>
           <div>
             <dt className="font-semibold text-[var(--foreground)]">Telefone</dt>
-            <dd className="text-[var(--muted)]">{customer.phone ?? "Nao informado"}</dd>
+            <dd className="text-[var(--muted)]">{formatPhoneNumber(customer.phone) || "Nao informado"}</dd>
           </div>
           <div>
             <dt className="font-semibold text-[var(--foreground)]">CPF</dt>
@@ -163,7 +166,10 @@ export function AccountProfileForm({
               <span className="text-sm font-semibold text-[var(--foreground)]">Telefone</span>
               <input
                 name="phone"
-                defaultValue={customer.phone ?? ""}
+                inputMode="tel"
+                maxLength={15}
+                value={phoneInput}
+                onChange={(event) => setPhoneInput(formatPhoneNumber(event.target.value))}
                 placeholder="(00) 00000-0000"
                 className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
               />
@@ -200,6 +206,7 @@ export function AccountProfileForm({
               disabled={isSubmitting}
               onClick={() => {
                 setEditing(false);
+                setPhoneInput(formatPhoneNumber(customer.phone ?? ""));
                 setError("");
               }}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"

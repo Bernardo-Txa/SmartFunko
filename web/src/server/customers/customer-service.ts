@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import { conflict, notFound } from "@/server/http/errors";
+import { formatPhoneNumber, getPhoneDigits, isValidPhoneNumber } from "@/lib/format";
+import { badRequest, conflict, notFound } from "@/server/http/errors";
 import { AuditLogService } from "@/server/audit/audit-log-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
@@ -20,6 +21,20 @@ export const updateCustomerSchema = createCustomerSchema.partial().extend({
 
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
+
+function normalizePhoneForStorage(value: string | null | undefined) {
+  const digits = getPhoneDigits(value);
+
+  if (!digits) {
+    return null;
+  }
+
+  if (!isValidPhoneNumber(value)) {
+    throw badRequest("Telefone deve estar no formato (00) 00000-0000");
+  }
+
+  return formatPhoneNumber(digits);
+}
 
 export class CustomerService {
   private readonly audit: AuditLogService;
@@ -89,7 +104,7 @@ export class CustomerService {
         instagram: input.instagram ?? null,
         name: input.name,
         notes: input.notes ?? null,
-        phone: input.phone ?? null,
+        phone: normalizePhoneForStorage(input.phone),
       })
       .select("id,profile_id,name,email,phone,cpf,instagram,status,notes,created_at,updated_at")
       .single();
@@ -114,6 +129,7 @@ export class CustomerService {
     const patch = {
       ...input,
       email: input.email === undefined ? undefined : input.email?.toLowerCase() ?? null,
+      phone: input.phone === undefined ? undefined : normalizePhoneForStorage(input.phone),
     };
 
     const { data, error } = await this.supabase

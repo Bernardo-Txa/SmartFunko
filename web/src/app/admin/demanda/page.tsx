@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Bell, PackagePlus } from "lucide-react";
 import { CopyInterestedButton } from "@/components/admin/copy-interested-button";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import { requireOwnerPage } from "@/server/auth/require-admin-page";
 import { WishlistService } from "@/server/wishlist/wishlist-service";
 
@@ -29,7 +29,7 @@ function interestedText(product: {
     `Interessados em ${product.productName}:`,
     ...product.customers.map(
       (customer) =>
-        `${customer.name} | ${customer.email ?? "sem e-mail"} | ${customer.phone ?? "sem telefone"} | prioridade ${customer.priority}`,
+        `${customer.name} | ${customer.email ?? "sem e-mail"} | ${formatPhoneNumber(customer.phone) || "sem telefone"} | prioridade ${customer.priority}`,
     ),
   ].join("\n");
 }

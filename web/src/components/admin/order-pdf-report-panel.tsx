@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Download, Filter, PackageSearch, Printer, RotateCcw, Users } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import {
   v2FulfillmentStatusLabels,
   v2PaymentStatusLabels,
@@ -64,7 +64,7 @@ function customerBadge(customer: OrderPdfCustomer) {
 }
 
 function contactLine(customer: OrderPdfCustomer) {
-  return [customer.phone, customer.email].filter(Boolean).join(" - ") || "Sem contato";
+  return [formatPhoneNumber(customer.phone) || customer.phone, customer.email].filter(Boolean).join(" - ") || "Sem contato";
 }
 
 function orderQuantity(order: OrderPdfReportOrder) {

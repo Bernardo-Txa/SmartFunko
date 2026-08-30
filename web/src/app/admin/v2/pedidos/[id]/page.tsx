@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { OrderV2Actions } from "@/components/admin/order-v2-actions";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import {
   getV2StatusBadgeClassName,
   v2ApprovalStatusLabels,
@@ -179,7 +179,7 @@ export default async function AdminOrderV2DetailPage({ params }: Props) {
               </div>
               <div>
                 <dt className="text-[var(--muted)]">Telefone</dt>
-                <dd className="text-[var(--foreground)]">{buyer.phone ?? "-"}</dd>
+                <dd className="text-[var(--foreground)]">{formatPhoneNumber(buyer.phone) || "-"}</dd>
               </div>
             </dl>
           </div>

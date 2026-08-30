@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRightLeft, CheckCircle2, Search, UserCheck } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 
 type CustomerOption = {
   email: string | null;
@@ -48,9 +48,11 @@ function normalizeSearch(value: string) {
 }
 
 function customerLabel(customer: CustomerOption) {
+  const phone = formatPhoneNumber(customer.phone) || customer.phone;
+
   return [
     customer.name,
-    customer.phone ? `WhatsApp ${customer.phone}` : null,
+    phone ? `WhatsApp ${phone}` : null,
     customer.email,
   ].filter(Boolean).join(" - ");
 }
@@ -86,7 +88,7 @@ function CustomerPreview({ customer, label }: { customer: CustomerOption | null;
     <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
       <span className="text-xs font-black uppercase tracking-[0.14em] text-[var(--muted)]">{label}</span>
       <strong className="mt-2 block text-base text-[var(--foreground)]">{customer.name}</strong>
-      <p className="mt-1 text-sm text-[var(--muted)]">{customer.phone ?? "Sem telefone"}</p>
+      <p className="mt-1 text-sm text-[var(--muted)]">{formatPhoneNumber(customer.phone) || "Sem telefone"}</p>
       <p className="text-sm text-[var(--muted)]">{customer.email ?? "Sem e-mail"}</p>
     </div>
   );
@@ -123,7 +125,7 @@ export function TemporaryCustomerMergePanel({
   const customerQuery = normalizeSearch(customerSearch);
 
   const visibleCandidates = useMemo(
-    () => localCandidates.filter((candidate) => matchesSearch(`${candidate.name} ${candidate.phone} ${candidate.notes ?? ""}`, candidateQuery)),
+    () => localCandidates.filter((candidate) => matchesSearch(`${candidate.name} ${candidate.phone} ${formatPhoneNumber(candidate.phone)} ${candidate.notes ?? ""}`, candidateQuery)),
     [candidateQuery, localCandidates],
   );
 
@@ -266,7 +268,7 @@ export function TemporaryCustomerMergePanel({
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-sm text-[var(--muted)]">{candidate.phone}</p>
+                      <p className="mt-1 text-sm text-[var(--muted)]">{formatPhoneNumber(candidate.phone) || candidate.phone}</p>
                       {candidate.notes ? (
                         <p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">{candidate.notes}</p>
                       ) : null}
@@ -319,7 +321,7 @@ export function TemporaryCustomerMergePanel({
               <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4">
                 <span className="text-xs font-black uppercase tracking-[0.14em] text-[var(--muted)]">Temporario selecionado</span>
                 <strong className="mt-2 block text-base text-[var(--foreground)]">{activeCandidate.name}</strong>
-                <p className="mt-1 text-sm text-[var(--muted)]">{activeCandidate.phone}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{formatPhoneNumber(activeCandidate.phone) || activeCandidate.phone}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                   <span className="rounded-md border border-[var(--border)] p-2">
                     <span className="block text-[10px] font-black uppercase tracking-wide text-[var(--muted)]">Pedidos</span>

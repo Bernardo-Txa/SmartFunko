@@ -8,7 +8,7 @@ import {
   PaymentStatusBadge,
 } from "@/components/ui/status-badge";
 import { env } from "@/lib/env";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import { getOrderItemSourceLabel, getOrderSellerLabel } from "@/lib/order-labels";
 import {
   getOperationalStatusMeta,
@@ -201,7 +201,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                 {order.customers?.name ?? "Cliente"}
               </h2>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                {order.customers?.email ?? "Sem e-mail"} · {order.customers?.phone ?? "Sem telefone"}
+                {order.customers?.email ?? "Sem e-mail"} · {formatPhoneNumber(order.customers?.phone) || "Sem telefone"}
               </p>
               <p className="mt-2 text-sm font-semibold text-[var(--foreground)]">
                 Vendedor: {getOrderSellerLabel(order.seller)}

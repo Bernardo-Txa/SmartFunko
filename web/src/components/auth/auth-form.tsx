@@ -15,6 +15,7 @@ import {
   isWeakPasswordError,
 } from "@/lib/auth/errors";
 import { getDefaultAuthenticatedPath, sanitizeNextPath } from "@/lib/auth/redirect";
+import { formatPhoneNumber, isValidPhoneNumber } from "@/lib/format";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthMode = "login" | "register";
@@ -55,6 +56,7 @@ export function AuthForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState(initialMessage ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
   const [showResendConfirmationLink, setShowResendConfirmationLink] = useState(false);
   const copy = modeCopy[mode];
   const Icon = copy.icon;
@@ -162,10 +164,16 @@ export function AuthForm({
       const cpf = String(formData.get("cpf") ?? "");
       const instagram = String(formData.get("instagram") ?? "");
       const name = String(formData.get("name") ?? "").trim();
-      const phone = String(formData.get("phone") ?? "");
+      const phone = formatPhoneNumber(phoneInput);
 
       if (!name) {
         setError("Informe seu nome.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!isValidPhoneNumber(phone)) {
+        setError("Informe um telefone no formato (00) 00000-0000.");
         setIsSubmitting(false);
         return;
       }
@@ -194,6 +202,7 @@ export function AuthForm({
       if (!data.session) {
         setMessage("Cadastro criado. Confirme seu e-mail para entrar.");
         setShowResendConfirmationLink(true);
+        setPhoneInput("");
         form.reset();
         return;
       }
@@ -240,6 +249,11 @@ export function AuthForm({
               <input
                 name="phone"
                 autoComplete="tel"
+                inputMode="tel"
+                maxLength={15}
+                required
+                value={phoneInput}
+                onChange={(event) => setPhoneInput(formatPhoneNumber(event.target.value))}
                 className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]"
                 placeholder="(00) 00000-0000"
               />

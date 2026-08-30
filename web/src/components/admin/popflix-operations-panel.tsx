@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CreditCard, ExternalLink, LinkIcon, Search } from "lucide-react";
 import { PopFlixSubscriptionActions } from "@/components/admin/popflix-subscription-actions";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import { POPFLIX_PLANS } from "@/lib/popflix";
 
 export type AdminPopFlixSubscription = {
@@ -406,10 +406,10 @@ export function PopFlixOperationsPanel({
                     {subscription.customer?.name ?? "Cliente"}
                   </p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    {subscription.customer?.email ?? subscription.customer?.phone ?? "-"}
+                    {subscription.customer?.email ?? (formatPhoneNumber(subscription.customer?.phone) || "-")}
                   </p>
                   {subscription.customer?.phone && subscription.customer?.email ? (
-                    <p className="mt-1 text-xs text-[var(--muted)]">{subscription.customer.phone}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">{formatPhoneNumber(subscription.customer.phone) || subscription.customer.phone}</p>
                   ) : null}
                 </td>
                 <td className="px-4 py-3 align-top">

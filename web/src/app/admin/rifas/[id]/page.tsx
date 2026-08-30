@@ -11,7 +11,7 @@ import {
 import type { RaffleCampaign, RaffleDrawWinner, RaffleNumber, RaffleOrder } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge, RaffleNumberStatusBadge, RaffleOrderStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import { getRaffleDrawMethodMeta } from "@/lib/status-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { RaffleService } from "@/server/raffles/raffle-service";
@@ -299,7 +299,7 @@ export default async function AdminRaffleDetailPage({ params }: Props) {
                     <td className="px-4 py-3 font-semibold text-[var(--foreground)]">{order.order_number}</td>
                     <td className="px-4 py-3 text-[var(--muted)]">
                       {order.customers?.name ?? "Cliente"}
-                      <p className="text-xs">{order.customers?.email ?? order.customers?.phone ?? ""}</p>
+                      <p className="text-xs">{order.customers?.email ?? (formatPhoneNumber(order.customers?.phone) || "")}</p>
                     </td>
                     <td className="px-4 py-3 text-[var(--muted)]">{numbersText(order.raffle_numbers)}</td>
                     <td className="px-4 py-3 text-[var(--foreground)]">{formatCurrency(numericAmount(order.total_amount))}</td>

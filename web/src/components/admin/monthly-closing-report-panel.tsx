@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Copy, CreditCard, ExternalLink, FileText, MessageCircle, Printer } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import type {
   MonthlyClosingCustomer,
   MonthlyClosingOrder,
@@ -153,7 +153,7 @@ function buildPrintableNote(report: MonthlyClosingReport, customer: MonthlyClosi
           <div>
             <p><strong>${escapeHtml(customer.customer.name)}</strong></p>
             <p class="muted">${escapeHtml(customer.customer.email ?? "-")}</p>
-            <p class="muted">${escapeHtml(customer.customer.phone ?? "-")}</p>
+            <p class="muted">${escapeHtml(formatPhoneNumber(customer.customer.phone) || "-")}</p>
           </div>
         </section>
 
@@ -376,7 +376,7 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
                       <div>
                         <h3 className="text-lg font-black text-[var(--foreground)]">{customer.customer.name}</h3>
                         <p className="text-sm text-[var(--muted)]">
-                          {customer.customer.phone ?? "Sem telefone"} {customer.customer.email ? `- ${customer.customer.email}` : ""}
+                          {formatPhoneNumber(customer.customer.phone) || "Sem telefone"} {customer.customer.email ? `- ${customer.customer.email}` : ""}
                         </p>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-right">

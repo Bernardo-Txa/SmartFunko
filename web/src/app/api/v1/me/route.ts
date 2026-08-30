@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatPhoneNumber, getPhoneDigits, isValidPhoneNumber } from "@/lib/format";
 import { badRequest, forbidden } from "@/server/http/errors";
 import { requireUser } from "@/server/auth/require-user";
 import { corsPreflightResponse, withCors } from "@/server/http/cors";
@@ -30,13 +31,13 @@ function normalizeCpf(value: string | null | undefined) {
 }
 
 function normalizePhone(value: string | null | undefined) {
-  const normalized = normalizeOptionalDigits(value);
+  const normalized = getPhoneDigits(value);
 
-  if (normalized && normalized.length < 8) {
-    throw badRequest("Telefone deve ter ao menos 8 digitos");
+  if (normalized && !isValidPhoneNumber(value)) {
+    throw badRequest("Telefone deve estar no formato (00) 00000-0000");
   }
 
-  return normalized;
+  return normalized ? formatPhoneNumber(normalized) : null;
 }
 
 function normalizeInstagram(value: string | null | undefined) {

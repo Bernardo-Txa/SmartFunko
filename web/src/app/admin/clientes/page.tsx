@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { CustomerAdminTabs } from "@/components/admin/customer-admin-tabs";
+import { formatPhoneNumber } from "@/lib/format";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { CustomerService } from "@/server/customers/customer-service";
 
@@ -38,7 +39,7 @@ export default async function AdminCustomersPage() {
                   {customer.name}
                 </td>
                 <td className="px-4 py-3 text-[var(--muted)]">{customer.email ?? "-"}</td>
-                <td className="px-4 py-3 text-[var(--muted)]">{customer.phone ?? "-"}</td>
+                <td className="px-4 py-3 text-[var(--muted)]">{formatPhoneNumber(customer.phone) || "-"}</td>
                 <td className="px-4 py-3 text-[var(--foreground)]">
                   {customerStatusLabels[customer.status] ?? customer.status}
                 </td>
