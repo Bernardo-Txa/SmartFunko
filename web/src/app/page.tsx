@@ -3,6 +3,7 @@ import { Heart, MessageCircle, PackageCheck, ShieldCheck, Sparkles, Users } from
 import { CategoryTile } from "@/components/storefront/category-tile";
 import { CommercialSection } from "@/components/storefront/commercial-section";
 import { HeroBanner } from "@/components/storefront/hero-banner";
+import { HomeBannerCarousel } from "@/components/storefront/home-banner-carousel";
 import { ProductCarousel } from "@/components/storefront/product-carousel";
 import { SupplierTile } from "@/components/storefront/supplier-tile";
 import { createWebsiteJsonLd, ogImages } from "@/lib/seo";
@@ -11,6 +12,7 @@ import {
   getCatalogProducts,
   getCatalogSuppliers,
 } from "@/lib/catalog";
+import { getPublicHomeBanners } from "@/server/home-banners/home-banner-service";
 
 export const metadata: Metadata = {
   title: {
@@ -95,13 +97,14 @@ const trustItems = [
 ];
 
 export default async function Home() {
-  const [readyProducts, specialProducts, newProducts, suppliers, franchises] =
+  const [readyProducts, specialProducts, newProducts, suppliers, franchises, homeBanners] =
     await Promise.all([
       getCatalogProducts({ filter: "ready", pageSize: 8, sort: "ready_first" }),
       getCatalogProducts({ filter: "specials", pageSize: 10, sort: "specials_first" }),
       getCatalogProducts({ filter: "new", pageSize: 8, sort: "newest" }),
       getCatalogSuppliers(),
       getCatalogFranchises(),
+      getPublicHomeBanners(),
     ]);
 
   const featuredProducts = [
@@ -119,6 +122,7 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(createWebsiteJsonLd()) }}
       />
+      <HomeBannerCarousel banners={homeBanners} />
       <HeroBanner products={featuredProducts.length > 0 ? featuredProducts : specialProducts.slice(0, 4)} />
 
       <CommercialSection
