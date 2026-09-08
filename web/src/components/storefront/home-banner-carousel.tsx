@@ -105,7 +105,7 @@ export function HomeBannerCarousel({ banners }: Props) {
   const shouldOpenNewTab = activeBanner.openInNewTab || (activeBanner.linkUrl ? isExternalLink(activeBanner.linkUrl) : false);
   const hasOverlayCopy = Boolean(activeBanner.eyebrow || activeBanner.subtitle || activeBanner.buttonLabel);
   const image = (
-    <picture>
+    <picture className="block h-full w-full">
       {activeBanner.mobileImageUrl ? (
         <source media="(max-width: 640px)" srcSet={activeBanner.mobileImageUrl} />
       ) : null}
@@ -113,14 +113,14 @@ export function HomeBannerCarousel({ banners }: Props) {
         key={activeBanner.id}
         src={activeBanner.imageUrl}
         alt={activeBanner.title}
-        className="h-full w-full object-cover transition duration-500"
+        className="block h-full w-full object-cover transition duration-500"
         loading={normalizedActiveIndex === 0 ? "eager" : "lazy"}
       />
     </picture>
   );
 
   const content = (
-    <div className="relative h-[clamp(180px,32vw,470px)] overflow-hidden bg-slate-950">
+    <div className="relative aspect-[48/13] overflow-hidden bg-slate-950">
       {image}
       {hasOverlayCopy ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/86 via-slate-950/28 to-transparent p-4 sm:p-6 lg:p-8">

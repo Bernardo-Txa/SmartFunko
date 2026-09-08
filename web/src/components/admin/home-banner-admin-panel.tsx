@@ -89,11 +89,11 @@ function BannerPreview({
         <div
           role="img"
           aria-label={banner.title || "Banner da home"}
-          className="aspect-[21/8] w-full bg-cover bg-center"
+          className="aspect-[48/13] w-full bg-cover bg-center"
           style={{ backgroundImage: `url("${banner.imageUrl}")` }}
         />
       ) : (
-        <div className="grid aspect-[21/8] place-items-center border border-dashed border-cyan-200/20 text-cyan-100">
+        <div className="grid aspect-[48/13] place-items-center border border-dashed border-cyan-200/20 text-cyan-100">
           <div className="text-center">
             <ImagePlus size={30} aria-hidden="true" className="mx-auto" />
             <span className="mt-2 block text-xs font-black uppercase tracking-[0.14em]">Sem banner</span>
@@ -558,7 +558,7 @@ export function HomeBannerAdminPanel({
             <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--muted)]">Preview</p>
             <BannerPreview banner={previewBanner} />
             <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
-              Ideal: arte horizontal em torno de 1920x520. Para mobile, uma arte vertical ou mais centralizada evita cortes.
+              Ideal: arte horizontal em 1920x520. O preview usa a mesma proporcao exibida na home.
             </p>
           </aside>
         </form>
