@@ -46,11 +46,13 @@ export type BlingNfeCreatePayload = {
 
 export type BlingNfeData = {
   chaveAcesso?: string;
+  dataEmissao?: string;
   id?: number | string;
   linkDanfe?: string;
   linkPDF?: string;
   numero?: number | string;
   numeroPedidoLoja?: string;
+  serie?: number | string;
   situacao?: number | string | { id?: number | string; valor?: number | string };
   valorNota?: number | string;
   xml?: string;
@@ -192,6 +194,19 @@ export async function createBlingNfe(payload: BlingNfeCreatePayload) {
 
 export async function getBlingNfe(idNotaFiscal: string) {
   return blingFetch<BlingEnvelope<BlingNfeData>>(`/nfe/${encodeURIComponent(idNotaFiscal)}`);
+}
+
+export async function listBlingNfes(
+  query: {
+    limite?: number;
+    pagina?: number;
+    serie?: number | string;
+    tipo?: number | string;
+  } = {},
+) {
+  return blingFetch<BlingEnvelope<BlingNfeData[]>>("/nfe", {
+    query,
+  });
 }
 
 export async function sendBlingNfe(idNotaFiscal: string, enviarEmail = false) {

@@ -120,14 +120,18 @@ export function OrderV2BlingNfePanel({ fulfillmentStatus, issue, orderId, paymen
             onChange={(event) => setNumero(onlyDigits(event.target.value).slice(0, 9))}
             disabled={isSubmitting || Boolean(issue?.blingNfeId)}
             inputMode="numeric"
+            placeholder="Automatico"
             className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-60"
           />
+          {!issue?.blingNfeId ? (
+            <span className="mt-1 block text-xs text-[var(--muted)]">Em branco usa o proximo numero encontrado.</span>
+          ) : null}
         </label>
 
         <div className="flex flex-wrap items-end gap-2">
           <button
             type="button"
-            disabled={isSubmitting || !canCreate || !normalizedNumero}
+            disabled={isSubmitting || !canCreate}
             onClick={() => run(() => postJson(`/api/v1/admin/orders-v2/${orderId}/bling-nfe`, { numero: normalizedNumero }))}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-slate-950 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >

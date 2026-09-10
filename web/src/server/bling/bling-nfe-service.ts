@@ -7,6 +7,7 @@ import {
   BlingApiError,
   createBlingNfe,
   getBlingNfe,
+  listBlingNfes,
   sendBlingNfe,
   type BlingEnvelope,
   type BlingNfeCreatePayload,
@@ -14,7 +15,7 @@ import {
 } from "@/server/bling/bling-client";
 
 export const createBlingNfeIssueSchema = z.object({
-  numero: z.string().trim().min(1, "Informe o numero da NF-e").max(9, "Informe no maximo 9 digitos"),
+  numero: z.string().trim().max(9, "Informe no maximo 9 digitos").optional().default(""),
 });
 
 export const sendBlingNfeIssueSchema = z.object({
@@ -171,6 +172,28 @@ function normalizeInvoiceNumber(value: string) {
   }
 
   return numero;
+}
+
+function invoiceNumberValue(value: unknown) {
+  const numero = onlyDigits(String(value ?? ""));
+
+  if (!numero || numero.length > 9) {
+    return null;
+  }
+
+  const parsed = Number(numero);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function nextInvoiceNumber(values: unknown[]) {
+  const maxNumber = values.reduce<number>((max, value) => Math.max(max, invoiceNumberValue(value) ?? 0), 0);
+  const next = maxNumber + 1;
+
+  if (next > 999999999) {
+    throw internalError("Sequencia de NF-e ultrapassou 9 digitos");
+  }
+
+  return String(next);
 }
 
 function datePart(value: string | null | undefined) {
@@ -411,7 +434,10 @@ export class BlingNfeService {
     }
 
     const order = await this.getOrderForNfe(orderId);
-    const payload = buildNfePayload(order, input);
+    const payload = buildNfePayload(order, {
+      ...input,
+      numero: await this.resolveInvoiceNumber(input.numero),
+    });
 
     try {
       const response = await createBlingNfe(payload);
@@ -586,6 +612,50 @@ export class BlingNfeService {
     }
 
     return (data as BlingNfeIssueRow | null) ?? null;
+  }
+
+  private async resolveInvoiceNumber(value: string | null | undefined) {
+    const numero = onlyDigits(value);
+
+    if (numero) {
+      return normalizeInvoiceNumber(numero);
+    }
+
+    return this.suggestNextInvoiceNumber();
+  }
+
+  private async suggestNextInvoiceNumber() {
+    try {
+      const response = await listBlingNfes({
+        limite: 100,
+        pagina: 1,
+        tipo: 1,
+      });
+      const nfeNumbers = Array.isArray(response.data) ? response.data.map((nfe) => nfe.numero) : [];
+
+      if (nfeNumbers.length > 0) {
+        return nextInvoiceNumber(nfeNumbers);
+      }
+    } catch (error) {
+      if (!(error instanceof BlingApiError)) {
+        throw error;
+      }
+    }
+
+    const { data, error } = await this.supabase
+      .from("bling_nfe_issues")
+      .select("bling_number")
+      .not("bling_nfe_id", "is", null)
+      .not("bling_number", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(500);
+
+    if (error) {
+      throw internalError("Falha ao calcular proximo numero da NF-e");
+    }
+
+    const localNumbers = ((data ?? []) as Array<Pick<BlingNfeIssueRow, "bling_number">>).map((issue) => issue.bling_number);
+    return nextInvoiceNumber(localNumbers);
   }
 
   private async upsertIssue(values: Record<string, unknown>) {
