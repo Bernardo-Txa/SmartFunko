@@ -1,0 +1,492 @@
+{
+  "info": {
+    "_postman_id": "d8130df6-7099-4da1-a849-55bb8d4f2da0",
+    "name": "SmartFunkos - Bling API",
+    "description": "Fluxo OAuth e consultas auxiliares para configurar a emissao de NF-e da SmartFunkos no Bling.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "OAuth",
+      "item": [
+        {
+          "name": "01 - Abrir autorizacao no navegador",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const oauthBaseUrl = String(pm.environment.get('oauth_base_url') || '').replace(/\\/$/, '');",
+                  "const clientId = encodeURIComponent(pm.environment.get('client_id') || '');",
+                  "const redirectUri = encodeURIComponent(pm.environment.get('redirect_uri') || '');",
+                  "const state = encodeURIComponent(pm.environment.get('oauth_state') || 'smartfunkos-bling');",
+                  "const authUrl = `${oauthBaseUrl}/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;",
+                  "pm.environment.set('authorization_url', authUrl);",
+                  "console.log('Abra esta URL no navegador:', authUrl);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{oauth_base_url}}/oauth/authorize?response_type=code&client_id={{client_id}}&redirect_uri={{redirect_uri}}&state={{oauth_state}}",
+              "host": [
+                "{{oauth_base_url}}"
+              ],
+              "path": [
+                "oauth",
+                "authorize"
+              ],
+              "query": [
+                {
+                  "key": "response_type",
+                  "value": "code"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirect_uri}}"
+                },
+                {
+                  "key": "state",
+                  "value": "{{oauth_state}}"
+                }
+              ]
+            },
+            "description": "Envie ou abra esta URL no navegador. Depois de autorizar no Bling, copie o parametro code da URL de retorno e salve na variavel authorization_code do environment."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Trocar code por tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Resposta de token valida', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "if (json.access_token) {",
+                  "  pm.environment.set('access_token', json.access_token);",
+                  "}",
+                  "",
+                  "if (json.refresh_token) {",
+                  "  pm.environment.set('refresh_token', json.refresh_token);",
+                  "}",
+                  "",
+                  "if (json.expires_in) {",
+                  "  const expiresAt = new Date(Date.now() + Number(json.expires_in) * 1000).toISOString();",
+                  "  pm.environment.set('access_token_expires_at', expiresAt);",
+                  "}",
+                  "",
+                  "console.log('Tokens salvos no environment SmartFunkos - Bling');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{client_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{client_secret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "text"
+                },
+                {
+                  "key": "code",
+                  "value": "{{authorization_code}}",
+                  "type": "text"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirect_uri}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{oauth_base_url}}/oauth/token",
+              "host": [
+                "{{oauth_base_url}}"
+              ],
+              "path": [
+                "oauth",
+                "token"
+              ]
+            },
+            "description": "Troca o authorization_code por access_token e refresh_token. O script salva os tokens no environment."
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Renovar access token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Refresh token valido', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "if (json.access_token) {",
+                  "  pm.environment.set('access_token', json.access_token);",
+                  "}",
+                  "",
+                  "if (json.refresh_token) {",
+                  "  pm.environment.set('refresh_token', json.refresh_token);",
+                  "}",
+                  "",
+                  "if (json.expires_in) {",
+                  "  const expiresAt = new Date(Date.now() + Number(json.expires_in) * 1000).toISOString();",
+                  "  pm.environment.set('access_token_expires_at', expiresAt);",
+                  "}",
+                  "",
+                  "console.log('Access token renovado');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{client_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{client_secret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "refresh_token",
+                  "type": "text"
+                },
+                {
+                  "key": "refresh_token",
+                  "value": "{{refresh_token}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{oauth_base_url}}/oauth/token",
+              "host": [
+                "{{oauth_base_url}}"
+              ],
+              "path": [
+                "oauth",
+                "token"
+              ]
+            },
+            "description": "Renova o access_token usando refresh_token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Consultas",
+      "item": [
+        {
+          "name": "04 - Testar token - Listar NF-e",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/nfe?limite=10",
+              "host": [
+                "{{api_base_url}}"
+              ],
+              "path": [
+                "nfe"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Consulta simples para validar access_token e escopo de Notas Fiscais."
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Listar naturezas de operacao",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/naturezas-operacoes?limite=100",
+              "host": [
+                "{{api_base_url}}"
+              ],
+              "path": [
+                "naturezas-operacoes"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Use esta consulta para localizar o ID da natureza de operacao que sera usada em BLING_NFE_NATUREZA_OPERACAO_ID."
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Listar formas de pagamento",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/formas-pagamentos?limite=100",
+              "host": [
+                "{{api_base_url}}"
+              ],
+              "path": [
+                "formas-pagamentos"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Opcional. Use para preencher BLING_NFE_PAYMENT_METHOD_ID se quiser amarrar a parcela da nota a uma forma de pagamento do Bling."
+          },
+          "response": []
+        },
+        {
+          "name": "07 - Consultar NF-e por ID Bling",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/nfe/{{bling_nfe_id}}",
+              "host": [
+                "{{api_base_url}}"
+              ],
+              "path": [
+                "nfe",
+                "{{bling_nfe_id}}"
+              ]
+            },
+            "description": "Consulta uma NF-e ja criada no Bling pelo ID retornado na emissao."
+          },
+          "response": []
+        },
+        {
+          "name": "08 - Obter documento da NF-e",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "enable-jwt",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{api_base_url}}/nfe/documento/{{bling_nfe_access_key}}?formato=pdf",
+              "host": [
+                "{{api_base_url}}"
+              ],
+              "path": [
+                "nfe",
+                "documento",
+                "{{bling_nfe_access_key}}"
+              ],
+              "query": [
+                {
+                  "key": "formato",
+                  "value": "pdf"
+                }
+              ]
+            },
+            "description": "Consulta o documento da NF-e pela chave de acesso. Troque formato para xml se precisar do XML."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

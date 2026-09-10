@@ -22,6 +22,15 @@ Revisado em 2026-08-07.
 - `INFINITEPAY_HANDLE`: InfiniteTag da conta. Exemplo: `smartfunko`. Se vier como `@smartfunko`, o backend remove o `@`.
 - `INFINITEPAY_WEBHOOK_SECRET`: segredo HMAC para validar webhook, se a conta/provedor fornecer assinatura.
 - `INFINITEPAY_WEBHOOK_ENABLED`: controla processamento de webhook. Padrao esperado: `true`.
+- `BLING_API_BASE_URL`: base da API Bling V3. Padrao: `https://api.bling.com.br/Api/v3`.
+- `BLING_ACCESS_TOKEN`: access token OAuth do aplicativo Bling.
+- `BLING_NFE_NATUREZA_OPERACAO_ID`: ID da natureza de operacao usada para criar NF-e.
+- `BLING_NFE_LOJA_ID`: ID da loja no Bling, opcional.
+- `BLING_NFE_LOJA_NUMERO`: override do numero de loja/pedido enviado ao Bling. Se vazio e `BLING_NFE_LOJA_ID` estiver definido, usa o numero do pedido V2.
+- `BLING_NFE_PAYMENT_METHOD_ID`: ID da forma de pagamento usada na parcela da NF-e, opcional.
+- `BLING_NFE_DEFAULT_CONTRIBUINTE`: indicador do destinatario: `1`, `2` ou `9`. Padrao: `9`.
+- `BLING_NFE_DEFAULT_NCM`: NCM padrao para itens, opcional se os produtos/SKUs ja estiverem completos no Bling.
+- `BLING_NFE_DEFAULT_ORIGEM`: origem fiscal padrao do item, de `0` a `8`. Padrao: `0`.
 
 ## Exemplo local
 
@@ -37,6 +46,16 @@ INFINITEPAY_API_KEY=
 INFINITEPAY_HANDLE=smartfunko
 INFINITEPAY_WEBHOOK_SECRET=
 INFINITEPAY_WEBHOOK_ENABLED=true
+
+BLING_API_BASE_URL=https://api.bling.com.br/Api/v3
+BLING_ACCESS_TOKEN=
+BLING_NFE_NATUREZA_OPERACAO_ID=
+BLING_NFE_LOJA_ID=
+BLING_NFE_LOJA_NUMERO=
+BLING_NFE_PAYMENT_METHOD_ID=
+BLING_NFE_DEFAULT_CONTRIBUINTE=9
+BLING_NFE_DEFAULT_NCM=
+BLING_NFE_DEFAULT_ORIGEM=0
 
 NEXT_PUBLIC_SUPABASE_URL=https://project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=replace-with-anon-key

@@ -277,7 +277,7 @@ function orderSelect() {
     subtotal,discount,total,coupon_id,coupon_code,customer_visible,notes,internal_notes,rejection_reason,cancellation_reason,refund_notes,
     tracking_code,tracking_url,requested_at,received_at,shipped_at,paid_at,refund_requested_at,refunded_at,
     created_by,reviewed_by,reviewed_at,created_at,updated_at,
-    customers(id,name,email,phone,status),
+    customers(id,name,email,phone,cpf,status),
     temporary_customers(id,name,phone,status,merged_customer_id),
     v2_order_competencies(id,code,label,starts_on,ends_on,status),
     v2_order_items(id,product_variant_id,product_id,supplier_id,item_context,product_name,product_sku,quantity,unit_price,total_price,created_at,updated_at),
@@ -293,7 +293,7 @@ function paymentSessionSelect() {
     id,checkout_number,customer_id,competence_id,provider,status,amount,payment_link_url,
     provider_reference,invoice_slug,transaction_nsu,receipt_url,paid_amount,provider_fee_amount,paid_installments,
     expires_at,paid_at,created_by,created_at,updated_at,
-    customers(id,name,email,phone,status),
+    customers(id,name,email,phone,cpf,status),
     v2_order_competencies(id,code,label,starts_on,ends_on,status),
     v2_payment_session_orders(
       amount,
@@ -1737,7 +1737,7 @@ export class OrderV2Service {
       .from("v2_orders")
       .select(`
         id,order_number,customer_id,competence_id,approval_status,payment_status,fulfillment_status,total,customer_visible,
-        customers(id,name,email,phone,status),
+        customers(id,name,email,phone,cpf,status),
         v2_order_items(id,product_name,quantity,unit_price,total_price)
       `)
       .in("id", orderIds);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminShell, MetricCard } from "@/components/admin/admin-shell";
 import { OrderV2Actions } from "@/components/admin/order-v2-actions";
+import { OrderV2BlingNfePanel } from "@/components/admin/order-v2-bling-nfe-panel";
 import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import {
   getV2StatusBadgeClassName,
@@ -11,6 +12,7 @@ import {
   v2SourceLabels,
 } from "@/lib/orders-v2-labels";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
+import { BlingNfeService } from "@/server/bling/bling-nfe-service";
 import { OrderV2Service } from "@/server/orders-v2/order-v2-service";
 
 export const metadata: Metadata = {
@@ -26,10 +28,12 @@ type AdminOrderV2Detail = {
   cancellation_reason: string | null;
   created_at: string;
   customers?: {
+    cpf?: string | null;
     email?: string | null;
     name?: string;
     phone?: string | null;
   } | Array<{
+    cpf?: string | null;
     email?: string | null;
     name?: string;
     phone?: string | null;
@@ -102,6 +106,7 @@ function getOrderBuyer(order: AdminOrderV2Detail) {
 
   if (customer) {
     return {
+      cpf: customer.cpf ?? null,
       email: customer.email ?? null,
       isTemporary: false,
       name: customer.name?.trim() || "Cliente",
@@ -111,6 +116,7 @@ function getOrderBuyer(order: AdminOrderV2Detail) {
 
   if (temporaryCustomer) {
     return {
+      cpf: null,
       email: null,
       isTemporary: true,
       name: temporaryCustomer.name?.trim() || "Cliente temporario",
@@ -119,6 +125,7 @@ function getOrderBuyer(order: AdminOrderV2Detail) {
   }
 
   return {
+    cpf: null,
     email: null,
     isTemporary: false,
     name: "Cliente",
@@ -129,33 +136,44 @@ function getOrderBuyer(order: AdminOrderV2Detail) {
 export default async function AdminOrderV2DetailPage({ params }: Props) {
   const { id } = await params;
   const admin = await requireAdminPage(`/admin/v2/pedidos/${id}`);
-  const order = await new OrderV2Service(undefined, admin.profile.id).getAdminOrderById(id) as unknown as AdminOrderV2Detail;
-  const buyer = getOrderBuyer(order);
-  const competence = firstRelation(order.v2_order_competencies);
+  const [order, blingNfeIssue] = await Promise.all([
+    new OrderV2Service(undefined, admin.profile.id).getAdminOrderById(id) as Promise<unknown>,
+    new BlingNfeService(undefined, admin.profile.id).getOrderIssue(id),
+  ]);
+  const typedOrder = order as AdminOrderV2Detail;
+  const buyer = getOrderBuyer(typedOrder);
+  const competence = firstRelation(typedOrder.v2_order_competencies);
 
   return (
-    <AdminShell title={order.order_number} description="Detalhe operacional do pedido V2.">
+    <AdminShell title={typedOrder.order_number} description="Detalhe operacional do pedido V2.">
       <div className="grid gap-6">
         <div className="flex flex-wrap gap-2">
-          <Badge status={order.approval_status} label={v2ApprovalStatusLabels[order.approval_status] ?? order.approval_status} />
-          <Badge status={order.payment_status} label={v2PaymentStatusLabels[order.payment_status] ?? order.payment_status} />
-          <Badge status={order.fulfillment_status} label={v2FulfillmentStatusLabels[order.fulfillment_status] ?? order.fulfillment_status} />
+          <Badge status={typedOrder.approval_status} label={v2ApprovalStatusLabels[typedOrder.approval_status] ?? typedOrder.approval_status} />
+          <Badge status={typedOrder.payment_status} label={v2PaymentStatusLabels[typedOrder.payment_status] ?? typedOrder.payment_status} />
+          <Badge status={typedOrder.fulfillment_status} label={v2FulfillmentStatusLabels[typedOrder.fulfillment_status] ?? typedOrder.fulfillment_status} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Total" value={formatCurrency(Number(order.total))} detail="Valor do pedido" />
-          <MetricCard label="Origem" value={v2SourceLabels[order.source] ?? order.source} detail={formatDate(order.order_date)} />
+          <MetricCard label="Total" value={formatCurrency(Number(typedOrder.total))} detail="Valor do pedido" />
+          <MetricCard label="Origem" value={v2SourceLabels[typedOrder.source] ?? typedOrder.source} detail={formatDate(typedOrder.order_date)} />
           <MetricCard label="Competencia" value={competence?.label ?? "-"} detail={competence?.starts_on && competence?.ends_on ? `${formatDate(competence.starts_on)} a ${formatDate(competence.ends_on)}` : "-"} />
-          <MetricCard label="Pagamento" value={order.paid_at ? formatDate(order.paid_at) : "-"} detail={v2PaymentStatusLabels[order.payment_status] ?? order.payment_status} />
+          <MetricCard label="Pagamento" value={typedOrder.paid_at ? formatDate(typedOrder.paid_at) : "-"} detail={v2PaymentStatusLabels[typedOrder.payment_status] ?? typedOrder.payment_status} />
         </div>
 
         <OrderV2Actions
-          approvalStatus={order.approval_status}
-          fulfillmentStatus={order.fulfillment_status}
-          orderId={order.id}
-          paymentStatus={order.payment_status}
-          trackingCode={order.tracking_code}
-          trackingUrl={order.tracking_url}
+          approvalStatus={typedOrder.approval_status}
+          fulfillmentStatus={typedOrder.fulfillment_status}
+          orderId={typedOrder.id}
+          paymentStatus={typedOrder.payment_status}
+          trackingCode={typedOrder.tracking_code}
+          trackingUrl={typedOrder.tracking_url}
+        />
+
+        <OrderV2BlingNfePanel
+          fulfillmentStatus={typedOrder.fulfillment_status}
+          issue={blingNfeIssue}
+          orderId={typedOrder.id}
+          paymentStatus={typedOrder.payment_status}
         />
 
         <section className="grid gap-4 md:grid-cols-2">
@@ -181,6 +199,10 @@ export default async function AdminOrderV2DetailPage({ params }: Props) {
                 <dt className="text-[var(--muted)]">Telefone</dt>
                 <dd className="text-[var(--foreground)]">{formatPhoneNumber(buyer.phone) || "-"}</dd>
               </div>
+              <div>
+                <dt className="text-[var(--muted)]">CPF/CNPJ</dt>
+                <dd className="text-[var(--foreground)]">{buyer.cpf ?? "-"}</dd>
+              </div>
             </dl>
           </div>
 
@@ -189,17 +211,17 @@ export default async function AdminOrderV2DetailPage({ params }: Props) {
             <dl className="mt-4 grid gap-2 text-sm">
               <div>
                 <dt className="text-[var(--muted)]">Cliente</dt>
-                <dd className="text-[var(--foreground)]">{order.notes ?? "-"}</dd>
+                <dd className="text-[var(--foreground)]">{typedOrder.notes ?? "-"}</dd>
               </div>
               <div>
                 <dt className="text-[var(--muted)]">Interna</dt>
-                <dd className="text-[var(--foreground)]">{order.internal_notes ?? "-"}</dd>
+                <dd className="text-[var(--foreground)]">{typedOrder.internal_notes ?? "-"}</dd>
               </div>
-              {order.rejection_reason || order.cancellation_reason || order.refund_notes ? (
+              {typedOrder.rejection_reason || typedOrder.cancellation_reason || typedOrder.refund_notes ? (
                 <div>
                   <dt className="text-[var(--muted)]">Ocorrencias</dt>
                   <dd className="text-[var(--foreground)]">
-                    {[order.rejection_reason, order.cancellation_reason, order.refund_notes].filter(Boolean).join(" · ")}
+                    {[typedOrder.rejection_reason, typedOrder.cancellation_reason, typedOrder.refund_notes].filter(Boolean).join(" · ")}
                   </dd>
                 </div>
               ) : null}
@@ -222,7 +244,7 @@ export default async function AdminOrderV2DetailPage({ params }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {(order.v2_order_items ?? []).map((item) => (
+              {(typedOrder.v2_order_items ?? []).map((item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3 font-semibold text-[var(--foreground)]">{item.product_name}</td>
                   <td className="px-4 py-3 text-[var(--muted)]">{item.product_sku ?? "-"}</td>
@@ -238,10 +260,10 @@ export default async function AdminOrderV2DetailPage({ params }: Props) {
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 className="text-lg font-bold text-[var(--foreground)]">Checkouts</h2>
           <div className="mt-4 grid gap-2">
-            {(order.v2_payment_session_orders ?? []).length === 0 ? (
+            {(typedOrder.v2_payment_session_orders ?? []).length === 0 ? (
               <p className="text-sm text-[var(--muted)]">Nenhum checkout gerado para este pedido.</p>
             ) : (
-              order.v2_payment_session_orders?.map((link, index) => {
+              typedOrder.v2_payment_session_orders?.map((link, index) => {
                 const session = firstRelation(link.v2_payment_sessions);
 
                 return (
