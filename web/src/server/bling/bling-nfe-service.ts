@@ -31,11 +31,13 @@ type BlingNfeIssueRow = {
   access_key: string | null;
   bling_nfe_id: string | null;
   bling_number: string | null;
+  bling_series: string | null;
   created_at: string;
   danfe_url: string | null;
   emitted_at: string | null;
   error_message: string | null;
   id: string;
+  last_synced_at: string | null;
   order_id: string;
   pdf_url: string | null;
   sent_at: string | null;
@@ -83,21 +85,51 @@ type OrderForNfe = {
   v2_order_items?: OrderItem[];
 };
 
+const BLING_NFE_ISSUE_SELECT =
+  "id,order_id,status,bling_nfe_id,bling_number,bling_series,access_key,danfe_url,pdf_url,xml_url,error_message,emitted_at,sent_at,last_synced_at,created_at,updated_at";
+
 export type BlingNfeIssueView = {
   accessKey: string | null;
   blingNfeId: string | null;
   blingNumber: string | null;
+  blingSeries: string | null;
   createdAt: string;
   danfeUrl: string | null;
   emittedAt: string | null;
   errorMessage: string | null;
   id: string;
+  lastSyncedAt: string | null;
   orderId: string;
   pdfUrl: string | null;
   sentAt: string | null;
   status: BlingNfeIssueStatus;
   updatedAt: string;
   xmlUrl: string | null;
+};
+
+type ValidationStatus = "error" | "ok" | "warning";
+
+export type BlingNfeValidationCheck = {
+  key: string;
+  label: string;
+  message: string;
+  status: ValidationStatus;
+};
+
+export type BlingNfeValidationView = {
+  canCreate: boolean;
+  checks: BlingNfeValidationCheck[];
+  issue: BlingNfeIssueView | null;
+  nextNumber: string | null;
+  payloadPreview: {
+    dataOperacao: string;
+    itens: number;
+    naturezaOperacaoId: number;
+    numero: string;
+    parcelaValor: number | null;
+    tipoPessoa: "F" | "J" | "E";
+    totalItens: number;
+  } | null;
 };
 
 function firstRelation<T>(relation: T | T[] | null | undefined) {
@@ -110,6 +142,44 @@ function nowIso() {
 
 function onlyDigits(value: string | null | undefined) {
   return String(value ?? "").replace(/\D/g, "");
+}
+
+function allSameDigits(value: string) {
+  return /^(\d)\1+$/.test(value);
+}
+
+function validateCpf(value: string) {
+  if (value.length !== 11 || allSameDigits(value)) {
+    return false;
+  }
+
+  const digits = value.split("").map(Number);
+  const first = digits.slice(0, 9).reduce((sum, digit, index) => sum + digit * (10 - index), 0);
+  const firstCheck = (first * 10) % 11 % 10;
+  const second = digits.slice(0, 10).reduce((sum, digit, index) => sum + digit * (11 - index), 0);
+  const secondCheck = (second * 10) % 11 % 10;
+
+  return digits[9] === firstCheck && digits[10] === secondCheck;
+}
+
+function validateCnpj(value: string) {
+  if (value.length !== 14 || allSameDigits(value)) {
+    return false;
+  }
+
+  const digits = value.split("").map(Number);
+  const firstWeights = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const secondWeights = [6, ...firstWeights];
+  const firstSum = firstWeights.reduce((sum, weight, index) => sum + digits[index] * weight, 0);
+  const firstCheck = firstSum % 11 < 2 ? 0 : 11 - (firstSum % 11);
+  const secondSum = secondWeights.reduce((sum, weight, index) => sum + digits[index] * weight, 0);
+  const secondCheck = secondSum % 11 < 2 ? 0 : 11 - (secondSum % 11);
+
+  return digits[12] === firstCheck && digits[13] === secondCheck;
+}
+
+function isValidCpfOrCnpj(value: string) {
+  return value.length === 11 ? validateCpf(value) : value.length === 14 ? validateCnpj(value) : false;
 }
 
 function toMoney(value: number | string) {
@@ -157,7 +227,25 @@ function parseOrigem() {
   }
 
   const parsed = Number(env.blingNfeDefaultOrigem);
-  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 8 ? parsed : undefined;
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 8) {
+    throw internalError("Configure BLING_NFE_DEFAULT_ORIGEM com um numero de 0 a 8");
+  }
+
+  return parsed;
+}
+
+function parseDefaultNcm() {
+  const ncm = onlyDigits(env.blingNfeDefaultNcm);
+
+  if (!ncm) {
+    return undefined;
+  }
+
+  if (ncm.length !== 8) {
+    throw internalError("Configure BLING_NFE_DEFAULT_NCM com 8 digitos");
+  }
+
+  return ncm;
 }
 
 function normalizeInvoiceNumber(value: string) {
@@ -213,11 +301,13 @@ function mapIssue(row: BlingNfeIssueRow): BlingNfeIssueView {
     accessKey: row.access_key,
     blingNfeId: row.bling_nfe_id,
     blingNumber: row.bling_number,
+    blingSeries: row.bling_series,
     createdAt: row.created_at,
     danfeUrl: row.danfe_url,
     emittedAt: row.emitted_at,
     errorMessage: row.error_message,
     id: row.id,
+    lastSyncedAt: row.last_synced_at,
     orderId: row.order_id,
     pdfUrl: row.pdf_url,
     sentAt: row.sent_at,
@@ -278,9 +368,11 @@ function issueFieldsFromBling(data: BlingNfeData, fallbackStatus: BlingNfeIssueS
     access_key: stringValue(data.chaveAcesso),
     bling_nfe_id: stringValue(data.id),
     bling_number: stringValue(data.numero),
+    bling_series: stringValue(data.serie),
     danfe_url: stringValue(data.linkDanfe),
     pdf_url: stringValue(data.linkPDF),
     status: statusFromBling(data, fallbackStatus),
+    xml_url: stringValue(data.linkXml),
   };
 }
 
@@ -319,6 +411,115 @@ function buildLoja(orderNumber: string) {
   };
 }
 
+function validationCheck(
+  status: ValidationStatus,
+  key: string,
+  label: string,
+  message: string,
+): BlingNfeValidationCheck {
+  return { key, label, message, status };
+}
+
+function validateOrderReadiness(order: OrderForNfe, existing: BlingNfeIssueRow | null) {
+  const checks: BlingNfeValidationCheck[] = [];
+  const customer = firstRelation(order.customers);
+  const documento = onlyDigits(customer?.cpf);
+  const items = order.v2_order_items ?? [];
+  const total = Number(order.total);
+  const defaultNcm = onlyDigits(env.blingNfeDefaultNcm);
+
+  checks.push(existing?.bling_nfe_id
+    ? validationCheck("warning", "existing_nfe", "NF-e existente", `Pedido ja tem NF-e criada no Bling: ${existing.bling_nfe_id}.`)
+    : validationCheck("ok", "existing_nfe", "NF-e existente", "Pedido ainda nao tem NF-e no Bling."));
+
+  checks.push(order.payment_status === "pago"
+    ? validationCheck("ok", "payment_status", "Pagamento", "Pedido esta pago.")
+    : validationCheck("error", "payment_status", "Pagamento", "Pedido precisa estar pago antes de emitir NF-e."));
+
+  checks.push(order.fulfillment_status === "cancelado"
+    ? validationCheck("error", "fulfillment_status", "Operacao", "Pedido cancelado nao pode emitir NF-e.")
+    : validationCheck("ok", "fulfillment_status", "Operacao", "Pedido nao esta cancelado."));
+
+  checks.push(order.temporary_customer_id
+    ? validationCheck("error", "customer_type", "Cliente", "Converta o cliente temporario em cliente cadastrado antes de emitir NF-e.")
+    : validationCheck("ok", "customer_type", "Cliente", "Pedido usa cliente cadastrado."));
+
+  checks.push(customer
+    ? validationCheck("ok", "customer", "Dados do cliente", "Cliente localizado.")
+    : validationCheck("error", "customer", "Dados do cliente", "Pedido sem cliente cadastrado."));
+
+  if (customer) {
+    checks.push(customer.name?.trim()
+      ? validationCheck("ok", "customer_name", "Nome", "Nome do cliente preenchido.")
+      : validationCheck("error", "customer_name", "Nome", "Cadastre o nome do cliente."));
+
+    checks.push(isValidCpfOrCnpj(documento)
+      ? validationCheck("ok", "customer_document", "CPF/CNPJ", documento.length === 14 ? "CNPJ valido." : "CPF valido.")
+      : validationCheck("error", "customer_document", "CPF/CNPJ", "Cadastre CPF/CNPJ valido com digitos verificadores corretos."));
+
+    checks.push(onlyDigits(customer.phone).length >= 10
+      ? validationCheck("ok", "customer_phone", "Telefone", "Telefone preenchido.")
+      : validationCheck("warning", "customer_phone", "Telefone", "Telefone ausente ou incompleto; o Bling pode aceitar, mas o cadastro fiscal fica menos completo."));
+  }
+
+  checks.push(items.length > 0
+    ? validationCheck("ok", "items", "Itens", `${items.length} item(ns) no pedido.`)
+    : validationCheck("error", "items", "Itens", "Pedido sem itens para NF-e."));
+
+  for (const item of items) {
+    const itemName = item.product_name?.trim() || item.id;
+    const quantity = Number(item.quantity);
+    const value = Number(item.unit_price);
+
+    if (!item.product_name?.trim()) {
+      checks.push(validationCheck("error", `item_${item.id}_name`, "Descricao do item", `Item ${item.id} sem descricao.`));
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      checks.push(validationCheck("error", `item_${item.id}_quantity`, "Quantidade", `Item ${itemName} com quantidade invalida.`));
+    }
+
+    if (!Number.isFinite(value) || value <= 0) {
+      checks.push(validationCheck("error", `item_${item.id}_value`, "Valor do item", `Item ${itemName} precisa ter valor maior que zero.`));
+    }
+  }
+
+  checks.push(Number.isFinite(total) && total > 0
+    ? validationCheck("ok", "total", "Total", "Pedido tem total maior que zero.")
+    : validationCheck("error", "total", "Total", "Pedido precisa ter total maior que zero."));
+
+  checks.push(env.blingNfeNaturezaOperacaoId.trim()
+    ? validationCheck("ok", "natureza", "Natureza de operacao", "Natureza de operacao configurada.")
+    : validationCheck("error", "natureza", "Natureza de operacao", "Configure BLING_NFE_NATUREZA_OPERACAO_ID no deploy."));
+
+  if (!defaultNcm) {
+    checks.push(validationCheck(
+      "warning",
+      "default_ncm",
+      "NCM",
+      "BLING_NFE_DEFAULT_NCM nao configurado; se o SKU nao existir no Bling com dados fiscais completos, a NF-e pode ser rejeitada.",
+    ));
+  } else if (defaultNcm.length === 8) {
+    checks.push(validationCheck("ok", "default_ncm", "NCM", "NCM padrao configurado com 8 digitos."));
+  } else {
+    checks.push(validationCheck("error", "default_ncm", "NCM", "BLING_NFE_DEFAULT_NCM precisa ter 8 digitos."));
+  }
+
+  return checks;
+}
+
+function payloadPreview(payload: BlingNfeCreatePayload): BlingNfeValidationView["payloadPreview"] {
+  return {
+    dataOperacao: payload.dataOperacao,
+    itens: payload.itens.length,
+    naturezaOperacaoId: payload.naturezaOperacao.id,
+    numero: payload.numero,
+    parcelaValor: payload.parcelas?.[0]?.valor ?? null,
+    tipoPessoa: payload.contato.tipoPessoa,
+    totalItens: payload.itens.reduce((sum, item) => sum + item.quantidade * item.valor, 0),
+  };
+}
+
 function buildNfePayload(order: OrderForNfe, input: CreateBlingNfeIssueInput): BlingNfeCreatePayload {
   if (order.payment_status !== "pago") {
     throw conflict("Pedido precisa estar pago antes de emitir NF-e");
@@ -340,7 +541,7 @@ function buildNfePayload(order: OrderForNfe, input: CreateBlingNfeIssueInput): B
 
   const documento = onlyDigits(customer.cpf);
 
-  if (![11, 14].includes(documento.length)) {
+  if (!isValidCpfOrCnpj(documento)) {
     throw badRequest("Cadastre CPF/CNPJ valido no cliente antes de emitir NF-e");
   }
 
@@ -350,7 +551,7 @@ function buildNfePayload(order: OrderForNfe, input: CreateBlingNfeIssueInput): B
     throw badRequest("Pedido sem itens para NF-e");
   }
 
-  const defaultNcm = env.blingNfeDefaultNcm.trim() || undefined;
+  const defaultNcm = parseDefaultNcm();
   const origem = parseOrigem();
   const total = toMoney(order.total);
   const discount = toMoney(order.discount);
@@ -383,6 +584,10 @@ function buildNfePayload(order: OrderForNfe, input: CreateBlingNfeIssueInput): B
 
       if (valor < 0) {
         throw badRequest(`Item ${item.product_name} com valor invalido`);
+      }
+
+      if (valor === 0) {
+        throw badRequest(`Item ${item.product_name} precisa ter valor maior que zero`);
       }
 
       return {
@@ -426,6 +631,38 @@ export class BlingNfeService {
     return row ? mapIssue(row) : null;
   }
 
+  async validateOrderIssue(orderId: string): Promise<BlingNfeValidationView> {
+    const existing = await this.getOrderIssueRow(orderId);
+    const order = await this.getOrderForNfe(orderId);
+    const checks = validateOrderReadiness(order, existing);
+    const hasBlockingError = checks.some((check) => check.status === "error");
+    const canCreate = !existing?.bling_nfe_id && !hasBlockingError;
+    let nextNumber: string | null = null;
+    let preview: BlingNfeValidationView["payloadPreview"] = null;
+
+    if (canCreate) {
+      try {
+        nextNumber = await this.resolveInvoiceNumber("");
+        preview = payloadPreview(buildNfePayload(order, { numero: nextNumber }));
+      } catch (error) {
+        checks.push(validationCheck(
+          "error",
+          "bling_connection",
+          "Conexao Bling",
+          error instanceof Error ? error.message : "Nao foi possivel validar o Bling.",
+        ));
+      }
+    }
+
+    return {
+      canCreate: canCreate && !checks.some((check) => check.status === "error"),
+      checks,
+      issue: existing ? mapIssue(existing) : null,
+      nextNumber,
+      payloadPreview: preview,
+    };
+  }
+
   async createOrderIssue(orderId: string, input: CreateBlingNfeIssueInput, actorProfileId = this.actorId) {
     const existing = await this.getOrderIssueRow(orderId);
 
@@ -454,6 +691,7 @@ export class BlingNfeService {
         created_by: actorProfileId ?? null,
         emitted_at: issueFields.status === "authorized" ? nowIso() : null,
         error_message: null,
+        last_synced_at: nowIso(),
         order_id: orderId,
         request_payload: payload,
         response_payload: sanitizeResponsePayload(response),
@@ -528,6 +766,7 @@ export class BlingNfeService {
         ...issueFields,
         emitted_at: status === "authorized" ? nowIso() : existing.emitted_at,
         error_message: null,
+        last_synced_at: nowIso(),
         response_payload: sanitizeResponsePayload({
           details: detailsResponse,
           send: sendResponse,
@@ -577,6 +816,74 @@ export class BlingNfeService {
     }
   }
 
+  async syncOrderIssue(orderId: string, actorProfileId = this.actorId) {
+    const order = await this.getOrderForNfe(orderId);
+    const existing = await this.getOrderIssueRow(orderId);
+
+    if (!existing?.bling_nfe_id) {
+      throw conflict("Crie a NF-e no Bling antes de atualizar o status");
+    }
+
+    try {
+      const response = await getBlingNfe(existing.bling_nfe_id);
+      const details = dataFromEnvelope(response);
+      const issueFields = issueFieldsFromBling(details, existing.status);
+      const status = issueFields.status;
+      const issue = await this.updateIssue(existing.id, {
+        ...issueFields,
+        bling_nfe_id: issueFields.bling_nfe_id ?? existing.bling_nfe_id,
+        bling_number: issueFields.bling_number ?? existing.bling_number,
+        bling_series: issueFields.bling_series ?? existing.bling_series,
+        emitted_at: status === "authorized" ? existing.emitted_at ?? nowIso() : existing.emitted_at,
+        error_message: status === "failed" || status === "rejected" ? existing.error_message : null,
+        last_synced_at: nowIso(),
+        response_payload: sanitizeResponsePayload(response),
+        sent_at: ["authorized", "sent"].includes(status) ? existing.sent_at ?? nowIso() : existing.sent_at,
+        status,
+      });
+
+      await this.addOrderEvent({
+        actorId: actorProfileId,
+        customerId: order.customer_id,
+        eventType: "bling.nfe.synced",
+        metadata: {
+          blingNfeId: issue.blingNfeId,
+          numero: issue.blingNumber,
+          status,
+        },
+        notes: "Status da NF-e atualizado a partir do Bling",
+        orderId,
+        toStatus: status,
+      });
+
+      return issue;
+    } catch (error) {
+      if (error instanceof BlingApiError) {
+        const issue = await this.updateIssue(existing.id, {
+          error_message: error.message,
+          last_synced_at: nowIso(),
+          response_payload: sanitizeResponsePayload(error.body),
+          status: existing.status === "authorized" ? "authorized" : "failed",
+        });
+        await this.addOrderEvent({
+          actorId: actorProfileId,
+          customerId: order.customer_id,
+          eventType: "bling.nfe.sync_failed",
+          metadata: {
+            blingNfeId: issue.blingNfeId,
+            status: error.status,
+          },
+          notes: error.message,
+          orderId,
+          toStatus: issue.status,
+        });
+        throw badRequest(`Bling nao atualizou a NF-e: ${error.message}`);
+      }
+
+      throw error;
+    }
+  }
+
   private async getOrderForNfe(orderId: string) {
     const { data, error } = await this.supabase
       .from("v2_orders")
@@ -603,7 +910,7 @@ export class BlingNfeService {
   private async getOrderIssueRow(orderId: string) {
     const { data, error } = await this.supabase
       .from("bling_nfe_issues")
-      .select("id,order_id,status,bling_nfe_id,bling_number,access_key,danfe_url,pdf_url,xml_url,error_message,emitted_at,sent_at,created_at,updated_at")
+      .select(BLING_NFE_ISSUE_SELECT)
       .eq("order_id", orderId)
       .maybeSingle();
 
@@ -662,7 +969,7 @@ export class BlingNfeService {
     const { data, error } = await this.supabase
       .from("bling_nfe_issues")
       .upsert(values, { onConflict: "order_id" })
-      .select("id,order_id,status,bling_nfe_id,bling_number,access_key,danfe_url,pdf_url,xml_url,error_message,emitted_at,sent_at,created_at,updated_at")
+      .select(BLING_NFE_ISSUE_SELECT)
       .single();
 
     if (error) {
@@ -677,7 +984,7 @@ export class BlingNfeService {
       .from("bling_nfe_issues")
       .update(values)
       .eq("id", issueId)
-      .select("id,order_id,status,bling_nfe_id,bling_number,access_key,danfe_url,pdf_url,xml_url,error_message,emitted_at,sent_at,created_at,updated_at")
+      .select(BLING_NFE_ISSUE_SELECT)
       .single();
 
     if (error) {

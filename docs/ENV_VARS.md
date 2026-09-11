@@ -23,7 +23,9 @@ Revisado em 2026-08-07.
 - `INFINITEPAY_WEBHOOK_SECRET`: segredo HMAC para validar webhook, se a conta/provedor fornecer assinatura.
 - `INFINITEPAY_WEBHOOK_ENABLED`: controla processamento de webhook. Padrao esperado: `true`.
 - `BLING_API_BASE_URL`: base da API Bling V3. Padrao: `https://api.bling.com.br/Api/v3`.
-- `BLING_ACCESS_TOKEN`: access token OAuth do aplicativo Bling.
+- `BLING_OAUTH_BASE_URL`: base OAuth do Bling V3. Padrao: `https://bling.com.br/Api/v3`.
+- `BLING_CLIENT_ID`: Client ID do aplicativo privado Bling. Obrigatorio para conectar pelo painel.
+- `BLING_CLIENT_SECRET`: Client Secret do aplicativo privado Bling. Obrigatorio para conectar pelo painel.
 - `BLING_NFE_NATUREZA_OPERACAO_ID`: ID da natureza de operacao usada para criar NF-e.
 - `BLING_NFE_LOJA_ID`: ID da loja no Bling, opcional.
 - `BLING_NFE_LOJA_NUMERO`: override do numero de loja/pedido enviado ao Bling. Se vazio e `BLING_NFE_LOJA_ID` estiver definido, usa o numero do pedido V2.
@@ -48,7 +50,9 @@ INFINITEPAY_WEBHOOK_SECRET=
 INFINITEPAY_WEBHOOK_ENABLED=true
 
 BLING_API_BASE_URL=https://api.bling.com.br/Api/v3
-BLING_ACCESS_TOKEN=
+BLING_OAUTH_BASE_URL=https://bling.com.br/Api/v3
+BLING_CLIENT_ID=
+BLING_CLIENT_SECRET=
 BLING_NFE_NATUREZA_OPERACAO_ID=
 BLING_NFE_LOJA_ID=
 BLING_NFE_LOJA_NUMERO=
@@ -61,6 +65,17 @@ NEXT_PUBLIC_SUPABASE_URL=https://project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=replace-with-anon-key
 SUPABASE_SERVICE_ROLE_KEY=replace-with-service-role-key
 ```
+
+## Bling OAuth
+
+No Bling, cadastre estes redirects no aplicativo:
+
+```txt
+https://smartfunko.com.br/api/v1/admin/bling/oauth/callback
+http://localhost:3000/api/v1/admin/bling/oauth/callback
+```
+
+No deploy, mantenha apenas `BLING_CLIENT_ID` e `BLING_CLIENT_SECRET` como credenciais OAuth. Depois, no admin do pedido, clique em `Conectar Bling`; a autorizacao volta para o app e o backend salva `access_token`/`refresh_token` em `integration_oauth_tokens` usando a service role do Supabase.
 
 ## Vercel
 

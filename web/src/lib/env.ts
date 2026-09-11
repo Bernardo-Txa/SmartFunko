@@ -25,7 +25,9 @@ export const env = {
   infinitePayWebhookEnabled: process.env.INFINITEPAY_WEBHOOK_ENABLED ?? "true",
   infinitePayWebhookSecret: process.env.INFINITEPAY_WEBHOOK_SECRET ?? "",
   blingApiBaseUrl: process.env.BLING_API_BASE_URL ?? "https://api.bling.com.br/Api/v3",
-  blingAccessToken: process.env.BLING_ACCESS_TOKEN ?? "",
+  blingOAuthBaseUrl: process.env.BLING_OAUTH_BASE_URL ?? "https://bling.com.br/Api/v3",
+  blingClientId: process.env.BLING_CLIENT_ID ?? "",
+  blingClientSecret: process.env.BLING_CLIENT_SECRET ?? "",
   blingNfeNaturezaOperacaoId: process.env.BLING_NFE_NATUREZA_OPERACAO_ID ?? "",
   blingNfeLojaId: process.env.BLING_NFE_LOJA_ID ?? "",
   blingNfeLojaNumero: process.env.BLING_NFE_LOJA_NUMERO ?? "",
@@ -61,7 +63,16 @@ export function hasInfinitePayCheckoutEnv() {
 }
 
 export function hasBlingNfeEnv() {
-  return Boolean(env.blingApiBaseUrl && env.blingAccessToken && env.blingNfeNaturezaOperacaoId);
+  return Boolean(
+    env.blingApiBaseUrl &&
+    env.blingNfeNaturezaOperacaoId &&
+    env.blingClientId &&
+    env.blingClientSecret,
+  );
+}
+
+export function hasBlingOAuthRefreshEnv() {
+  return Boolean(env.blingOAuthBaseUrl && env.blingClientId && env.blingClientSecret);
 }
 
 export function hasSupabasePublicEnv() {

@@ -1,6 +1,7 @@
 import "server-only";
-import { env, hasBlingNfeEnv } from "@/lib/env";
+import { env } from "@/lib/env";
 import { internalError } from "@/server/http/errors";
+import { canRefreshBlingAccessToken, getBlingAccessToken } from "@/server/bling/bling-token-service";
 
 export type BlingNfeCreatePayload = {
   contato: {
@@ -50,6 +51,7 @@ export type BlingNfeData = {
   id?: number | string;
   linkDanfe?: string;
   linkPDF?: string;
+  linkXml?: string;
   numero?: number | string;
   numeroPedidoLoja?: string;
   serie?: number | string;
@@ -104,24 +106,39 @@ function fieldMessage(field: unknown): string | null {
 function formatBlingError(status: number, body: unknown) {
   if (!isRecord(body)) {
     return status === 401
-      ? "Bling nao autorizou a chamada. Atualize o BLING_ACCESS_TOKEN."
+      ? "Bling nao autorizou a chamada. Reautorize o Bling pelo painel administrativo."
       : "Bling retornou erro sem detalhes.";
   }
 
   const error = isRecord(body.error) ? body.error : {};
+  const errorType = firstString(error.type, body.type);
   const message = firstString(error.message, body.message);
-  const description = firstString(error.description, body.description);
+  const description = firstString(error.description, body.error_description, body.description);
   const fields = Array.isArray(error.fields)
     ? error.fields.map(fieldMessage).filter(Boolean).join("; ")
     : "";
   const formatted = [message, description, fields].filter(Boolean).join(" - ");
+
+  if (errorType === "insufficient_scope") {
+    return [
+      "Token Bling sem escopo suficiente",
+      "adicione os escopos de Notas Fiscais no aplicativo, salve e reautorize o Bling pelo painel administrativo",
+      description,
+    ]
+      .filter(Boolean)
+      .join(" - ");
+  }
 
   if (formatted) {
     return formatted;
   }
 
   if (status === 401) {
-    return "Bling nao autorizou a chamada. Atualize o BLING_ACCESS_TOKEN.";
+    return "Bling nao autorizou a chamada. Reautorize o Bling pelo painel administrativo.";
+  }
+
+  if (status === 429) {
+    return "Limite de requisicoes da API Bling atingido. Aguarde alguns instantes e tente novamente.";
   }
 
   return `Bling retornou HTTP ${status}.`;
@@ -162,21 +179,50 @@ async function blingFetch<T>(
     query?: Record<string, string | number | boolean | undefined>;
   } = {},
 ) {
-  if (!hasBlingNfeEnv()) {
-    throw internalError("Configure BLING_ACCESS_TOKEN e BLING_NFE_NATUREZA_OPERACAO_ID antes de emitir NF-e");
+  if (!env.blingApiBaseUrl) {
+    throw internalError("Configure BLING_API_BASE_URL antes de consultar o Bling");
   }
 
-  const response = await fetch(blingUrl(path, init.query), {
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
-    headers: {
-      accept: "application/json",
-      authorization: `Bearer ${env.blingAccessToken}`,
-      "content-type": "application/json",
-      "enable-jwt": "1",
-    },
-    method: init.method ?? "GET",
-  });
-  const body = await parseBody(response);
+  if (!env.blingNfeNaturezaOperacaoId) {
+    throw internalError("Configure BLING_NFE_NATUREZA_OPERACAO_ID antes de emitir NF-e");
+  }
+
+  async function request(accessToken: string) {
+    let response: Response;
+
+    try {
+      response = await fetch(blingUrl(path, init.query), {
+        body: init.body === undefined ? undefined : JSON.stringify(init.body),
+        headers: {
+          accept: "application/json",
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+          "enable-jwt": "1",
+        },
+        method: init.method ?? "GET",
+        signal: AbortSignal.timeout(25_000),
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "TimeoutError") {
+        throw internalError("Timeout ao chamar a API Bling");
+      }
+
+      throw error;
+    }
+
+    return {
+      body: await parseBody(response),
+      response,
+    };
+  }
+
+  const accessToken = await getBlingAccessToken();
+  let { body, response } = await request(accessToken);
+
+  if (response.status === 401 && canRefreshBlingAccessToken()) {
+    const refreshedAccessToken = await getBlingAccessToken({ forceRefresh: true });
+    ({ body, response } = await request(refreshedAccessToken));
+  }
 
   if (!response.ok) {
     throw new BlingApiError(formatBlingError(response.status, body), response.status, body);
