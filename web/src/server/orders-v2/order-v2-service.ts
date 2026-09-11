@@ -1,6 +1,12 @@
 import "server-only";
 import { z } from "zod";
-import { env } from "@/lib/env";
+import {
+  env,
+  isBlingNfeAutoCreateOnPaymentEnabled,
+  isBlingNfeAutoSendEmailOnPaymentEnabled,
+  isBlingNfeAutoSendSefazOnPaymentEnabled,
+} from "@/lib/env";
+import { BlingNfeService } from "@/server/bling/bling-nfe-service";
 import { couponCodeSchema, DiscountCouponService } from "@/server/coupons/discount-coupon-service";
 import { TemporaryCustomerService } from "@/server/customers/temporary-customer-service";
 import { badRequest, conflict, notFound } from "@/server/http/errors";
@@ -1730,6 +1736,8 @@ export class OrderV2Service {
       orderId: order.id,
       toStatus: "pago",
     });
+
+    await this.maybeAutoIssueBlingNfeAfterPayment(order.id, actorProfileId, "manual_payment");
   }
 
   private async getOrdersForPayment(orderIds: string[]) {
@@ -2022,6 +2030,10 @@ export class OrderV2Service {
       })),
     );
 
+    for (const orderId of orderIds) {
+      await this.maybeAutoIssueBlingNfeAfterPayment(orderId, actorProfileId, "infinitepay");
+    }
+
     await this.markProviderEvent(eventId, "processed");
 
     return {
@@ -2141,6 +2153,74 @@ export class OrderV2Service {
 
     if (error) {
       throwQueryError(error, "Falha ao registrar evento do pedido V2");
+    }
+  }
+
+  private async maybeAutoIssueBlingNfeAfterPayment(
+    orderId: string,
+    actorProfileId: string | null | undefined,
+    trigger: "manual_payment" | "infinitepay",
+  ) {
+    if (!isBlingNfeAutoCreateOnPaymentEnabled()) {
+      return;
+    }
+
+    const shouldSendSefaz = isBlingNfeAutoSendSefazOnPaymentEnabled();
+    const shouldSendEmail = shouldSendSefaz && isBlingNfeAutoSendEmailOnPaymentEnabled();
+    const bling = new BlingNfeService(this.supabase, actorProfileId);
+
+    try {
+      let issue = await bling.getOrderIssue(orderId);
+
+      if (!issue?.blingNfeId) {
+        issue = await bling.createOrderIssue(orderId, { numero: "" }, actorProfileId);
+      }
+
+      if (shouldSendSefaz && issue.blingNfeId && !["authorized", "cancelled"].includes(issue.status)) {
+        issue = await bling.sendOrderIssue(orderId, { enviarEmail: shouldSendEmail }, actorProfileId);
+      }
+
+      await this.addEvent({
+        actorId: actorProfileId,
+        eventType: shouldSendSefaz ? "bling.nfe.auto_sent" : "bling.nfe.auto_created",
+        metadata: {
+          blingNfeId: issue.blingNfeId,
+          enviarEmail: shouldSendEmail,
+          status: issue.status,
+          trigger,
+        },
+        notes: shouldSendSefaz
+          ? "Automacao Bling executada apos pagamento: NF-e enviada para a Sefaz"
+          : "Automacao Bling executada apos pagamento: NF-e criada",
+        orderId,
+        toStatus: issue.status,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha desconhecida ao emitir NF-e automaticamente";
+      console.warn("[Bling] Falha na automacao de NF-e apos pagamento", {
+        error: message,
+        orderId,
+        trigger,
+      });
+
+      try {
+        await this.addEvent({
+          actorId: actorProfileId,
+          eventType: "bling.nfe.auto_failed",
+          metadata: {
+            error: message,
+            trigger,
+          },
+          notes: `Falha na automacao Bling apos pagamento: ${message}`,
+          orderId,
+          toStatus: "failed",
+        });
+      } catch (eventError) {
+        console.warn("[Bling] Falha ao registrar evento da automacao de NF-e", {
+          error: eventError instanceof Error ? eventError.message : eventError,
+          orderId,
+        });
+      }
     }
   }
 }

@@ -33,6 +33,9 @@ Revisado em 2026-08-07.
 - `BLING_NFE_DEFAULT_CONTRIBUINTE`: indicador do destinatario: `1`, `2` ou `9`. Padrao: `9`.
 - `BLING_NFE_DEFAULT_NCM`: NCM padrao para itens, opcional se os produtos/SKUs ja estiverem completos no Bling.
 - `BLING_NFE_DEFAULT_ORIGEM`: origem fiscal padrao do item, de `0` a `8`. Padrao: `0`.
+- `BLING_NFE_AUTO_CREATE_ON_PAYMENT`: quando `true`, cria NF-e automaticamente apos baixa de pagamento V2.
+- `BLING_NFE_AUTO_SEND_SEFAZ_ON_PAYMENT`: quando `true`, tambem envia a NF-e automaticamente para a Sefaz apos criar. Implica criacao automatica.
+- `BLING_NFE_AUTO_SEND_EMAIL_ON_PAYMENT`: quando `true`, pede para o Bling enviar e-mail ao destinatario no envio automatico para a Sefaz.
 
 ## Exemplo local
 
@@ -60,6 +63,9 @@ BLING_NFE_PAYMENT_METHOD_ID=
 BLING_NFE_DEFAULT_CONTRIBUINTE=9
 BLING_NFE_DEFAULT_NCM=
 BLING_NFE_DEFAULT_ORIGEM=0
+BLING_NFE_AUTO_CREATE_ON_PAYMENT=false
+BLING_NFE_AUTO_SEND_SEFAZ_ON_PAYMENT=false
+BLING_NFE_AUTO_SEND_EMAIL_ON_PAYMENT=false
 
 NEXT_PUBLIC_SUPABASE_URL=https://project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=replace-with-anon-key
