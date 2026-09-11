@@ -3,11 +3,6 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ExternalLink, KeyRound, PlugZap } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
-import {
-  isBlingNfeAutoCreateOnPaymentEnabled,
-  isBlingNfeAutoSendEmailOnPaymentEnabled,
-  isBlingNfeAutoSendSefazOnPaymentEnabled,
-} from "@/lib/env";
 import { requireAdminPage } from "@/server/auth/require-admin-page";
 import { getBlingIntegrationStatus } from "@/server/bling/bling-token-service";
 import { getRequestOriginFromHeaders } from "@/server/http/request-origin";
@@ -64,9 +59,6 @@ export default async function AdminIntegrationsPage({ searchParams }: Props) {
   const oauthStatus = query?.bling_oauth === "connected" || query?.bling_oauth === "error"
     ? query.bling_oauth
     : null;
-  const autoCreate = isBlingNfeAutoCreateOnPaymentEnabled();
-  const autoSendSefaz = isBlingNfeAutoSendSefazOnPaymentEnabled();
-  const autoSendEmail = isBlingNfeAutoSendEmailOnPaymentEnabled();
 
   return (
     <AdminShell title="Integracoes" description="Conexoes externas usadas pela operacao.">
@@ -125,18 +117,6 @@ export default async function AdminIntegrationsPage({ searchParams }: Props) {
             <div>
               <dt className="text-[var(--muted)]">Ultima atualizacao</dt>
               <dd className="mt-1 font-semibold text-[var(--foreground)]">{formatDateTime(status.lastRefreshedAt)}</dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">NF-e apos pagamento</dt>
-              <dd className="mt-1 font-semibold text-[var(--foreground)]">
-                {autoCreate ? "Cria automaticamente" : "Manual"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[var(--muted)]">Envio automatico</dt>
-              <dd className="mt-1 font-semibold text-[var(--foreground)]">
-                {autoSendSefaz ? `Sefaz${autoSendEmail ? " + e-mail" : ""}` : "Desligado"}
-              </dd>
             </div>
           </dl>
 

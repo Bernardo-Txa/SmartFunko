@@ -35,9 +35,6 @@ export const env = {
   blingNfeDefaultContribuinte: process.env.BLING_NFE_DEFAULT_CONTRIBUINTE ?? "9",
   blingNfeDefaultNcm: process.env.BLING_NFE_DEFAULT_NCM ?? "",
   blingNfeDefaultOrigem: process.env.BLING_NFE_DEFAULT_ORIGEM ?? "0",
-  blingNfeAutoCreateOnPayment: process.env.BLING_NFE_AUTO_CREATE_ON_PAYMENT ?? "false",
-  blingNfeAutoSendSefazOnPayment: process.env.BLING_NFE_AUTO_SEND_SEFAZ_ON_PAYMENT ?? "false",
-  blingNfeAutoSendEmailOnPayment: process.env.BLING_NFE_AUTO_SEND_EMAIL_ON_PAYMENT ?? "false",
   siteUrl: getSiteUrl(),
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
@@ -76,18 +73,6 @@ export function hasBlingNfeEnv() {
 
 export function hasBlingOAuthRefreshEnv() {
   return Boolean(env.blingOAuthBaseUrl && env.blingClientId && env.blingClientSecret);
-}
-
-export function isBlingNfeAutoSendSefazOnPaymentEnabled() {
-  return env.blingNfeAutoSendSefazOnPayment === "true";
-}
-
-export function isBlingNfeAutoCreateOnPaymentEnabled() {
-  return env.blingNfeAutoCreateOnPayment === "true" || isBlingNfeAutoSendSefazOnPaymentEnabled();
-}
-
-export function isBlingNfeAutoSendEmailOnPaymentEnabled() {
-  return env.blingNfeAutoSendEmailOnPayment === "true";
 }
 
 export function hasSupabasePublicEnv() {
