@@ -6,6 +6,7 @@ import {
   Clapperboard,
   Gem,
   Images,
+  Cable,
   LayoutDashboard,
   Package,
   PackageCheck,
@@ -19,6 +20,7 @@ function getNavItems() {
   return [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/home", label: "Home", icon: Images },
+    { href: "/admin/integracoes", label: "Integracoes", icon: Cable },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/produtos", label: "Produtos", icon: Package },
     { href: "/admin/pre-vendas", label: "Pre-vendas", icon: CalendarClock },

@@ -75,7 +75,7 @@ https://smartfunko.com.br/api/v1/admin/bling/oauth/callback
 http://localhost:3000/api/v1/admin/bling/oauth/callback
 ```
 
-No deploy, mantenha apenas `BLING_CLIENT_ID` e `BLING_CLIENT_SECRET` como credenciais OAuth. Depois, no admin do pedido, clique em `Conectar Bling`; a autorizacao volta para o app e o backend salva `access_token`/`refresh_token` em `integration_oauth_tokens` usando a service role do Supabase.
+No deploy, mantenha apenas `BLING_CLIENT_ID` e `BLING_CLIENT_SECRET` como credenciais OAuth. Depois, em `/admin/integracoes`, conecte o Bling; a autorizacao volta para o app e o backend salva `access_token`/`refresh_token` em `integration_oauth_tokens` usando a service role do Supabase.
 
 ## Vercel
 

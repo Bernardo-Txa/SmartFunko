@@ -10,6 +10,13 @@ type BlingTokenRow = {
   refresh_token: string | null;
 };
 
+type BlingTokenStatusRow = BlingTokenRow & {
+  last_error: string | null;
+  last_refreshed_at: string | null;
+  scope: string | null;
+  updated_at: string;
+};
+
 type BlingTokenResponse = {
   access_token?: string;
   expires_in?: number | string;
@@ -38,11 +45,11 @@ function basicAuthHeader() {
   return `Basic ${Buffer.from(`${env.blingClientId}:${env.blingClientSecret}`).toString("base64")}`;
 }
 
-export function getBlingOAuthRedirectUri() {
-  return `${env.siteUrl}${BLING_OAUTH_CALLBACK_PATH}`;
+export function getBlingOAuthRedirectUri(origin = env.siteUrl) {
+  return `${origin.replace(/\/$/, "")}${BLING_OAUTH_CALLBACK_PATH}`;
 }
 
-export function createBlingAuthorizationUrl(state: string) {
+export function createBlingAuthorizationUrl(state: string, redirectUri = getBlingOAuthRedirectUri()) {
   if (!env.blingClientId) {
     throw internalError("Configure BLING_CLIENT_ID antes de conectar o Bling");
   }
@@ -50,7 +57,7 @@ export function createBlingAuthorizationUrl(state: string) {
   const url = new URL(oauthUrl("/oauth/authorize"));
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", env.blingClientId);
-  url.searchParams.set("redirect_uri", getBlingOAuthRedirectUri());
+  url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
 
   return url.toString();
@@ -213,6 +220,10 @@ async function refreshBlingToken(refreshToken: string) {
 }
 
 export async function exchangeBlingAuthorizationCode(code: string) {
+  return exchangeBlingAuthorizationCodeWithRedirectUri(code, getBlingOAuthRedirectUri());
+}
+
+export async function exchangeBlingAuthorizationCodeWithRedirectUri(code: string, redirectUri: string) {
   if (!hasBlingOAuthRefreshEnv()) {
     throw internalError("Configure BLING_CLIENT_ID e BLING_CLIENT_SECRET antes de conectar o Bling");
   }
@@ -220,7 +231,7 @@ export async function exchangeBlingAuthorizationCode(code: string) {
   const body = new URLSearchParams({
     code,
     grant_type: "authorization_code",
-    redirect_uri: getBlingOAuthRedirectUri(),
+    redirect_uri: redirectUri,
   });
   const response = await fetch(oauthUrl("/oauth/token"), {
     body,
@@ -246,6 +257,62 @@ export async function exchangeBlingAuthorizationCode(code: string) {
   return {
     connected: true,
     expiresAt: expiresAtFromResponse(tokenResponse.expires_in),
+  };
+}
+
+export async function getBlingIntegrationStatus(origin = env.siteUrl) {
+  const configured = hasBlingOAuthRefreshEnv();
+  const redirectUri = getBlingOAuthRedirectUri(origin);
+
+  if (!hasSupabaseAdminEnv()) {
+    return {
+      accessTokenValid: false,
+      configured,
+      connected: false,
+      expiresAt: null,
+      lastError: null,
+      lastRefreshedAt: null,
+      redirectUri,
+      scope: null,
+    };
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("integration_oauth_tokens")
+    .select("access_token,refresh_token,expires_at,last_error,last_refreshed_at,scope,updated_at")
+    .eq("provider", "bling")
+    .maybeSingle();
+
+  if (error) {
+    console.warn("[Bling] Nao foi possivel ler status OAuth salvo", {
+      code: error.code,
+      message: error.message,
+    });
+
+    return {
+      accessTokenValid: false,
+      configured,
+      connected: false,
+      expiresAt: null,
+      lastError: "Falha ao consultar token salvo",
+      lastRefreshedAt: null,
+      redirectUri,
+      scope: null,
+    };
+  }
+
+  const token = (data as BlingTokenStatusRow | null) ?? null;
+
+  return {
+    accessTokenValid: isTokenUsable(token),
+    configured,
+    connected: Boolean(token?.access_token || token?.refresh_token),
+    expiresAt: token?.expires_at ?? null,
+    lastError: token?.last_error ?? null,
+    lastRefreshedAt: token?.last_refreshed_at ?? token?.updated_at ?? null,
+    redirectUri,
+    scope: token?.scope ?? null,
   };
 }
 

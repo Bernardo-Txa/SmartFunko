@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle2, ExternalLink, FileText, KeyRound, RefreshCw, Send, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, FileText, RefreshCw, Send, XCircle } from "lucide-react";
 
 export type OrderV2BlingNfeIssue = {
   accessKey: string | null;
@@ -25,7 +25,6 @@ export type OrderV2BlingNfeIssue = {
 };
 
 type Props = {
-  blingOAuthStatus?: "connected" | "error" | null;
   fulfillmentStatus: string;
   issue: OrderV2BlingNfeIssue | null;
   orderId: string;
@@ -156,7 +155,7 @@ function ValidationIcon({ status }: { status: BlingNfeValidationCheck["status"] 
   return <XCircle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />;
 }
 
-export function OrderV2BlingNfePanel({ blingOAuthStatus, fulfillmentStatus, issue, orderId, paymentStatus }: Props) {
+export function OrderV2BlingNfePanel({ fulfillmentStatus, issue, orderId, paymentStatus }: Props) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -216,26 +215,6 @@ export function OrderV2BlingNfePanel({ blingOAuthStatus, fulfillmentStatus, issu
         ) : null}
       </div>
 
-      {blingOAuthStatus ? (
-        <p className={`mt-4 flex items-start gap-2 rounded-md border p-3 text-sm font-semibold ${
-          blingOAuthStatus === "connected"
-            ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100"
-            : "border-red-300/30 bg-red-400/10 text-red-100"
-        }`}
-        >
-          {blingOAuthStatus === "connected" ? (
-            <CheckCircle2 className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-          ) : (
-            <AlertTriangle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-          )}
-          <span>
-            {blingOAuthStatus === "connected"
-              ? "Bling conectado. Agora valide ou crie a NF-e novamente."
-              : "Nao foi possivel conectar o Bling. Confira o redirect URI e tente de novo."}
-          </span>
-        </p>
-      ) : null}
-
       <div className="mt-4 grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
         <label className="block">
           <span className="text-sm font-semibold text-[var(--foreground)]">Numero NF-e</span>
@@ -272,14 +251,6 @@ export function OrderV2BlingNfePanel({ blingOAuthStatus, fulfillmentStatus, issu
             <CheckCircle2 size={16} aria-hidden="true" />
             {isValidating ? "Validando..." : "Validar"}
           </button>
-
-          <Link
-            href={`/api/v1/admin/bling/oauth/start?next=${encodeURIComponent(`/admin/v2/pedidos/${orderId}`)}`}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-          >
-            <KeyRound size={16} aria-hidden="true" />
-            Conectar Bling
-          </Link>
 
           <button
             type="button"

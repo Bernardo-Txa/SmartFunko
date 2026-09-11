@@ -21,9 +21,6 @@ export const metadata: Metadata = {
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{
-    bling_oauth?: string;
-  }>;
 };
 
 type AdminOrderV2Detail = {
@@ -136,12 +133,8 @@ function getOrderBuyer(order: AdminOrderV2Detail) {
   };
 }
 
-export default async function AdminOrderV2DetailPage({ params, searchParams }: Props) {
+export default async function AdminOrderV2DetailPage({ params }: Props) {
   const { id } = await params;
-  const query = await searchParams;
-  const blingOAuthStatus = query?.bling_oauth === "connected" || query?.bling_oauth === "error"
-    ? query.bling_oauth
-    : null;
   const admin = await requireAdminPage(`/admin/v2/pedidos/${id}`);
   const [order, blingNfeIssue] = await Promise.all([
     new OrderV2Service(undefined, admin.profile.id).getAdminOrderById(id) as Promise<unknown>,
@@ -177,7 +170,6 @@ export default async function AdminOrderV2DetailPage({ params, searchParams }: P
         />
 
         <OrderV2BlingNfePanel
-          blingOAuthStatus={blingOAuthStatus}
           fulfillmentStatus={typedOrder.fulfillment_status}
           issue={blingNfeIssue}
           orderId={typedOrder.id}

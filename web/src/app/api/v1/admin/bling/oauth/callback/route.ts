@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { sanitizeNextPath } from "@/lib/auth/redirect";
 import { env } from "@/lib/env";
 import { requireAdmin } from "@/server/auth/require-admin";
-import { exchangeBlingAuthorizationCode } from "@/server/bling/bling-token-service";
+import { exchangeBlingAuthorizationCodeWithRedirectUri, getBlingOAuthRedirectUri } from "@/server/bling/bling-token-service";
 
 const COOKIE_PATH = "/api/v1/admin/bling/oauth";
 
@@ -25,6 +25,7 @@ function clearOauthCookies(response: NextResponse) {
 
   response.cookies.set("bling_oauth_state", "", options);
   response.cookies.set("bling_oauth_next", "", options);
+  response.cookies.set("bling_oauth_redirect_uri", "", options);
 }
 
 function redirectWithStatus(nextPath: string, status: "connected" | "error") {
@@ -35,13 +36,14 @@ function redirectWithStatus(nextPath: string, status: "connected" | "error") {
 }
 
 export async function GET(request: Request) {
-  let nextPath = "/admin/v2/pedidos";
+  let nextPath = "/admin/integracoes";
 
   try {
     await requireAdmin();
 
     const cookieStore = await cookies();
     const expectedState = cookieStore.get("bling_oauth_state")?.value;
+    const redirectUri = cookieStore.get("bling_oauth_redirect_uri")?.value || getBlingOAuthRedirectUri();
     nextPath = sanitizeNextPath(cookieStore.get("bling_oauth_next")?.value) ?? nextPath;
 
     const requestUrl = new URL(request.url);
@@ -53,7 +55,7 @@ export async function GET(request: Request) {
       return redirectWithStatus(nextPath, "error");
     }
 
-    await exchangeBlingAuthorizationCode(code);
+    await exchangeBlingAuthorizationCodeWithRedirectUri(code, redirectUri);
 
     return redirectWithStatus(nextPath, "connected");
   } catch (error) {
