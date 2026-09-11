@@ -19,10 +19,18 @@ type CustomerRow = {
   phone: string | null;
 };
 
+type TemporaryCustomerRow = {
+  id: string;
+  merged_customer_id?: string | null;
+  name: string | null;
+  phone: string | null;
+  status?: string | null;
+};
+
 type ReportOrderRow = {
   approval_status: string;
   competence_id: string;
-  customer_id: string;
+  customer_id: string | null;
   customers?: CustomerRow | CustomerRow[] | null;
   fulfillment_status: string;
   id: string;
@@ -31,6 +39,8 @@ type ReportOrderRow = {
   paid_at: string | null;
   payment_status: string;
   source: string;
+  temporary_customer_id: string | null;
+  temporary_customers?: TemporaryCustomerRow | TemporaryCustomerRow[] | null;
   total: number | string;
   v2_order_items?: Array<{
     product_name: string;
@@ -72,8 +82,17 @@ export type MonthlyClosingOrder = {
   total: number;
 };
 
+export type MonthlyClosingCustomerIdentity = {
+  email: string | null;
+  id: string;
+  key: string;
+  kind: "customer" | "temporary";
+  name: string;
+  phone: string | null;
+};
+
 export type MonthlyClosingCustomer = {
-  customer: CustomerRow;
+  customer: MonthlyClosingCustomerIdentity;
   latestPaymentLinkUrl: string | null;
   noteTotal: number;
   orderIdsPending: string[];
@@ -81,7 +100,7 @@ export type MonthlyClosingCustomer = {
   paidTotal: number;
   pendingOrders: MonthlyClosingOrder[];
   pendingTotal: number;
-  siteAccountUrl: string;
+  siteAccountUrl: string | null;
   whatsappUrl: string | null;
 };
 
@@ -184,6 +203,35 @@ function mapOrder(row: ReportOrderRow): MonthlyClosingOrder {
   };
 }
 
+function mapCustomer(row: ReportOrderRow): MonthlyClosingCustomerIdentity | null {
+  const customer = firstRelation(row.customers);
+  const temporaryCustomer = firstRelation(row.temporary_customers);
+
+  if (customer) {
+    return {
+      email: customer.email,
+      id: customer.id,
+      key: `customer:${customer.id}`,
+      kind: "customer",
+      name: customer.name?.trim() || "Cliente",
+      phone: customer.phone,
+    };
+  }
+
+  if (temporaryCustomer) {
+    return {
+      email: null,
+      id: temporaryCustomer.id,
+      key: `temporary:${temporaryCustomer.id}`,
+      kind: "temporary",
+      name: temporaryCustomer.name?.trim() || "Cliente temporario",
+      phone: temporaryCustomer.phone,
+    };
+  }
+
+  return null;
+}
+
 function createClosingMessage(input: {
   competence: CompetenceRow;
   customerName: string;
@@ -191,7 +239,7 @@ function createClosingMessage(input: {
   paidTotal: number;
   pendingOrders: MonthlyClosingOrder[];
   pendingTotal: number;
-  siteAccountUrl: string;
+  siteAccountUrl: string | null;
 }) {
   const formatOrderLines = (orders: MonthlyClosingOrder[], empty: string) => {
     if (orders.length === 0) {
@@ -218,7 +266,9 @@ function createClosingMessage(input: {
     "Pedidos pagos:",
     ...formatOrderLines(input.paidOrders, "Nenhum pedido pago."),
     "",
-    `Para acompanhar e pagar pelo site: ${input.siteAccountUrl}`,
+    input.siteAccountUrl
+      ? `Para acompanhar e pagar pelo site: ${input.siteAccountUrl}`
+      : "Pagamento combinado pelo WhatsApp.",
   ].filter((line): line is string => line !== null);
 
   return lines.join("\n");
@@ -253,17 +303,17 @@ export class MonthlyClosingReportService {
     }
 
     const orders = await this.listOrdersForCompetence(competence.id);
-    const customersById = new Map<string, MonthlyClosingCustomer>();
+    const customersByKey = new Map<string, MonthlyClosingCustomer>();
     const siteAccountUrl = customerSiteUrl();
 
     for (const row of orders) {
-      const customer = firstRelation(row.customers);
+      const customer = mapCustomer(row);
 
       if (!customer) {
         continue;
       }
 
-      const bucket = customersById.get(customer.id) ?? {
+      const bucket = customersByKey.get(customer.key) ?? {
         customer,
         latestPaymentLinkUrl: null,
         noteTotal: 0,
@@ -272,7 +322,7 @@ export class MonthlyClosingReportService {
         paidTotal: 0,
         pendingOrders: [],
         pendingTotal: 0,
-        siteAccountUrl,
+        siteAccountUrl: customer.kind === "customer" ? siteAccountUrl : null,
         whatsappUrl: null,
       };
       const order = mapOrder(row);
@@ -288,10 +338,10 @@ export class MonthlyClosingReportService {
       }
 
       bucket.noteTotal += order.total;
-      customersById.set(customer.id, bucket);
+      customersByKey.set(customer.key, bucket);
     }
 
-    const customers = Array.from(customersById.values())
+    const customers = Array.from(customersByKey.values())
       .map((row) => ({
         ...row,
         noteTotal: money(row.noteTotal),
@@ -342,9 +392,10 @@ export class MonthlyClosingReportService {
     const { data, error } = await this.supabase
       .from("v2_orders")
       .select(`
-        id,order_number,customer_id,competence_id,source,order_date,
+        id,order_number,customer_id,temporary_customer_id,competence_id,source,order_date,
         approval_status,payment_status,fulfillment_status,total,paid_at,
         customers(id,name,email,phone),
+        temporary_customers(id,name,phone,status,merged_customer_id),
         v2_order_items(product_name,product_sku,quantity,unit_price,total_price),
         v2_payment_session_orders(
           amount,
@@ -353,7 +404,6 @@ export class MonthlyClosingReportService {
       `)
       .eq("competence_id", competenceId)
       .eq("approval_status", "aprovado")
-      .not("customer_id", "is", null)
       .neq("fulfillment_status", "cancelado")
       .in("payment_status", ["nao_pago", "checkout_gerado", "pago"])
       .order("order_date", { ascending: true })

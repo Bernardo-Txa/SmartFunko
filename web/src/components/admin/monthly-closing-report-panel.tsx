@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, CreditCard, ExternalLink, FileText, MessageCircle, Printer } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Copy, CreditCard, ExternalLink, FileText, MessageCircle, Printer } from "lucide-react";
 import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import type {
   MonthlyClosingCustomer,
@@ -9,10 +10,10 @@ import type {
   MonthlyClosingReport,
 } from "@/server/reports/monthly-closing-report-service";
 
-type CheckoutResponse = {
+type ApiResponse<T = unknown> = {
   data?: {
     payment_link_url?: string | null;
-  };
+  } & T;
   error?: {
     message?: string;
   };
@@ -54,7 +55,7 @@ function formatOrderDetails(orders: MonthlyClosingOrder[], statusLabel: string) 
 function buildClosingMessage(
   report: MonthlyClosingReport,
   customer: MonthlyClosingCustomer,
-  paymentUrl: string,
+  paymentUrl: string | null,
 ) {
   const competenceLabel = report.competence?.label ?? "competencia atual";
   const lines = [
@@ -69,7 +70,7 @@ function buildClosingMessage(
     "Pedidos pagos:",
     ...formatOrderDetails(customer.paidOrders, "Pago"),
     "",
-    `Link para pagamento/acompanhamento: ${paymentUrl}`,
+    paymentUrl ? `Link para pagamento/acompanhamento: ${paymentUrl}` : "Pagamento combinado pelo WhatsApp.",
     "Frete e envio combinados separadamente.",
   ].filter((line): line is string => line !== null);
 
@@ -238,26 +239,28 @@ function MiniOrderList({
 }
 
 export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingReport }) {
+  const router = useRouter();
   const [copiedCustomerId, setCopiedCustomerId] = useState<string | null>(null);
   const [errorByCustomer, setErrorByCustomer] = useState<Record<string, string>>({});
   const [generatedLinks, setGeneratedLinks] = useState<Record<string, string>>({});
-  const [runningCustomerId, setRunningCustomerId] = useState<string | null>(null);
+  const [runningAction, setRunningAction] = useState<string | null>(null);
+  const [settledCustomerId, setSettledCustomerId] = useState<string | null>(null);
   const customersWithPending = useMemo(
     () => report.customers.filter((customer) => customer.pendingTotal > 0).length,
     [report.customers],
   );
 
   function getPaymentUrl(customer: MonthlyClosingCustomer) {
-    return generatedLinks[customer.customer.id] ?? getReusablePaymentUrl(customer) ?? customer.siteAccountUrl;
+    return generatedLinks[customer.customer.key] ?? getReusablePaymentUrl(customer) ?? customer.siteAccountUrl;
   }
 
   async function generatePaymentLink(customer: MonthlyClosingCustomer) {
-    if (customer.orderIdsPending.length === 0) {
+    if (customer.customer.kind !== "customer" || customer.orderIdsPending.length === 0) {
       return;
     }
 
-    setRunningCustomerId(customer.customer.id);
-    setErrorByCustomer((current) => ({ ...current, [customer.customer.id]: "" }));
+    setRunningAction(`${customer.customer.key}:link`);
+    setErrorByCustomer((current) => ({ ...current, [customer.customer.key]: "" }));
 
     try {
       const response = await fetch("/api/v1/admin/orders-v2/payment-sessions", {
@@ -268,7 +271,7 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
         headers: { "content-type": "application/json" },
         method: "POST",
       });
-      const payload = (await response.json()) as CheckoutResponse;
+      const payload = (await response.json()) as ApiResponse;
 
       if (!response.ok) {
         throw new Error(payload.error?.message ?? "Falha ao gerar link InfinitePay");
@@ -280,21 +283,64 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
         throw new Error("Checkout criado sem link InfinitePay");
       }
 
-      setGeneratedLinks((current) => ({ ...current, [customer.customer.id]: link }));
+      setGeneratedLinks((current) => ({ ...current, [customer.customer.key]: link }));
     } catch (requestError) {
       setErrorByCustomer((current) => ({
         ...current,
-        [customer.customer.id]: requestError instanceof Error ? requestError.message : "Falha ao gerar link",
+        [customer.customer.key]: requestError instanceof Error ? requestError.message : "Falha ao gerar link",
       }));
     } finally {
-      setRunningCustomerId(null);
+      setRunningAction(null);
+    }
+  }
+
+  async function markPendingOrdersPaid(customer: MonthlyClosingCustomer) {
+    if (customer.orderIdsPending.length === 0) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Dar baixa em ${customer.orderIdsPending.length} pedido(s) pendente(s) de ${customer.customer.name}?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRunningAction(`${customer.customer.key}:paid`);
+    setSettledCustomerId(null);
+    setErrorByCustomer((current) => ({ ...current, [customer.customer.key]: "" }));
+
+    try {
+      const response = await fetch("/api/v1/admin/orders-v2/bulk", {
+        body: JSON.stringify({
+          action: "mark_paid",
+          notes: `Baixa em lote pelo fechamento mensal - ${customer.customer.name}`,
+          orderIds: customer.orderIdsPending,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      const payload = (await response.json()) as ApiResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error?.message ?? "Falha ao dar baixa nos pedidos");
+      }
+
+      setSettledCustomerId(customer.customer.key);
+      router.refresh();
+    } catch (requestError) {
+      setErrorByCustomer((current) => ({
+        ...current,
+        [customer.customer.key]: requestError instanceof Error ? requestError.message : "Falha ao dar baixa",
+      }));
+    } finally {
+      setRunningAction(null);
     }
   }
 
   async function copyMessage(customer: MonthlyClosingCustomer) {
     const message = buildClosingMessage(report, customer, getPaymentUrl(customer));
     await navigator.clipboard.writeText(message);
-    setCopiedCustomerId(customer.customer.id);
+    setCopiedCustomerId(customer.customer.key);
   }
 
   function printCustomerNote(customer: MonthlyClosingCustomer) {
@@ -362,19 +408,27 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
             const paymentUrl = getPaymentUrl(customer);
             const message = buildClosingMessage(report, customer, paymentUrl);
             const whatsappUrl = buildWhatsAppUrl(customer.customer.phone, message);
-            const isRunning = runningCustomerId === customer.customer.id;
-            const error = errorByCustomer[customer.customer.id];
+            const isLinkRunning = runningAction === `${customer.customer.key}:link`;
+            const isPaidRunning = runningAction === `${customer.customer.key}:paid`;
+            const error = errorByCustomer[customer.customer.key];
 
             return (
               <article
-                key={customer.customer.id}
+                key={customer.customer.key}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
               >
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-lg font-black text-[var(--foreground)]">{customer.customer.name}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-black text-[var(--foreground)]">{customer.customer.name}</h3>
+                          {customer.customer.kind === "temporary" ? (
+                            <span className="rounded-full border border-yellow-300/40 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-yellow-100">
+                              Temporario
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="text-sm text-[var(--muted)]">
                           {formatPhoneNumber(customer.customer.phone) || "Sem telefone"} {customer.customer.email ? `- ${customer.customer.email}` : ""}
                         </p>
@@ -405,15 +459,30 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
 
                   <div className="grid content-start gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
                     <span className="text-xs font-black uppercase tracking-[0.12em] text-[var(--muted)]">Cobranca</span>
-                    {customer.pendingTotal > 0 ? (
+                    {customer.pendingTotal > 0 && customer.customer.kind === "customer" ? (
                       <button
                         type="button"
-                        disabled={isRunning}
+                        disabled={Boolean(runningAction)}
                         onClick={() => generatePaymentLink(customer)}
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-3 text-sm font-black text-slate-950 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <CreditCard size={16} aria-hidden="true" />
-                        {isRunning ? "Gerando..." : generatedLinks[customer.customer.id] ? "Link gerado" : "Gerar link"}
+                        {isLinkRunning ? "Gerando..." : generatedLinks[customer.customer.key] ? "Link gerado" : "Gerar link"}
+                      </button>
+                    ) : null}
+                    {customer.pendingTotal > 0 ? (
+                      <button
+                        type="button"
+                        disabled={Boolean(runningAction)}
+                        onClick={() => markPendingOrdersPaid(customer)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-400/40 px-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <CheckCircle2 size={16} aria-hidden="true" />
+                        {isPaidRunning
+                          ? "Baixando..."
+                          : settledCustomerId === customer.customer.key
+                            ? "Baixa feita"
+                            : "Dar baixa pendentes"}
                       </button>
                     ) : null}
                     <button
@@ -422,7 +491,7 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
                       className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
                     >
                       <Copy size={16} aria-hidden="true" />
-                      {copiedCustomerId === customer.customer.id ? "Copiado" : "Copiar mensagem"}
+                      {copiedCustomerId === customer.customer.key ? "Copiado" : "Copiar mensagem"}
                     </button>
                     {whatsappUrl ? (
                       <a
@@ -444,15 +513,17 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
                         Sem WhatsApp
                       </button>
                     )}
-                    <a
-                      href={paymentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
-                    >
-                      <ExternalLink size={16} aria-hidden="true" />
-                      Abrir link
-                    </a>
+                    {paymentUrl ? (
+                      <a
+                        href={paymentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+                      >
+                        <ExternalLink size={16} aria-hidden="true" />
+                        Abrir link
+                      </a>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => printCustomerNote(customer)}
@@ -461,10 +532,17 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
                       <Printer size={16} aria-hidden="true" />
                       Imprimir / PDF
                     </button>
-                    <div className="mt-1 flex items-start gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 text-xs text-[var(--muted)]">
-                      <FileText size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-                      <span className="break-all">{paymentUrl}</span>
-                    </div>
+                    {paymentUrl ? (
+                      <div className="mt-1 flex items-start gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 text-xs text-[var(--muted)]">
+                        <FileText size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        <span className="break-all">{paymentUrl}</span>
+                      </div>
+                    ) : (
+                      <div className="mt-1 flex items-start gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2 text-xs text-[var(--muted)]">
+                        <FileText size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        <span>Sem link de pagamento para cliente temporario.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </article>
