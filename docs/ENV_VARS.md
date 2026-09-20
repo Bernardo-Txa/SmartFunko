@@ -33,6 +33,11 @@ Revisado em 2026-08-07.
 - `BLING_NFE_DEFAULT_CONTRIBUINTE`: indicador do destinatario: `1`, `2` ou `9`. Padrao: `9`.
 - `BLING_NFE_DEFAULT_NCM`: NCM padrao para itens, opcional se os produtos/SKUs ja estiverem completos no Bling.
 - `BLING_NFE_DEFAULT_ORIGEM`: origem fiscal padrao do item, de `0` a `8`. Padrao: `0`.
+- `SUPERFRETE_API_BASE_URL`: base da API SuperFrete. Padrao: `https://api.superfrete.com`.
+- `SUPERFRETE_API_TOKEN`: token privado da SuperFrete usado para calcular frete.
+- `SUPERFRETE_DEFAULT_FROM_POSTAL_CODE`: CEP de origem padrao da loja para calculo de frete.
+- `SUPERFRETE_DEFAULT_SERVICES`: codigos de servico calculados. Padrao: `1,2,17,3,33,31`.
+- `SUPERFRETE_USER_AGENT`: identificacao exigida pela SuperFrete, no formato `Aplicacao (email@contato.com)`.
 
 ## Exemplo local
 
@@ -60,6 +65,12 @@ BLING_NFE_PAYMENT_METHOD_ID=
 BLING_NFE_DEFAULT_CONTRIBUINTE=9
 BLING_NFE_DEFAULT_NCM=
 BLING_NFE_DEFAULT_ORIGEM=0
+
+SUPERFRETE_API_BASE_URL=https://api.superfrete.com
+SUPERFRETE_API_TOKEN=
+SUPERFRETE_DEFAULT_FROM_POSTAL_CODE=
+SUPERFRETE_DEFAULT_SERVICES=1,2,17,3,33,31
+SUPERFRETE_USER_AGENT=SmartFunkos (contato@smartfunko.com.br)
 
 NEXT_PUBLIC_SUPABASE_URL=https://project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=replace-with-anon-key

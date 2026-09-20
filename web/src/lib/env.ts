@@ -35,6 +35,11 @@ export const env = {
   blingNfeDefaultContribuinte: process.env.BLING_NFE_DEFAULT_CONTRIBUINTE ?? "9",
   blingNfeDefaultNcm: process.env.BLING_NFE_DEFAULT_NCM ?? "",
   blingNfeDefaultOrigem: process.env.BLING_NFE_DEFAULT_ORIGEM ?? "0",
+  superFreteApiBaseUrl: process.env.SUPERFRETE_API_BASE_URL ?? "https://api.superfrete.com",
+  superFreteApiToken: process.env.SUPERFRETE_API_TOKEN ?? "",
+  superFreteDefaultFromPostalCode: process.env.SUPERFRETE_DEFAULT_FROM_POSTAL_CODE ?? "",
+  superFreteDefaultServices: process.env.SUPERFRETE_DEFAULT_SERVICES ?? "1,2,17,3,33,31",
+  superFreteUserAgent: process.env.SUPERFRETE_USER_AGENT ?? "SmartFunkos (contato@smartfunko.com.br)",
   siteUrl: getSiteUrl(),
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
@@ -73,6 +78,10 @@ export function hasBlingNfeEnv() {
 
 export function hasBlingOAuthRefreshEnv() {
   return Boolean(env.blingOAuthBaseUrl && env.blingClientId && env.blingClientSecret);
+}
+
+export function hasSuperFreteEnv() {
+  return Boolean(env.superFreteApiBaseUrl && env.superFreteApiToken);
 }
 
 export function hasSupabasePublicEnv() {

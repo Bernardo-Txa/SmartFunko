@@ -48,7 +48,7 @@ const commercialTiles = [
   },
   {
     description: "Itens acompanhados desde a abertura da pré-venda.",
-    href: "/catalogo",
+    href: "/pre-vendas",
     label: "Pré-venda",
   },
   {

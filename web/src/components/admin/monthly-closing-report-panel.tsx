@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { type ReactNode, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Copy, CreditCard, ExternalLink, FileText, MessageCircle, Printer } from "lucide-react";
+import { CheckCircle2, Copy, CreditCard, ExternalLink, FileText, MessageCircle, Printer, Truck } from "lucide-react";
 import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import type {
   MonthlyClosingCustomer,
@@ -91,6 +92,18 @@ function getReusablePaymentUrl(customer: MonthlyClosingCustomer) {
   const urls = Array.from(new Set(customer.pendingOrders.map((order) => order.paymentLinkUrl).filter(Boolean)));
 
   return urls.length === 1 ? urls[0] : null;
+}
+
+function buildShippingUrl(report: MonthlyClosingReport, customer: MonthlyClosingCustomer) {
+  const params = new URLSearchParams({
+    customerKey: customer.customer.key,
+  });
+
+  if (report.competence?.id) {
+    params.set("competenceId", report.competence.id);
+  }
+
+  return `/admin/relatorios/frete?${params.toString()}`;
 }
 
 function renderOrderRows(orders: MonthlyClosingOrder[], status: "Pago" | "Pendente") {
@@ -202,10 +215,12 @@ function StatCard({
 }
 
 function MiniOrderList({
+  action,
   empty,
   orders,
   title,
 }: {
+  action?: ReactNode;
   empty: string;
   orders: MonthlyClosingOrder[];
   title: string;
@@ -214,7 +229,10 @@ function MiniOrderList({
     <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h4 className="text-sm font-black text-[var(--foreground)]">{title}</h4>
-        <span className="text-xs font-semibold text-[var(--muted)]">{orders.length} pedido(s)</span>
+        <div className="flex shrink-0 items-center gap-2">
+          {action}
+          <span className="text-xs font-semibold text-[var(--muted)]">{orders.length} pedido(s)</span>
+        </div>
       </div>
       {orders.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">{empty}</p>
@@ -411,6 +429,16 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
             const isLinkRunning = runningAction === `${customer.customer.key}:link`;
             const isPaidRunning = runningAction === `${customer.customer.key}:paid`;
             const error = errorByCustomer[customer.customer.key];
+            const shippingAction = (
+              <Link
+                href={buildShippingUrl(report, customer)}
+                target="_blank"
+                className="inline-flex h-7 items-center justify-center gap-1 rounded-md border border-cyan-300/35 px-2 text-[11px] font-black text-cyan-100 hover:bg-cyan-300/10"
+              >
+                <Truck size={13} aria-hidden="true" />
+                Solicitar frete
+              </Link>
+            );
 
             return (
               <article
@@ -450,8 +478,18 @@ export function MonthlyClosingReportPanel({ report }: { report: MonthlyClosingRe
                     </div>
 
                     <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                      <MiniOrderList empty="Sem pedidos pendentes." orders={customer.pendingOrders} title="Pendentes" />
-                      <MiniOrderList empty="Sem pedidos pagos." orders={customer.paidOrders} title="Pagos" />
+                      <MiniOrderList
+                        action={customer.pendingOrders.length > 0 ? shippingAction : undefined}
+                        empty="Sem pedidos pendentes."
+                        orders={customer.pendingOrders}
+                        title="Pendentes"
+                      />
+                      <MiniOrderList
+                        action={customer.pendingOrders.length === 0 && customer.paidOrders.length > 0 ? shippingAction : undefined}
+                        empty="Sem pedidos pagos."
+                        orders={customer.paidOrders}
+                        title="Pagos"
+                      />
                     </div>
 
                     {error ? <p className="mt-3 text-sm font-semibold text-red-300">{error}</p> : null}
