@@ -14,6 +14,7 @@ import { getRafflePaymentRules, type PaymentFeeMode, type PaymentMaxInstallments
 import { RewardsService } from "@/server/rewards/rewards-service";
 import { createSupabaseAdminClient, type SupabaseAdminClient } from "@/server/supabase/admin-client";
 import { throwQueryError } from "@/server/supabase/query-error";
+import { RAFFLE_MAX_WINNERS } from "@/lib/raffle-rules";
 
 export const raffleCampaignStatusSchema = z.enum([
   "draft",
@@ -79,6 +80,7 @@ export const drawRaffleCampaignSchema = z.object({
   drawnAt: z.string().datetime().optional(),
   mode: z.enum(["manual", "internal_random"]).default("manual"),
   winnerNumber: z.number().int().positive().optional(),
+  winnerNumbers: z.array(z.number().int().positive()).min(1).max(RAFFLE_MAX_WINNERS).optional(),
 });
 
 export type CreateRaffleCampaignInput = z.infer<typeof createRaffleCampaignSchema>;
@@ -131,7 +133,7 @@ export type RaffleDrawWinner = {
   customerPhone?: string | null;
   placement: number;
   prizeLabel: string;
-  prizeType: "main_prize" | "coupon_10";
+  prizeType: "main_prize" | "no_automatic_prize" | "coupon_10";
   raffleNumberId: string | null;
   number: number | null;
   numberLabel: string | null;
@@ -325,16 +327,6 @@ function money(value: number | string | null | undefined) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
-function createRaffleCouponCode(campaignCode: string, placement: number) {
-  const safeCampaign = campaignCode
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .slice(0, 16);
-  const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
-
-  return `RIFA-${safeCampaign || "SMART"}-${placement}L-${suffix}`.slice(0, 40);
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -385,7 +377,12 @@ function parseDrawWinnersFromPayload(payload: unknown): RaffleDrawWinner[] {
         customerPhone: typeof winner.customerPhone === "string" ? winner.customerPhone : null,
         placement,
         prizeLabel: typeof winner.prizeLabel === "string" ? winner.prizeLabel : "Premio",
-        prizeType: winner.prizeType === "coupon_10" ? "coupon_10" : "main_prize",
+        prizeType:
+          winner.prizeType === "coupon_10"
+            ? "coupon_10"
+            : winner.prizeType === "no_automatic_prize"
+              ? "no_automatic_prize"
+              : "main_prize",
         raffleNumberId: typeof winner.raffleNumberId === "string" ? winner.raffleNumberId : null,
         number: typeof winner.number === "number" ? winner.number : null,
         numberLabel: typeof winner.numberLabel === "string" ? winner.numberLabel : null,
@@ -915,8 +912,19 @@ export class RaffleService {
       return this.drawRaffleCampaignInternally(id, input, actorProfileId);
     }
 
-    if (!input.winnerNumber) {
-      throw badRequest("Informe o numero vencedor");
+    const requestedNumbers = input.winnerNumbers?.length
+      ? input.winnerNumbers
+      : input.winnerNumber
+        ? [input.winnerNumber]
+        : [];
+    const uniqueRequestedNumbers = Array.from(new Set(requestedNumbers));
+
+    if (uniqueRequestedNumbers.length === 0) {
+      throw badRequest("Informe ao menos um numero sorteado");
+    }
+
+    if (uniqueRequestedNumbers.length !== requestedNumbers.length) {
+      throw badRequest("Informe numeros sorteados diferentes");
     }
 
     const campaign = (await this.getRaffleCampaignById(id)) as unknown as RaffleCampaignRow;
@@ -929,27 +937,94 @@ export class RaffleService {
       throw conflict("Rifa ja foi sorteada");
     }
 
-    const { data: number, error: numberError } = await this.supabase
+    const { data: numbersData, error: numberError } = await this.supabase
       .from("raffle_numbers")
       .select("id,number,label,status,customer_id")
       .eq("raffle_campaign_id", id)
-      .eq("number", input.winnerNumber)
-      .maybeSingle();
+      .in("number", uniqueRequestedNumbers);
 
     if (numberError) {
-      throwQueryError(numberError, "Falha ao validar numero vencedor");
+      throwQueryError(numberError, "Falha ao validar numeros vencedores");
     }
 
-    if (!number) {
-      throw notFound("Numero vencedor nao encontrado");
+    const numbersByValue = new Map(
+      ((numbersData ?? []) as Array<{
+        id: string;
+        number: number;
+        label: string;
+        status: string;
+        customer_id: string | null;
+      }>).map((number) => [number.number, number]),
+    );
+    const selectedNumbers = uniqueRequestedNumbers.map((number) => numbersByValue.get(number));
+
+    if (selectedNumbers.some((number) => !number)) {
+      throw notFound("Um ou mais numeros vencedores nao foram encontrados");
     }
 
-    if (number.status !== "sold") {
-      throw conflict("Numero vencedor precisa estar comprado");
+    const resolvedNumbers = selectedNumbers as Array<{
+      id: string;
+      number: number;
+      label: string;
+      status: string;
+      customer_id: string | null;
+    }>;
+
+    if (resolvedNumbers.some((number) => number.status !== "sold")) {
+      throw conflict("Todos os numeros vencedores precisam estar comprados");
     }
 
+    if (resolvedNumbers.some((number) => !number.customer_id)) {
+      throw conflict("Todos os numeros vencedores precisam estar vinculados a um cliente");
+    }
+
+    const customerIds = resolvedNumbers.map((number) => number.customer_id as string);
+
+    if (new Set(customerIds).size !== customerIds.length) {
+      throw conflict("Cada colocacao precisa pertencer a uma pessoa diferente");
+    }
+
+    const { data: customersData, error: customersError } = await this.supabase
+      .from("customers")
+      .select("id,name,email,phone")
+      .in("id", customerIds);
+
+    if (customersError) {
+      throwQueryError(customersError, "Falha ao carregar clientes vencedores");
+    }
+
+    const customers = new Map(
+      ((customersData ?? []) as Array<{
+        id: string;
+        name?: string | null;
+        email?: string | null;
+        phone?: string | null;
+      }>).map((customer) => [customer.id, customer]),
+    );
     const drawnAt = input.drawnAt ?? new Date().toISOString();
-    const drawReference = input.drawReference?.trim() || "manual-dev";
+    const drawReference = input.drawReference?.trim() || "Sorteio externo";
+    const winners: RaffleDrawWinner[] = resolvedNumbers.map((number, index) => {
+      const placement = index + 1;
+      const customer = customers.get(number.customer_id as string);
+
+      return {
+        couponCode: null,
+        customerEmail: customer?.email ?? null,
+        customerId: number.customer_id,
+        customerName: customer?.name ?? "Cliente",
+        customerPhone: customer?.phone ?? null,
+        placement,
+        prizeLabel: placement === 1
+          ? `Funko da rifa: ${campaign.prize_title}`
+          : "Colocacao registrada sem premio automatico",
+        prizeType: placement === 1 ? "main_prize" : "no_automatic_prize",
+        raffleNumberId: number.id,
+        number: number.number,
+        numberLabel: number.label,
+      };
+    });
+    const firstWinner = winners[0];
+
     const { data, error } = await this.supabase
       .from("raffle_campaigns")
       .update({
@@ -959,8 +1034,8 @@ export class RaffleService {
         draw_method: "manual_external",
         status: "drawn",
         updated_by: actorProfileId ?? null,
-        winner_customer_id: number.customer_id,
-        winner_raffle_number_id: number.id,
+        winner_customer_id: firstWinner.customerId,
+        winner_raffle_number_id: firstWinner.raffleNumberId,
       })
       .eq("id", id)
       .select(campaignSelect())
@@ -974,10 +1049,11 @@ export class RaffleService {
     const { error: winnerError } = await this.supabase
       .from("raffle_numbers")
       .update({ status: "winner" })
-      .eq("id", number.id);
+      .in("id", resolvedNumbers.map((number) => number.id))
+      .eq("status", "sold");
 
     if (winnerError) {
-      throwQueryError(winnerError, "Falha ao marcar numero premiado");
+      throwQueryError(winnerError, "Falha ao marcar numeros premiados");
     }
 
     await this.audit.createAdminActionLog({
@@ -986,7 +1062,7 @@ export class RaffleService {
       entityId: id,
       entityType: "raffle_campaign",
       oldValue: campaign,
-      newValue: { ...drawnCampaign, winner_number: number },
+      newValue: { ...drawnCampaign, winners },
     });
 
     await this.createDrawAudit(
@@ -995,7 +1071,7 @@ export class RaffleService {
       {
         drawReference,
         drawnAt,
-        winnerNumber: number,
+        winners,
       },
       actorProfileId,
     );
@@ -1051,7 +1127,7 @@ export class RaffleService {
     );
     const winners: RaffleDrawWinner[] = [];
     const selectedCustomers = new Set<string>();
-    const maxPlacements = Math.min(5, uniqueCustomerIds.length);
+    const maxPlacements = Math.min(RAFFLE_MAX_WINNERS, uniqueCustomerIds.length);
 
     while (winners.length < maxPlacements) {
       const eligibleNumbers = soldNumbers.filter((number) =>
@@ -1072,20 +1148,18 @@ export class RaffleService {
       selectedCustomers.add(customerId);
       const placement = winners.length + 1;
       const customer = customers.get(customerId);
-      const prizeType = placement === 1 ? "main_prize" : "coupon_10";
-      const coupon = placement === 1
-        ? null
-        : await this.createRaffleWinnerCoupon(campaign, placement, customer?.name ?? "Cliente", input.drawnAt);
 
       winners.push({
-        couponCode: coupon?.code ?? null,
+        couponCode: null,
         customerEmail: customer?.email ?? null,
         customerId,
         customerName: customer?.name ?? "Cliente",
         customerPhone: customer?.phone ?? null,
         placement,
-        prizeLabel: placement === 1 ? `Funko da rifa: ${campaign.prize_title}` : "Cupom 10% de desconto",
-        prizeType,
+        prizeLabel: placement === 1
+          ? `Funko da rifa: ${campaign.prize_title}`
+          : "Colocacao registrada sem premio automatico",
+        prizeType: placement === 1 ? "main_prize" : "no_automatic_prize",
         raffleNumberId: pickedNumber.id,
         number: pickedNumber.number,
         numberLabel: pickedNumber.label,
@@ -1103,7 +1177,7 @@ export class RaffleService {
     const drawNotes = input.drawNotes?.trim() || [
       "Sorteio feito dentro do aplicativo.",
       "Regra aplicada: depois que um cliente ganha, ele sai das proximas colocacoes.",
-      winners.length < 5 ? `A rifa tinha apenas ${winners.length} comprador(es) unico(s) elegivel(is).` : null,
+      winners.length < RAFFLE_MAX_WINNERS ? `A rifa tinha apenas ${winners.length} comprador(es) unico(s) elegivel(is).` : null,
     ].filter(Boolean).join(" ");
 
     const { data, error } = await this.supabase
@@ -1129,7 +1203,8 @@ export class RaffleService {
     const { error: winnerError } = await this.supabase
       .from("raffle_numbers")
       .update({ status: "winner" })
-      .eq("id", firstWinner.raffleNumberId);
+      .in("id", winners.map((winner) => winner.raffleNumberId).filter(Boolean))
+      .eq("status", "sold");
 
     if (winnerError) {
       throwQueryError(winnerError, "Falha ao marcar primeiro colocado");
@@ -1140,7 +1215,7 @@ export class RaffleService {
       drawMode: "internal_random",
       drawReference,
       drawnAt,
-      prizeRule: "1o lugar ganha o funko; 2o ao 5o lugar ganham cupom de 10%. Comprador nao repete.",
+      prizeRule: "Ate 3 colocacoes, sem geracao automatica de cupons. Comprador nao repete.",
       soldNumbers: soldNumbers.length,
       uniqueCustomers: uniqueCustomerIds.length,
       winners,
@@ -1159,44 +1234,6 @@ export class RaffleService {
 
     return this.getRaffleCampaignById(id);
   }
-
-  private async createRaffleWinnerCoupon(
-    campaign: RaffleCampaignRow,
-    placement: number,
-    customerName: string,
-    startsAt?: string | null,
-  ) {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const code = createRaffleCouponCode(campaign.code, placement);
-      const { data, error } = await this.supabase
-        .from("discount_coupons")
-        .insert({
-          code,
-          created_by: this.actorId ?? null,
-          description: `Premio ${placement}o lugar da rifa ${campaign.code} para ${customerName}: 10% de desconto`,
-          discount_type: "percent",
-          is_active: true,
-          max_discount: null,
-          min_order_total: 0,
-          starts_at: startsAt ?? new Date().toISOString(),
-          usage_limit: 1,
-          value: 10,
-        })
-        .select("id,code")
-        .single();
-
-      if (!error) {
-        return data as { code: string; id: string };
-      }
-
-      if (error.code !== "23505") {
-        throwQueryError(error, "Falha ao gerar cupom do sorteio");
-      }
-    }
-
-    throw conflict("Nao foi possivel gerar um codigo unico de cupom");
-  }
-
   async listRaffleOrders(campaignId?: string, filters: RaffleListFilters = {}) {
     await this.expireRaffleReservations();
 

@@ -2,7 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle2, CircleDollarSign, Clock3, Copy, ExternalLink, LinkIcon, Pause, Play, RefreshCw, Trophy, XCircle } from "lucide-react";
+import {
+  Ban,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
+  Copy,
+  ExternalLink,
+  LinkIcon,
+  MapPin,
+  Pause,
+  Play,
+  RefreshCw,
+  Shuffle,
+  Trophy,
+  XCircle,
+} from "lucide-react";
+import { RAFFLE_MAX_WINNERS } from "@/lib/raffle-rules";
 import { SmartButtonLoading } from "@/components/ui/smart-loading";
 
 type ActionResult = {
@@ -426,25 +442,53 @@ export function RaffleDrawForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mode, setMode] = useState<"manual_external" | "internal_random">("manual_external");
+  const [winnerNumbers, setWinnerNumbers] = useState(() => Array.from({ length: RAFFLE_MAX_WINNERS }, () => ""));
+  const [drawReference, setDrawReference] = useState("");
+  const [drawNotes, setDrawNotes] = useState("");
+
+  function updateWinnerNumber(index: number, value: string) {
+    setWinnerNumbers((current) => current.map((number, currentIndex) => (
+      currentIndex === index ? value : number
+    )));
+  }
 
   async function submitDraw() {
     setError("");
     setMessage("");
+
+    const parsedWinnerNumbers = winnerNumbers
+      .map((number) => Number(number))
+      .filter((number) => Number.isInteger(number) && number > 0);
+
+    if (mode === "manual_external") {
+      if (parsedWinnerNumbers.length === 0) {
+        setError("Informe pelo menos um numero sorteado.");
+        return;
+      }
+
+      if (new Set(parsedWinnerNumbers).size !== parsedWinnerNumbers.length) {
+        setError("Informe numeros sorteados diferentes.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
       const response = await fetch(`/api/v1/admin/raffles/${campaignId}/draw`, {
         body: JSON.stringify({
-          drawNotes: null,
-          drawReference: "Sorteio interno SmartFunko",
+          drawNotes: drawNotes.trim() || null,
+          drawReference: drawReference.trim() || null,
           drawnAt: new Date().toISOString(),
-          mode: "internal_random",
+          mode: mode === "manual_external" ? "manual" : "internal_random",
+          winnerNumbers: mode === "manual_external" ? parsedWinnerNumbers : undefined,
         }),
         headers: { "content-type": "application/json" },
         method: "POST",
       });
       await parseActionResult(response);
-      setMessage("Sorteio interno registrado.");
+      setMessage(mode === "manual_external" ? "Numeros do sorteio externo registrados." : "Sorteio interno registrado.");
       router.refresh();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Falha ao sortear rifa");
@@ -457,10 +501,14 @@ export function RaffleDrawForm({
     <section className="grid gap-4 rounded-lg border border-yellow-300/40 bg-yellow-300/10 p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-200">Sorteio interno</p>
-          <h2 className="mt-2 text-xl font-black text-[var(--foreground)]">Premiacao automatica sem comprador repetido</h2>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-200">Registro do sorteio</p>
+          <h2 className="mt-2 text-xl font-black text-[var(--foreground)]">
+            {mode === "manual_external" ? "Informe os numeros sorteados" : "Sorteio interno sem cupons"}
+          </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            O app sorteia ate 5 colocados entre cotas pagas. Depois que um cliente ganha, ele fica fora das proximas posicoes.
+            {mode === "manual_external"
+              ? `Se o sorteio for feito em outro local, informe de 1 a ${RAFFLE_MAX_WINNERS} numeros comprados.`
+              : `O app sorteia ate ${RAFFLE_MAX_WINNERS} colocados entre cotas pagas, sem gerar cupons automaticamente.`}
           </p>
         </div>
         <div className="grid min-w-52 grid-cols-2 gap-2 text-sm">
@@ -474,28 +522,113 @@ export function RaffleDrawForm({
           </div>
         </div>
       </div>
-      <div className="grid gap-2 text-sm text-[var(--muted)] md:grid-cols-5">
-        <span className="rounded-md border border-yellow-300/30 bg-[var(--background)] px-3 py-2 font-semibold text-[var(--foreground)]">1o lugar: Funko</span>
-        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">2o lugar: 10%</span>
-        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">3o lugar: 10%</span>
-        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">4o lugar: 10%</span>
-        <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">5o lugar: 10%</span>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => setMode("manual_external")}
+          className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-black ${
+            mode === "manual_external"
+              ? "border-cyan-200/60 bg-cyan-300 text-slate-950"
+              : "border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          }`}
+        >
+          <MapPin size={16} aria-hidden="true" />
+          Sortear fora e informar numeros
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("internal_random")}
+          className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-black ${
+            mode === "internal_random"
+              ? "border-yellow-200/60 bg-yellow-300 text-slate-950"
+              : "border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--surface-strong)]"
+          }`}
+        >
+          <Shuffle size={16} aria-hidden="true" />
+          Sortear dentro do app
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={submitDraw}
-        disabled={disabled || isSubmitting}
-        className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isSubmitting ? (
-          <SmartButtonLoading message="Sorteando..." />
-        ) : (
-          <>
-            <Trophy size={16} aria-hidden="true" />
-            Sortear no aplicativo
-          </>
-        )}
-      </button>
+
+      {mode === "manual_external" ? (
+        <div className="grid gap-4 rounded-md border border-cyan-200/25 bg-[var(--background)] p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Array.from({ length: RAFFLE_MAX_WINNERS }, (_, index) => (
+              <label key={index} className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">{index + 1}o numero</span>
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={winnerNumbers[index]}
+                  onChange={(event) => updateWinnerNumber(index, event.target.value)}
+                  placeholder="Opcional"
+                  className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-cyan-200"
+                />
+              </label>
+            ))}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="block">
+              <span className="text-sm font-semibold text-[var(--foreground)]">Onde foi realizado (opcional)</span>
+              <input
+                value={drawReference}
+                onChange={(event) => setDrawReference(event.target.value)}
+                placeholder="Ex.: Instagram, live, site externo..."
+                className="mt-2 h-10 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-sm outline-none focus:border-cyan-200"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-[var(--foreground)]">Observacoes (opcional)</span>
+              <textarea
+                value={drawNotes}
+                onChange={(event) => setDrawNotes(event.target.value)}
+                rows={2}
+                placeholder="Link, horario ou comprovante do sorteio..."
+                className="mt-2 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-cyan-200"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={submitDraw}
+            disabled={disabled || isSubmitting}
+            className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-cyan-300 px-4 text-sm font-black text-slate-950 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? (
+              <SmartButtonLoading message="Registrando..." />
+            ) : (
+              <>
+                <Trophy size={16} aria-hidden="true" />
+                Registrar numeros sorteados
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          <div className="grid gap-2 text-sm text-[var(--muted)] sm:grid-cols-3">
+            <span className="rounded-md border border-yellow-300/30 bg-[var(--background)] px-3 py-2 font-semibold text-[var(--foreground)]">1o lugar: Funko</span>
+            <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">2o lugar: sem cupom automatico</span>
+            <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2">3o lugar: sem cupom automatico</span>
+          </div>
+          <button
+            type="button"
+            onClick={submitDraw}
+            disabled={disabled || isSubmitting}
+            className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-4 text-sm font-black text-[#020617] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? (
+              <SmartButtonLoading message="Sorteando..." />
+            ) : (
+              <>
+                <Trophy size={16} aria-hidden="true" />
+                Sortear no aplicativo
+              </>
+            )}
+          </button>
+        </div>
+      )}
       {disabled ? (
         <p className="text-xs text-[var(--muted)]">Feche a rifa antes de sortear. Ela precisa ter cotas pagas e ainda nao pode ter resultado registrado.</p>
       ) : null}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { RaffleNumberPicker } from "@/components/raffles/raffle-number-picker";
-import type { RaffleCampaign, RaffleNumber } from "@/components/raffles/raffle-types";
+import type { RaffleCampaign, RaffleDrawWinner, RaffleNumber } from "@/components/raffles/raffle-types";
 import { RaffleCampaignStatusBadge, RaffleNumberStatusBadge } from "@/components/ui/status-badge";
 import { isRafflesEnabled } from "@/lib/env";
 import { formatCurrency } from "@/lib/format";
@@ -137,7 +137,12 @@ export default async function RaffleDetailPage({ params }: Props) {
     notFound();
   }
 
-  const numbers = (await service.listPublicRaffleNumbers(raffle.id)) as unknown as RaffleNumber[];
+  const [numbersResult, drawWinnersResult] = await Promise.all([
+    service.listPublicRaffleNumbers(raffle.id),
+    raffle.status === "drawn" ? service.getRaffleDrawWinners(raffle.id) : Promise.resolve([]),
+  ]);
+  const numbers = numbersResult as unknown as RaffleNumber[];
+  const drawWinners = drawWinnersResult as unknown as RaffleDrawWinner[];
   const stats = getStats(raffle);
   const winnerNumber = numbers.find((number) => number.status === "winner");
   const raffleDescription = cleanDescription(
@@ -230,7 +235,19 @@ export default async function RaffleDetailPage({ params }: Props) {
                 <dt className="font-semibold text-[var(--foreground)]">Reserva</dt>
                 <dd className="text-[var(--muted)]">{raffle.reservation_minutes} minuto(s)</dd>
               </div>
-              {winnerNumber ? (
+              {drawWinners.length > 0 ? (
+                <div className="sm:col-span-2">
+                  <dt className="font-semibold text-[var(--foreground)]">Resultado</dt>
+                  <dd className="mt-2 grid gap-2 text-[var(--muted)]">
+                    {drawWinners.map((winner) => (
+                      <span key={`${winner.placement}-${winner.raffleNumberId ?? winner.number}`} className="inline-flex items-center gap-2">
+                        <strong className="text-[var(--foreground)]">{winner.placement}o lugar:</strong>
+                        Numero {winner.numberLabel ?? winner.number ?? "-"}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              ) : winnerNumber ? (
                 <div className="sm:col-span-2">
                   <dt className="font-semibold text-[var(--foreground)]">Resultado</dt>
                   <dd className="mt-1 flex items-center gap-2 text-[var(--muted)]">

@@ -58,7 +58,7 @@ export type RaffleDrawWinner = {
   customerPhone?: string | null;
   placement: number;
   prizeLabel: string;
-  prizeType: "main_prize" | "coupon_10";
+  prizeType: "main_prize" | "no_automatic_prize" | "coupon_10";
   raffleNumberId: string | null;
   number: number | null;
   numberLabel: string | null;
