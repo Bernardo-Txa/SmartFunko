@@ -271,6 +271,24 @@ function slugify(value: string) {
     .slice(0, 80);
 }
 
+function normalizeOptionalSlug(value: string | null | undefined) {
+  if (value === undefined || value === null || value.trim().length === 0) {
+    return undefined;
+  }
+
+  const slug = slugify(value);
+
+  if (!slug) {
+    throw badRequest("Slug invalido para URL publica");
+  }
+
+  return slug;
+}
+
+function createCampaignSlug(input: CreateRaffleCampaignInput, code: string) {
+  return normalizeOptionalSlug(input.slug) ?? slugify(`${input.title}-${code}`);
+}
+
 function createCampaignCode(title: string) {
   const prefix = slugify(title)
     .split("-")
@@ -414,7 +432,7 @@ function toDbPayload(input: Partial<CreateRaffleCampaignInput>) {
     requires_authorization: input.requiresAuthorization,
     reservation_minutes: input.reservationMinutes,
     rules: input.rules ?? null,
-    slug: input.slug?.trim() || undefined,
+    slug: normalizeOptionalSlug(input.slug),
     starts_at: input.startsAt ?? null,
     terms_accepted_by_admin: input.termsAcceptedByAdmin,
     title: input.title,
@@ -754,7 +772,7 @@ export class RaffleService {
     assertNumberRange(input);
 
     const code = input.code?.trim() || createCampaignCode(input.title);
-    const slug = input.slug?.trim() || slugify(`${input.title}-${code}`);
+    const slug = createCampaignSlug(input, code);
     const numberStart = input.numberStart;
     const numberEnd = input.numberEnd;
     const totalNumbers = numberEnd - numberStart + 1;
