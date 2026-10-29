@@ -29,6 +29,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/fornecedores", { changeFrequency: "weekly", priority: 0.7 }),
     entry("/pre-vendas", { changeFrequency: "daily", priority: 0.75 }),
     entry("/acervo-raro", { changeFrequency: "weekly", priority: 0.8 }),
+    entry("/privacidade", { changeFrequency: "yearly", priority: 0.35 }),
+    entry("/termos-de-uso", { changeFrequency: "yearly", priority: 0.35 }),
   ];
 
   if (isPopFlixEnabled()) {

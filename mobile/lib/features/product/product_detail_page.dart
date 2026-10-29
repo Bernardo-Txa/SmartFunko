@@ -166,8 +166,11 @@ class _ProductDetailContent extends ConsumerWidget {
               icon: Icons.ios_share_rounded,
               variant: PrimaryButtonVariant.outlined,
               fullWidth: true,
-              onPressed: () =>
-                  Share.share('Veja este produto na Smart Funkos: $shareUrl'),
+              onPressed: () => SharePlus.instance.share(
+                ShareParams(
+                  text: 'Veja este produto na Smart Funkos: $shareUrl',
+                ),
+              ),
             ),
             const SizedBox(height: 10),
             PrimaryButton(

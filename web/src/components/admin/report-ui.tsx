@@ -1,16 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { BarChart3, ClipboardList, FileText, PackageSearch, Truck, WalletCards } from "lucide-react";
+import { BarChart3, ClipboardList, FileCheck2, FileText, PackageSearch, Truck, WalletCards } from "lucide-react";
 
 type ReportTab = {
   href: string;
   icon: typeof BarChart3;
-  id: "bi" | "closing" | "customer_map" | "finance" | "shipping" | "supplier_request";
+  id: "bi" | "closing" | "customer_map" | "finance" | "monthly_nfe" | "shipping" | "supplier_request";
   label: string;
 };
 
 const reportTabs: ReportTab[] = [
   { href: "/admin/relatorios/fechamento", icon: FileText, id: "closing", label: "Fechamento mensal" },
+  { href: "/admin/relatorios/notas-fiscais", icon: FileCheck2, id: "monthly_nfe", label: "Notas fiscais" },
   { href: "/admin/relatorios/depara", icon: ClipboardList, id: "customer_map", label: "De/para mensal" },
   { href: "/admin/relatorios/a-pedir", icon: PackageSearch, id: "supplier_request", label: "A pedir" },
   { href: "/admin/relatorios/frete", icon: Truck, id: "shipping", label: "Frete" },

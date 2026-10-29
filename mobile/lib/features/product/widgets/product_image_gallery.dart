@@ -40,7 +40,7 @@ class _ProductImageGalleryState extends State<ProductImageGallery> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: widget.images.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
                 final image = widget.images[index];
                 final isSelected = index == _selectedIndex;

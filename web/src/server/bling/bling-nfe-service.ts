@@ -25,7 +25,7 @@ export const sendBlingNfeIssueSchema = z.object({
 export type CreateBlingNfeIssueInput = z.infer<typeof createBlingNfeIssueSchema>;
 export type SendBlingNfeIssueInput = z.infer<typeof sendBlingNfeIssueSchema>;
 
-type BlingNfeIssueStatus = "draft" | "created" | "sent" | "authorized" | "rejected" | "cancelled" | "failed";
+export type BlingNfeIssueStatus = "draft" | "created" | "sent" | "authorized" | "rejected" | "cancelled" | "failed";
 
 type BlingNfeIssueRow = {
   access_key: string | null;
@@ -68,7 +68,7 @@ type OrderItem = {
   unit_price: number | string;
 };
 
-type OrderForNfe = {
+export type OrderForNfe = {
   approval_status: string;
   customer_id: string | null;
   customers?: OrderCustomer | OrderCustomer[] | null;
@@ -136,7 +136,7 @@ function firstRelation<T>(relation: T | T[] | null | undefined) {
   return Array.isArray(relation) ? relation[0] ?? null : relation ?? null;
 }
 
-function nowIso() {
+export function nowIso() {
   return new Date().toISOString();
 }
 
@@ -317,7 +317,7 @@ function mapIssue(row: BlingNfeIssueRow): BlingNfeIssueView {
   };
 }
 
-function dataFromEnvelope<T>(response: BlingEnvelope<T>) {
+export function dataFromEnvelope<T>(response: BlingEnvelope<T>) {
   return response.data ?? ({} as T);
 }
 
@@ -363,7 +363,7 @@ function statusFromBling(data: BlingNfeData, fallback: BlingNfeIssueStatus): Bli
   }
 }
 
-function issueFieldsFromBling(data: BlingNfeData, fallbackStatus: BlingNfeIssueStatus) {
+export function issueFieldsFromBling(data: BlingNfeData, fallbackStatus: BlingNfeIssueStatus) {
   return {
     access_key: stringValue(data.chaveAcesso),
     bling_nfe_id: stringValue(data.id),
@@ -376,7 +376,7 @@ function issueFieldsFromBling(data: BlingNfeData, fallbackStatus: BlingNfeIssueS
   };
 }
 
-function sanitizeResponsePayload(value: unknown): unknown {
+export function sanitizeResponsePayload(value: unknown): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return value;
   }
@@ -420,7 +420,7 @@ function validationCheck(
   return { key, label, message, status };
 }
 
-function validateOrderReadiness(order: OrderForNfe, existing: BlingNfeIssueRow | null) {
+export function validateOrderReadiness(order: OrderForNfe, existing: BlingNfeIssueRow | null) {
   const checks: BlingNfeValidationCheck[] = [];
   const customer = firstRelation(order.customers);
   const documento = onlyDigits(customer?.cpf);
@@ -508,7 +508,7 @@ function validateOrderReadiness(order: OrderForNfe, existing: BlingNfeIssueRow |
   return checks;
 }
 
-function payloadPreview(payload: BlingNfeCreatePayload): BlingNfeValidationView["payloadPreview"] {
+export function payloadPreview(payload: BlingNfeCreatePayload): BlingNfeValidationView["payloadPreview"] {
   return {
     dataOperacao: payload.dataOperacao,
     itens: payload.itens.length,
@@ -520,7 +520,7 @@ function payloadPreview(payload: BlingNfeCreatePayload): BlingNfeValidationView[
   };
 }
 
-function buildNfePayload(order: OrderForNfe, input: CreateBlingNfeIssueInput): BlingNfeCreatePayload {
+export function buildNfePayload(order: OrderForNfe, input: CreateBlingNfeIssueInput): BlingNfeCreatePayload {
   if (order.payment_status !== "pago") {
     throw conflict("Pedido precisa estar pago antes de emitir NF-e");
   }
@@ -631,6 +631,10 @@ export class BlingNfeService {
     return row ? mapIssue(row) : null;
   }
 
+  async resolveSuggestedInvoiceNumber(value?: string | null) {
+    return this.resolveInvoiceNumber(value);
+  }
+
   async validateOrderIssue(orderId: string): Promise<BlingNfeValidationView> {
     const existing = await this.getOrderIssueRow(orderId);
     const order = await this.getOrderForNfe(orderId);
@@ -668,6 +672,20 @@ export class BlingNfeService {
 
     if (existing?.bling_nfe_id) {
       throw conflict("Este pedido ja possui NF-e criada no Bling");
+    }
+
+    const { data: monthlyLink, error: monthlyLinkError } = await this.supabase
+      .from("bling_monthly_nfe_issue_orders")
+      .select("issue_id")
+      .eq("order_id", orderId)
+      .maybeSingle();
+
+    if (monthlyLinkError) {
+      throw internalError("Falha ao verificar NF-e mensal do pedido");
+    }
+
+    if (monthlyLink) {
+      throw conflict("Este pedido ja pertence a uma NF-e mensal por cliente");
     }
 
     const order = await this.getOrderForNfe(orderId);

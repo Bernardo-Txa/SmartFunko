@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { LegalConsentGate } from "@/components/legal/legal-consent-gate";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { themeBootstrapScript } from "@/components/theme/theme-script";
 import { env } from "@/lib/env";
@@ -84,6 +85,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full">
         <ThemeProvider>
+          <LegalConsentGate />
           <div className="flex min-h-screen flex-col">
             <SiteHeader />
             <main className="flex-1">{children}</main>

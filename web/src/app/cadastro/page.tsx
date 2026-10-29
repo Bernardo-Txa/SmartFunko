@@ -36,6 +36,17 @@ export default async function RegisterPage({ searchParams }: Props) {
             Reenviar confirmação
           </Link>
         </p>
+        <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
+          Após entrar, você deverá ler e aceitar os{" "}
+          <Link href="/termos-de-uso" className="font-semibold text-[var(--accent)]">
+            Termos de Uso
+          </Link>{" "}
+          e a{" "}
+          <Link href="/privacidade" className="font-semibold text-[var(--accent)]">
+            Política de Privacidade
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );

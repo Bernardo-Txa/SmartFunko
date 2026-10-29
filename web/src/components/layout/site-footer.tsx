@@ -36,6 +36,9 @@ export function SiteFooter() {
           <Link href="/privacidade" className="hover:text-[var(--foreground)]">
             Privacidade
           </Link>
+          <Link href="/termos-de-uso" className="hover:text-[var(--foreground)]">
+            Termos de Uso
+          </Link>
         </div>
         <div className="md:text-right">
           <a
