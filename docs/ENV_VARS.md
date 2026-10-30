@@ -23,7 +23,7 @@ Revisado em 2026-08-07.
 - `INFINITEPAY_WEBHOOK_SECRET`: segredo HMAC para validar webhook, se a conta/provedor fornecer assinatura.
 - `INFINITEPAY_WEBHOOK_ENABLED`: controla processamento de webhook. Padrao esperado: `true`.
 - `BLING_API_BASE_URL`: base da API Bling V3. Padrao: `https://api.bling.com.br/Api/v3`.
-- `BLING_OAUTH_BASE_URL`: base OAuth do Bling V3. Padrao: `https://bling.com.br/Api/v3`.
+- `BLING_OAUTH_BASE_URL`: base da tela de autorizacao OAuth do Bling V3. Padrao: `https://www.bling.com.br/Api/v3`. A troca e a renovacao de tokens usam `BLING_API_BASE_URL`.
 - `BLING_CLIENT_ID`: Client ID do aplicativo privado Bling. Obrigatorio para conectar pelo painel.
 - `BLING_CLIENT_SECRET`: Client Secret do aplicativo privado Bling. Obrigatorio para conectar pelo painel.
 - `BLING_NFE_NATUREZA_OPERACAO_ID`: ID da natureza de operacao usada para criar NF-e.
@@ -55,7 +55,7 @@ INFINITEPAY_WEBHOOK_SECRET=
 INFINITEPAY_WEBHOOK_ENABLED=true
 
 BLING_API_BASE_URL=https://api.bling.com.br/Api/v3
-BLING_OAUTH_BASE_URL=https://bling.com.br/Api/v3
+BLING_OAUTH_BASE_URL=https://www.bling.com.br/Api/v3
 BLING_CLIENT_ID=
 BLING_CLIENT_SECRET=
 BLING_NFE_NATUREZA_OPERACAO_ID=

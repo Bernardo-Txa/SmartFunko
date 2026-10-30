@@ -41,6 +41,11 @@ function oauthUrl(path: string) {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+function oauthTokenUrl() {
+  const baseUrl = env.blingApiBaseUrl.replace(/\/$/, "");
+  return `${baseUrl}/oauth/token`;
+}
+
 function basicAuthHeader() {
   return `Basic ${Buffer.from(`${env.blingClientId}:${env.blingClientSecret}`).toString("base64")}`;
 }
@@ -198,7 +203,7 @@ async function refreshBlingToken(refreshToken: string) {
     grant_type: "refresh_token",
     refresh_token: refreshToken,
   });
-  const response = await fetch(oauthUrl("/oauth/token"), {
+  const response = await fetch(oauthTokenUrl(), {
     body,
     headers: {
       accept: "application/json",
@@ -233,7 +238,7 @@ export async function exchangeBlingAuthorizationCodeWithRedirectUri(code: string
     grant_type: "authorization_code",
     redirect_uri: redirectUri,
   });
-  const response = await fetch(oauthUrl("/oauth/token"), {
+  const response = await fetch(oauthTokenUrl(), {
     body,
     headers: {
       accept: "application/json",

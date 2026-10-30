@@ -25,7 +25,7 @@ export const env = {
   infinitePayWebhookEnabled: process.env.INFINITEPAY_WEBHOOK_ENABLED ?? "true",
   infinitePayWebhookSecret: process.env.INFINITEPAY_WEBHOOK_SECRET ?? "",
   blingApiBaseUrl: process.env.BLING_API_BASE_URL ?? "https://api.bling.com.br/Api/v3",
-  blingOAuthBaseUrl: process.env.BLING_OAUTH_BASE_URL ?? "https://bling.com.br/Api/v3",
+  blingOAuthBaseUrl: process.env.BLING_OAUTH_BASE_URL ?? "https://www.bling.com.br/Api/v3",
   blingClientId: process.env.BLING_CLIENT_ID ?? "",
   blingClientSecret: process.env.BLING_CLIENT_SECRET ?? "",
   blingNfeNaturezaOperacaoId: process.env.BLING_NFE_NATUREZA_OPERACAO_ID ?? "",

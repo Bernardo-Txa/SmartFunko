@@ -142,13 +142,13 @@ export default async function AdminIntegrationsPage({ searchParams }: Props) {
 
           <div className="mt-5 flex flex-wrap gap-2">
             {status.configured ? (
-              <Link
+              <a
                 href={`/api/v1/admin/bling/oauth/start?next=${encodeURIComponent("/admin/integracoes")}`}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 text-sm font-black text-slate-950 hover:brightness-110"
               >
                 <KeyRound size={16} aria-hidden="true" />
                 {status.connected ? "Reautorizar Bling" : "Conectar Bling"}
-              </Link>
+              </a>
             ) : (
               <span className="inline-flex h-11 items-center justify-center rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--muted)]">
                 Configure BLING_CLIENT_ID e BLING_CLIENT_SECRET
