@@ -30,6 +30,25 @@ const LOGIN_GENERIC_ERROR_MESSAGE = "Não foi possível entrar agora. Tente nova
 const RATE_LIMIT_MESSAGE =
   "Você fez muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
 
+type AddressFields = {
+  city: string;
+  neighborhood: string;
+  state: string;
+  street: string;
+};
+
+const emptyAddress: AddressFields = {
+  city: "",
+  neighborhood: "",
+  state: "",
+  street: "",
+};
+
+function formatPostalCode(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+}
+
 const modeCopy = {
   login: {
     button: "Entrar",
@@ -57,9 +76,45 @@ export function AuthForm({
   const [message, setMessage] = useState(initialMessage ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [address, setAddress] = useState<AddressFields>(emptyAddress);
+  const [isLookingUpPostalCode, setIsLookingUpPostalCode] = useState(false);
+  const [postalCodeMessage, setPostalCodeMessage] = useState("");
   const [showResendConfirmationLink, setShowResendConfirmationLink] = useState(false);
   const copy = modeCopy[mode];
   const Icon = copy.icon;
+
+  async function lookupPostalCode(value = postalCode) {
+    const digits = value.replace(/\D/g, "");
+
+    if (digits.length !== 8) {
+      setPostalCodeMessage("Informe um CEP com 8 números.");
+      return;
+    }
+
+    setIsLookingUpPostalCode(true);
+    setPostalCodeMessage("");
+
+    try {
+      const response = await fetch(`/api/v1/postal-code/${digits}`, { cache: "no-store" });
+      const body = (await response.json()) as {
+        data?: AddressFields;
+        error?: { message?: string };
+      };
+
+      if (!response.ok || !body.data) {
+        setPostalCodeMessage(body.error?.message ?? "CEP não encontrado.");
+        return;
+      }
+
+      setAddress(body.data);
+      setPostalCodeMessage("Endereço encontrado. Confira os dados e informe o número.");
+    } catch {
+      setPostalCodeMessage("Não foi possível consultar o CEP agora. Preencha o endereço manualmente.");
+    } finally {
+      setIsLookingUpPostalCode(false);
+    }
+  }
 
   function getLoginErrorMessage(signInError: AuthError) {
     if (isEmailNotConfirmedError(signInError)) {
@@ -165,6 +220,8 @@ export function AuthForm({
       const instagram = String(formData.get("instagram") ?? "");
       const name = String(formData.get("name") ?? "").trim();
       const phone = formatPhoneNumber(phoneInput);
+      const addressNumber = String(formData.get("address_number") ?? "").trim();
+      const addressComplement = String(formData.get("address_complement") ?? "").trim();
 
       if (!name) {
         setError("Informe seu nome.");
@@ -178,6 +235,24 @@ export function AuthForm({
         return;
       }
 
+      if (postalCode.replace(/\D/g, "").length !== 8) {
+        setError("Informe um CEP válido.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!address.street.trim() || !address.neighborhood.trim() || !address.city.trim() || !address.state.trim()) {
+        setError("Complete os dados do endereço.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!addressNumber) {
+        setError("Informe o número do endereço.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         options: {
@@ -186,6 +261,13 @@ export function AuthForm({
             instagram,
             name,
             phone,
+            postal_code: formatPostalCode(postalCode),
+            street: address.street.trim(),
+            address_number: addressNumber,
+            address_complement: addressComplement,
+            neighborhood: address.neighborhood.trim(),
+            city: address.city.trim(),
+            state: address.state.trim().toUpperCase(),
           },
           emailRedirectTo: `${window.location.origin}/auth/confirmado`,
         },
@@ -203,6 +285,9 @@ export function AuthForm({
         setMessage("Cadastro criado. Confirme seu e-mail para entrar.");
         setShowResendConfirmationLink(true);
         setPhoneInput("");
+        setPostalCode("");
+        setAddress(emptyAddress);
+        setPostalCodeMessage("");
         form.reset();
         return;
       }
@@ -229,7 +314,7 @@ export function AuthForm({
   }
 
   return (
-    <section className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
+    <section className={`w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 ${mode === "register" ? "max-w-2xl" : "max-w-md"}`}>
       <h1 className="text-2xl font-bold text-[var(--foreground)]">{copy.title}</h1>
       <form className="mt-6 space-y-4" noValidate onSubmit={handleSubmit}>
         {mode === "register" ? (
@@ -276,6 +361,76 @@ export function AuthForm({
                 />
               </label>
             </div>
+            <fieldset className="space-y-4 rounded-lg border border-[var(--border)] p-4">
+              <legend className="px-2 text-sm font-bold text-[var(--foreground)]">Endereço</legend>
+              <div className="flex items-end gap-2">
+                <label className="block flex-1">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">CEP</span>
+                  <input
+                    name="postal_code"
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                    maxLength={9}
+                    required
+                    value={postalCode}
+                    onChange={(event) => {
+                      setPostalCode(formatPostalCode(event.target.value));
+                      setPostalCodeMessage("");
+                    }}
+                    onBlur={() => void lookupPostalCode()}
+                    className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]"
+                    placeholder="00000-000"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={isLookingUpPostalCode}
+                  onClick={() => void lookupPostalCode()}
+                  className="h-11 rounded-md border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-60"
+                >
+                  {isLookingUpPostalCode ? "Buscando..." : "Buscar CEP"}
+                </button>
+              </div>
+              {postalCodeMessage ? (
+                <p className="text-xs text-[var(--muted)]" aria-live="polite">{postalCodeMessage}</p>
+              ) : null}
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">Logradouro</span>
+                <input
+                  name="street"
+                  autoComplete="address-line1"
+                  required
+                  value={address.street}
+                  onChange={(event) => setAddress((current) => ({ ...current, street: event.target.value }))}
+                  className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]"
+                  placeholder="Rua, avenida..."
+                />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">Número</span>
+                  <input name="address_number" autoComplete="address-line2" required className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]" placeholder="123" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">Complemento</span>
+                  <input name="address_complement" className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]" placeholder="Apto, bloco (opcional)" />
+                </label>
+              </div>
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">Bairro</span>
+                <input name="neighborhood" required value={address.neighborhood} onChange={(event) => setAddress((current) => ({ ...current, neighborhood: event.target.value }))} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]" />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-[1fr_100px]">
+                <label className="block">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">Cidade</span>
+                  <input name="city" autoComplete="address-level2" required value={address.city} onChange={(event) => setAddress((current) => ({ ...current, city: event.target.value }))} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 outline-none focus:border-[var(--accent)]" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-semibold text-[var(--foreground)]">UF</span>
+                  <input name="state" autoComplete="address-level1" maxLength={2} required value={address.state} onChange={(event) => setAddress((current) => ({ ...current, state: event.target.value.toUpperCase().slice(0, 2) }))} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] px-3 uppercase outline-none focus:border-[var(--accent)]" />
+                </label>
+              </div>
+            </fieldset>
           </>
         ) : null}
 

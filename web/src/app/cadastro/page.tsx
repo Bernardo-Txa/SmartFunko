@@ -19,7 +19,7 @@ export default async function RegisterPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto flex max-w-7xl justify-center px-4 py-10 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-2xl">
         <AuthForm mode="register" nextPath={nextPath} />
         <p className="mt-5 text-sm text-[var(--muted)]">
           Ja tem conta?{" "}

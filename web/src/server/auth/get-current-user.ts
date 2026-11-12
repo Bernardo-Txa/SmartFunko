@@ -37,7 +37,7 @@ export async function getCurrentUser(): Promise<CurrentUserContext | null> {
 
   const { data: customer, error: customerError } = await supabase
     .from("customers")
-    .select("id,profile_id,name,email,phone,cpf,instagram,status")
+    .select("id,profile_id,name,email,phone,cpf,instagram,postal_code,street,address_number,address_complement,neighborhood,city,state,status")
     .eq("profile_id", profile.id)
     .maybeSingle<AuthCustomer>();
 

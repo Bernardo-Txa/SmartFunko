@@ -7,12 +7,26 @@ import { SmartButtonLoading } from "@/components/ui/smart-loading";
 import { formatPhoneNumber } from "@/lib/format";
 
 type AccountCustomer = {
+  address_complement: string | null;
+  address_number: string | null;
+  city: string | null;
   cpf: string | null;
   instagram: string | null;
   name: string;
+  neighborhood: string | null;
   phone: string | null;
+  postal_code: string | null;
+  state: string | null;
   status?: string | null;
+  street: string | null;
 } | null;
+
+type AddressFields = {
+  city: string;
+  neighborhood: string;
+  state: string;
+  street: string;
+};
 
 type ApiResult = {
   error?: {
@@ -25,6 +39,11 @@ const customerStatusLabels: Record<string, string> = {
   blocked: "Bloqueado",
   vip: "VIP",
 };
+
+function formatPostalCode(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+}
 
 export function AccountProfileForm({
   customer,
@@ -41,6 +60,55 @@ export function AccountProfileForm({
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneInput, setPhoneInput] = useState(formatPhoneNumber(customer?.phone ?? ""));
+  const [postalCode, setPostalCode] = useState(formatPostalCode(customer?.postal_code ?? ""));
+  const [address, setAddress] = useState<AddressFields>({
+    city: customer?.city ?? "",
+    neighborhood: customer?.neighborhood ?? "",
+    state: customer?.state ?? "",
+    street: customer?.street ?? "",
+  });
+  const [isLookingUpPostalCode, setIsLookingUpPostalCode] = useState(false);
+  const [postalCodeMessage, setPostalCodeMessage] = useState("");
+
+  function resetAddress() {
+    setPostalCode(formatPostalCode(customer?.postal_code ?? ""));
+    setAddress({
+      city: customer?.city ?? "",
+      neighborhood: customer?.neighborhood ?? "",
+      state: customer?.state ?? "",
+      street: customer?.street ?? "",
+    });
+    setPostalCodeMessage("");
+  }
+
+  async function lookupPostalCode() {
+    const digits = postalCode.replace(/\D/g, "");
+
+    if (digits.length !== 8) {
+      setPostalCodeMessage("Informe um CEP com 8 números.");
+      return;
+    }
+
+    setIsLookingUpPostalCode(true);
+    setPostalCodeMessage("");
+
+    try {
+      const response = await fetch(`/api/v1/postal-code/${digits}`, { cache: "no-store" });
+      const body = (await response.json()) as { data?: AddressFields; error?: { message?: string } };
+
+      if (!response.ok || !body.data) {
+        setPostalCodeMessage(body.error?.message ?? "CEP não encontrado.");
+        return;
+      }
+
+      setAddress(body.data);
+      setPostalCodeMessage("Endereço encontrado. Confira os dados antes de salvar.");
+    } catch {
+      setPostalCodeMessage("Não foi possível consultar o CEP agora. Preencha manualmente.");
+    } finally {
+      setIsLookingUpPostalCode(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,10 +120,17 @@ export function AccountProfileForm({
       const formData = new FormData(event.currentTarget);
       const response = await fetch("/api/v1/me", {
         body: JSON.stringify({
+          address_complement: String(formData.get("address_complement") ?? ""),
+          address_number: String(formData.get("address_number") ?? ""),
+          city: address.city,
           cpf: String(formData.get("cpf") ?? ""),
           instagram: String(formData.get("instagram") ?? ""),
           name: String(formData.get("name") ?? ""),
+          neighborhood: address.neighborhood,
           phone: phoneInput,
+          postal_code: postalCode,
+          state: address.state,
+          street: address.street,
         }),
         headers: { "content-type": "application/json" },
         method: "PATCH",
@@ -101,6 +176,7 @@ export function AccountProfileForm({
             type="button"
             onClick={() => {
               setPhoneInput(formatPhoneNumber(customer.phone ?? ""));
+              resetAddress();
               setEditing(true);
               setError("");
               setMessage("");
@@ -139,6 +215,20 @@ export function AccountProfileForm({
             <dt className="font-semibold text-[var(--foreground)]">Status</dt>
             <dd className="text-[var(--muted)]">
               {customer.status ? customerStatusLabels[customer.status] ?? customer.status : "Nao informado"}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="font-semibold text-[var(--foreground)]">Endereço</dt>
+            <dd className="text-[var(--muted)]">
+              {customer.street
+                ? [
+                    `${customer.street}${customer.address_number ? `, ${customer.address_number}` : ""}`,
+                    customer.address_complement,
+                    customer.neighborhood,
+                    [customer.city, customer.state].filter(Boolean).join("/"),
+                    customer.postal_code ? `CEP ${formatPostalCode(customer.postal_code)}` : null,
+                  ].filter(Boolean).join(" · ")
+                : "Não informado"}
             </dd>
           </div>
         </dl>
@@ -193,6 +283,47 @@ export function AccountProfileForm({
               />
             </label>
           </div>
+          <fieldset className="grid gap-4 rounded-lg border border-[var(--border)] p-4">
+            <legend className="px-2 text-sm font-bold text-[var(--foreground)]">Endereço</legend>
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
+              <label className="block flex-1">
+                <span className="text-sm font-semibold text-[var(--foreground)]">CEP</span>
+                <input name="postal_code" inputMode="numeric" maxLength={9} value={postalCode} onChange={(event) => { setPostalCode(formatPostalCode(event.target.value)); setPostalCodeMessage(""); }} onBlur={() => void lookupPostalCode()} placeholder="00000-000" className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
+              </label>
+              <button type="button" disabled={isLookingUpPostalCode} onClick={() => void lookupPostalCode()} className="h-11 rounded-md border border-[var(--border)] px-4 text-sm font-bold text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-60">
+                {isLookingUpPostalCode ? "Buscando..." : "Buscar CEP"}
+              </button>
+            </div>
+            {postalCodeMessage ? <p className="text-xs text-[var(--muted)]" aria-live="polite">{postalCodeMessage}</p> : null}
+            <label className="block">
+              <span className="text-sm font-semibold text-[var(--foreground)]">Logradouro</span>
+              <input name="street" value={address.street} onChange={(event) => setAddress((current) => ({ ...current, street: event.target.value }))} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">Número</span>
+                <input name="address_number" defaultValue={customer.address_number ?? ""} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">Complemento</span>
+                <input name="address_complement" defaultValue={customer.address_complement ?? ""} placeholder="Opcional" className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
+              </label>
+            </div>
+            <label className="block">
+              <span className="text-sm font-semibold text-[var(--foreground)]">Bairro</span>
+              <input name="neighborhood" value={address.neighborhood} onChange={(event) => setAddress((current) => ({ ...current, neighborhood: event.target.value }))} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-[1fr_100px]">
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">Cidade</span>
+                <input name="city" value={address.city} onChange={(event) => setAddress((current) => ({ ...current, city: event.target.value }))} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-semibold text-[var(--foreground)]">UF</span>
+                <input name="state" maxLength={2} value={address.state} onChange={(event) => setAddress((current) => ({ ...current, state: event.target.value.toUpperCase().slice(0, 2) }))} className="mt-2 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm uppercase outline-none focus:border-[var(--accent)]" />
+              </label>
+            </div>
+          </fieldset>
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"
@@ -207,6 +338,7 @@ export function AccountProfileForm({
               onClick={() => {
                 setEditing(false);
                 setPhoneInput(formatPhoneNumber(customer.phone ?? ""));
+                resetAddress();
                 setError("");
               }}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[var(--border)] px-4 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-strong)] disabled:cursor-not-allowed disabled:opacity-60"

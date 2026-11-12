@@ -15,6 +15,9 @@ export type AuthProfile = {
 };
 
 export type AuthCustomer = {
+  address_complement: string | null;
+  address_number: string | null;
+  city: string | null;
   id: string;
   profile_id: string | null;
   name: string;
@@ -22,7 +25,11 @@ export type AuthCustomer = {
   phone: string | null;
   cpf: string | null;
   instagram: string | null;
+  neighborhood: string | null;
+  postal_code: string | null;
+  state: string | null;
   status: "active" | "vip" | "blocked";
+  street: string | null;
 };
 
 export type AuthContext = {
@@ -52,7 +59,7 @@ export async function requireUser(request?: Request): Promise<AuthContext> {
 
   const { data: customer, error: customerError } = await dataClient
     .from("customers")
-    .select("id,profile_id,name,email,phone,cpf,instagram,status")
+    .select("id,profile_id,name,email,phone,cpf,instagram,postal_code,street,address_number,address_complement,neighborhood,city,state,status")
     .eq("profile_id", profile.id)
     .maybeSingle<AuthCustomer>();
 
