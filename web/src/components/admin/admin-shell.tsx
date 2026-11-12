@@ -23,6 +23,7 @@ function getNavItems() {
     { href: "/admin/integracoes", label: "Integracoes", icon: Cable },
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/produtos", label: "Produtos", icon: Package },
+    { href: "/admin/estoque", label: "Pronta Entrega", icon: PackageCheck },
     { href: "/admin/pre-vendas", label: "Pre-vendas", icon: CalendarClock },
     { href: "/admin/acervo-raro", label: "Acervo Raro", icon: Gem },
     { href: "/admin/recebimento", label: "Recebimento", icon: PackageCheck },

@@ -7,6 +7,7 @@ import { verifyInfinitePayWebhook } from "@/server/payments/infinitepay-client";
 import { PopFlixSubscriptionService } from "@/server/popflix/popflix-subscription-service";
 import { PreorderService } from "@/server/preorders/preorder-service";
 import { RaffleService } from "@/server/raffles/raffle-service";
+import { ReadyStockService } from "@/server/ready-stock/ready-stock-service";
 
 function isRaffleOrderNsu(orderNsu: string) {
   return orderNsu.toUpperCase().startsWith("RAFFLE-") || orderNsu.toUpperCase().startsWith("RF-");
@@ -22,6 +23,10 @@ function isOrderV2Nsu(orderNsu: string) {
 
 function isPreorderNsu(orderNsu: string) {
   return orderNsu.toUpperCase().startsWith("PVPAY-");
+}
+
+function isReadyStockNsu(orderNsu: string) {
+  return orderNsu.toUpperCase().startsWith("PEPAY-");
 }
 
 export async function POST(request: Request) {
@@ -48,7 +53,9 @@ export async function POST(request: Request) {
       payload && typeof payload === "object" && "order_nsu" in payload
         ? String((payload as { order_nsu?: unknown }).order_nsu ?? "")
         : "";
-    const result = isOrderV2Nsu(orderNsu)
+    const result = isReadyStockNsu(orderNsu)
+      ? await new ReadyStockService().handleInfinitePayWebhook(payload)
+      : isOrderV2Nsu(orderNsu)
       ? await new OrderV2Service().handleInfinitePayWebhook(payload)
       : isPreorderNsu(orderNsu)
         ? await new PreorderService().handleInfinitePayWebhook(payload)

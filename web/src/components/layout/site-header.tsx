@@ -5,6 +5,7 @@ import { HeaderNavLink } from "@/components/layout/header-nav-link";
 import { MegaMenu } from "@/components/storefront/mega-menu";
 import { getCatalogCategories, getCatalogFranchises } from "@/lib/catalog";
 import { isPopFlixEnabled, isRafflesEnabled } from "@/lib/env";
+import { readyStockCampaign } from "@/lib/ready-stock-campaign";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 
 export async function SiteHeader() {
@@ -19,6 +20,9 @@ export async function SiteHeader() {
     : "";
   const ordersHref = currentUser ? "/conta/pedidos-v2" : "/login?next=/conta/pedidos-v2";
   const links: Array<{ href: string; label: string }> = [
+    ...(!readyStockCampaign.hidden
+      ? [{ href: "/pronta-entrega", label: readyStockCampaign.menuLabel }]
+      : []),
     { href: "/fornecedores", label: "Collabs" },
     { href: "/pre-vendas", label: "Pre-vendas" },
     { href: "/acervo-raro", label: "Acervo Raro" },
