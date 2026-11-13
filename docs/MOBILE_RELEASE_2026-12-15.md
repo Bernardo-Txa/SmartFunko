@@ -823,3 +823,47 @@ retenção quando disponível. Depois dessa evidência, ainda será necessário
 confirmar o project ref `sufppaxdxmxdcfkuvanm`, refazer advisors, locks,
 transações longas e concorrência administrativa, conferir os checksums das nove
 migrations, apresentar o preflight e obter nova autorização explícita.
+
+## 22. Rollout transacional sem estado intermediário incompatível
+
+Este plano substitui a aplicação isolada descrita nas seções anteriores. As
+nove migrations existentes permanecem intactas, mas serão executadas em quatro
+transações indivisíveis, nesta ordem:
+
+1. Grupo A: `20261112220637` e `20261112235807`;
+2. Grupo B: `20261112220803`, `20261113000103` e `20261113000158`;
+3. Grupo C: `20261112220943` e `20261113000439`;
+4. Grupo D: `20261113005521` e `20261113012619`.
+
+`scripts/build-mobile-release-rollout.mjs` verifica o SHA-256 de cada arquivo e
+gera um único payload SQL por grupo. O payload abre `BEGIN`, configura
+`lock_timeout = 5s`, `statement_timeout = 60s` e
+`idle_in_transaction_session_timeout = 60s`, executa cada migration e só então
+insere sua versão, nome e conteúdo em
+`supabase_migrations.schema_migrations`. O `COMMIT` ocorre apenas após todos os
+arquivos e registros do grupo. Um erro desfaz DDL, grants, policies e histórico
+do grupo inteiro; nenhuma versão é marcada antes de seu SQL.
+
+O PostgreSQL não publica alterações DDL não confirmadas para outras sessões.
+Assim, o Next.js observa o estado anterior durante a transação e o estado final
+depois do commit, nunca o estado entre migrations dependentes. Não usar
+`db push`, `migration repair`, `db reset` ou chamadas separadas de
+`apply_migration` em produção. Depois de cada commit, validar o conjunto
+funcional correspondente e os contratos Next.js antes de iniciar o próximo
+grupo. Se a validação pós-commit falhar, bloquear os grupos seguintes e executar
+somente o rollback revisado do grupo já confirmado.
+
+### Evidência local do mecanismo
+
+Em PostgreSQL 17.6 local, o banco foi reconstruído até `20261112150000`. Uma
+falha deliberada após o primeiro arquivo do grupo A resultou em divisão por zero
+e deixou zero versões novas, RLS desativada e zero policies novas, comprovando o
+rollback integral. Em seguida, A, B, C e D foram aplicados pelo mesmo gerador:
+as nove versões foram registradas, as views ficaram `security_invoker`, as
+quatro tabelas de pré-venda ficaram com RLS e a migration corretiva do grupo D
+substituiu `min(uuid)` por `array_agg(competence_id)`.
+
+O lint do schema não encontrou erros. A suíte SQL sintética de idempotência,
+incluindo duas conexões concorrentes, ownership, replay, payload divergente,
+atomicidade e rollback, passou sem chamar a InfinitePay. O stack local foi
+encerrado ao final e os dados sintéticos foram descartados.
