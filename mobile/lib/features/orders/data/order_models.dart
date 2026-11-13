@@ -2,177 +2,266 @@ import '../../../core/utils/currency_formatter.dart';
 
 class OrderMoney {
   const OrderMoney(this.value);
-
   final double value;
-
   factory OrderMoney.fromJson(Object? value) {
-    if (value is num) {
-      return OrderMoney(value.toDouble());
+    final parsed = value is num ? value.toDouble() : double.tryParse('$value');
+    if (parsed == null || !parsed.isFinite || parsed < 0) {
+      throw const FormatException('Valor monetário inválido no contrato V2.');
     }
-
-    if (value is String) {
-      return OrderMoney(double.tryParse(value.replaceAll(',', '.')) ?? 0);
-    }
-
-    return const OrderMoney(0);
+    return OrderMoney(parsed);
   }
-
   String get formatted => CurrencyFormatter.brl(value);
+}
+
+enum OrderApprovalStatus { awaitingApproval, approved, rejected, unknown }
+
+enum OrderPaymentStatus {
+  unpaid,
+  checkoutCreated,
+  paid,
+  refundPending,
+  refunded,
+  cancelled,
+  unknown,
+}
+
+enum OrderFulfillmentStatus {
+  awaitingClosing,
+  requested,
+  received,
+  shipped,
+  cancelled,
+  unknown,
+}
+
+extension OrderApprovalStatusLabel on OrderApprovalStatus {
+  String get label => switch (this) {
+    OrderApprovalStatus.awaitingApproval => 'Aguardando aprovação',
+    OrderApprovalStatus.approved => 'Aprovado',
+    OrderApprovalStatus.rejected => 'Recusado',
+    OrderApprovalStatus.unknown => 'Status de aprovação desconhecido',
+  };
+}
+
+extension OrderPaymentStatusLabel on OrderPaymentStatus {
+  String get label => switch (this) {
+    OrderPaymentStatus.unpaid => 'Não pago',
+    OrderPaymentStatus.checkoutCreated => 'Checkout gerado',
+    OrderPaymentStatus.paid => 'Pago',
+    OrderPaymentStatus.refundPending => 'Reembolso pendente',
+    OrderPaymentStatus.refunded => 'Reembolsado',
+    OrderPaymentStatus.cancelled => 'Pagamento cancelado',
+    OrderPaymentStatus.unknown => 'Status de pagamento desconhecido',
+  };
+}
+
+extension OrderFulfillmentStatusLabel on OrderFulfillmentStatus {
+  String get label => switch (this) {
+    OrderFulfillmentStatus.awaitingClosing => 'Aguardando fechamento',
+    OrderFulfillmentStatus.requested => 'Solicitado',
+    OrderFulfillmentStatus.received => 'Recebido',
+    OrderFulfillmentStatus.shipped => 'Enviado',
+    OrderFulfillmentStatus.cancelled => 'Operação cancelada',
+    OrderFulfillmentStatus.unknown => 'Status operacional desconhecido',
+  };
+}
+
+OrderApprovalStatus _approval(Object? v) => switch ('$v') {
+  'aguardando_aprovacao' => OrderApprovalStatus.awaitingApproval,
+  'aprovado' => OrderApprovalStatus.approved,
+  'recusado' => OrderApprovalStatus.rejected,
+  _ => OrderApprovalStatus.unknown,
+};
+OrderPaymentStatus _payment(Object? v) => switch ('$v') {
+  'nao_pago' => OrderPaymentStatus.unpaid,
+  'checkout_gerado' => OrderPaymentStatus.checkoutCreated,
+  'pago' => OrderPaymentStatus.paid,
+  'reembolso_pendente' => OrderPaymentStatus.refundPending,
+  'reembolsado' => OrderPaymentStatus.refunded,
+  'cancelado' => OrderPaymentStatus.cancelled,
+  _ => OrderPaymentStatus.unknown,
+};
+OrderFulfillmentStatus _fulfillment(Object? v) => switch ('$v') {
+  'aguardando_fechamento' => OrderFulfillmentStatus.awaitingClosing,
+  'solicitado' => OrderFulfillmentStatus.requested,
+  'recebido' => OrderFulfillmentStatus.received,
+  'enviado' => OrderFulfillmentStatus.shipped,
+  'cancelado' => OrderFulfillmentStatus.cancelled,
+  _ => OrderFulfillmentStatus.unknown,
+};
+
+String _requiredString(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is! String || value.trim().isEmpty) {
+    throw FormatException('Campo obrigatório ausente no contrato V2: $key');
+  }
+  return value.trim();
+}
+
+int _requiredPositiveInt(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is! num || value.toInt() <= 0) {
+    throw FormatException('Campo numérico inválido no contrato V2: $key');
+  }
+  return value.toInt();
+}
+
+DateTime _requiredDateTime(Map<String, dynamic> json, String key) {
+  final parsed = DateTime.tryParse(_requiredString(json, key));
+  if (parsed == null) {
+    throw FormatException('Data inválida no contrato V2: $key');
+  }
+  return parsed;
+}
+
+class OrderCompetence {
+  const OrderCompetence({
+    required this.id,
+    required this.code,
+    required this.label,
+    required this.startsOn,
+    required this.endsOn,
+  });
+  final String id, code, label, startsOn, endsOn;
+  factory OrderCompetence.fromJson(Map<String, dynamic> j) => OrderCompetence(
+    id: _requiredString(j, 'id'),
+    code: _requiredString(j, 'code'),
+    label: _requiredString(j, 'label'),
+    startsOn: _requiredString(j, 'startsOn'),
+    endsOn: _requiredString(j, 'endsOn'),
+  );
 }
 
 class OrderItem {
   const OrderItem({
+    required this.id,
     required this.name,
     required this.quantity,
     required this.unitPrice,
     required this.totalPrice,
-    required this.status,
     this.sku,
-    this.imageUrl,
   });
-
-  final String name;
+  final String id, name;
   final int quantity;
-  final OrderMoney unitPrice;
-  final OrderMoney totalPrice;
-  final String status;
+  final OrderMoney unitPrice, totalPrice;
   final String? sku;
-  final String? imageUrl;
+  factory OrderItem.fromJson(Map<String, dynamic> j) => OrderItem(
+    id: _requiredString(j, 'id'),
+    name: _requiredString(j, 'name'),
+    quantity: _requiredPositiveInt(j, 'quantity'),
+    unitPrice: OrderMoney.fromJson(j['unitPrice']),
+    totalPrice: OrderMoney.fromJson(j['totalPrice']),
+    sku: j['sku'] as String?,
+  );
+}
 
-  factory OrderItem.fromJson(Map<String, dynamic> json) {
-    return OrderItem(
-      name: _readString(json, ['name', 'productName'], fallback: 'Produto'),
-      quantity: _readInt(json['quantity']),
-      unitPrice: OrderMoney.fromJson(json['unitPrice'] ?? json['unit_price']),
-      totalPrice: OrderMoney.fromJson(
-        json['totalPrice'] ?? json['total_price'],
-      ),
-      status: _readString(json, ['status'], fallback: 'requested'),
-      sku: _readNullableString(json, ['sku']),
-      imageUrl: _readNullableString(json, ['imageUrl', 'image_url']),
-    );
-  }
+class PaymentSession {
+  const PaymentSession({
+    required this.id,
+    required this.status,
+    required this.amount,
+    this.checkoutNumber = '',
+    this.paymentLinkUrl,
+    this.paidAt,
+    this.expiresAt,
+    this.orderIds = const [],
+  });
+  final String id, status, checkoutNumber;
+  final OrderMoney amount;
+  final String? paymentLinkUrl, paidAt, expiresAt;
+  final List<String> orderIds;
+  bool get isPaid => status == 'paid';
+  factory PaymentSession.fromJson(Map<String, dynamic> j) => PaymentSession(
+    id: _requiredString(j, 'id'),
+    status: _requiredString(j, 'status'),
+    checkoutNumber: j['checkoutNumber'] is String
+        ? (j['checkoutNumber'] as String).trim()
+        : '',
+    amount: OrderMoney.fromJson(j['amount']),
+    paymentLinkUrl: j['paymentLinkUrl'] as String?,
+    paidAt: j['paidAt'] as String?,
+    expiresAt: j['expiresAt'] as String?,
+    orderIds: (j['orderIds'] as List? ?? const []).map((e) => '$e').toList(),
+  );
 }
 
 class OrderSummary {
   const OrderSummary({
+    required this.id,
     required this.orderNumber,
-    required this.status,
-    required this.reviewStatus,
-    required this.createdAt,
-    required this.total,
-    required this.itemsCount,
-    this.paymentStatus,
-  });
-
-  final String orderNumber;
-  final String status;
-  final String reviewStatus;
-  final DateTime? createdAt;
-  final OrderMoney total;
-  final int itemsCount;
-  final String? paymentStatus;
-
-  factory OrderSummary.fromJson(Map<String, dynamic> json) {
-    final items = _readItems(json['items']);
-    final payments = json['payments'];
-    String? paymentStatus;
-
-    if (payments is List && payments.isNotEmpty) {
-      final first = payments.first;
-      if (first is Map<String, dynamic>) {
-        paymentStatus = _readNullableString(first, ['status']);
-      }
-    }
-
-    return OrderSummary(
-      orderNumber: _readString(json, ['orderNumber', 'order_number']),
-      status: _readString(json, ['status'], fallback: 'draft'),
-      reviewStatus: _readString(json, [
-        'reviewStatus',
-        'review_status',
-      ], fallback: _readString(json, ['status'], fallback: 'draft')),
-      createdAt: DateTime.tryParse(
-        _readString(json, ['createdAt', 'created_at']),
-      ),
-      total: OrderMoney.fromJson(json['total']),
-      itemsCount: items.fold<int>(0, (total, item) => total + item.quantity),
-      paymentStatus: paymentStatus,
-    );
-  }
-}
-
-class OrderDetail {
-  const OrderDetail({
-    required this.orderNumber,
-    required this.status,
-    required this.reviewStatus,
+    required this.orderDate,
+    required this.approvalStatus,
+    required this.paymentStatus,
+    required this.fulfillmentStatus,
     required this.createdAt,
     required this.total,
     required this.items,
-    this.customerName,
-    this.notes,
-    this.paymentStatus,
-    this.paymentUrl,
-    this.rejectedReason,
-    this.reviewNotes,
+    required this.paymentEligible,
+    this.competence,
+    this.paymentSessions = const [],
   });
-
-  final String orderNumber;
-  final String status;
-  final String reviewStatus;
+  final String id, orderNumber, orderDate;
+  final OrderApprovalStatus approvalStatus;
+  final OrderPaymentStatus paymentStatus;
+  final OrderFulfillmentStatus fulfillmentStatus;
   final DateTime? createdAt;
   final OrderMoney total;
   final List<OrderItem> items;
-  final String? customerName;
-  final String? notes;
-  final String? paymentStatus;
-  final String? paymentUrl;
-  final String? rejectedReason;
-  final String? reviewNotes;
-
-  factory OrderDetail.fromJson(Map<String, dynamic> json) {
-    final payments = json['payments'];
-    String? paymentStatus;
-
-    if (payments is List && payments.isNotEmpty) {
-      final first = payments.first;
-      if (first is Map<String, dynamic>) {
-        paymentStatus = _readNullableString(first, ['status']);
-      }
-    }
-
-    return OrderDetail(
-      orderNumber: _readString(json, ['orderNumber', 'order_number']),
-      status: _readString(json, ['status'], fallback: 'draft'),
-      reviewStatus: _readString(json, [
-        'reviewStatus',
-        'review_status',
-      ], fallback: _readString(json, ['status'], fallback: 'draft')),
-      createdAt: DateTime.tryParse(
-        _readString(json, ['createdAt', 'created_at']),
-      ),
-      total: OrderMoney.fromJson(json['total']),
-      items: _readItems(json['items']),
-      customerName: _readNullableString(json, [
-        'customerName',
-        'customer_name',
-      ]),
-      notes: _readNullableString(json, ['notes']),
-      paymentStatus: paymentStatus,
-      paymentUrl: _readNullableString(json, ['paymentLinkUrl', 'paymentUrl']),
-      rejectedReason: _readNullableString(json, ['rejectedReason']),
-      reviewNotes: _readNullableString(json, ['reviewNotes']),
-    );
-  }
+  final bool paymentEligible;
+  final OrderCompetence? competence;
+  final List<PaymentSession> paymentSessions;
+  int get itemsCount => items.fold(0, (sum, item) => sum + item.quantity);
+  String get status => fulfillmentStatus.name;
+  String get reviewStatus => approvalStatus.name;
+  String? get paymentUrl => paymentSessions
+      .where((session) => session.paymentLinkUrl != null)
+      .lastOrNull
+      ?.paymentLinkUrl;
+  String? get rejectedReason => approvalStatus == OrderApprovalStatus.rejected
+      ? 'Pedido recusado.'
+      : null;
+  String? get reviewNotes => null;
+  String? get customerName => null;
+  String? get notes => null;
+  factory OrderSummary.fromJson(Map<String, dynamic> j) => OrderSummary(
+    id: _requiredString(j, 'id'),
+    orderNumber: _requiredString(j, 'orderNumber'),
+    orderDate: _requiredString(j, 'orderDate'),
+    approvalStatus: _approval(j['approvalStatus']),
+    paymentStatus: _payment(j['paymentStatus']),
+    fulfillmentStatus: _fulfillment(j['fulfillmentStatus']),
+    createdAt: _requiredDateTime(j, 'createdAt'),
+    total: OrderMoney.fromJson(j['total']),
+    paymentEligible: j['paymentEligible'] is bool
+        ? j['paymentEligible'] as bool
+        : throw const FormatException(
+            'Campo obrigatório inválido: paymentEligible',
+          ),
+    items:
+        (j['items'] is List
+                ? j['items'] as List
+                : throw const FormatException(
+                    'Campo obrigatório inválido: items',
+                  ))
+            .whereType<Map<String, dynamic>>()
+            .map(OrderItem.fromJson)
+            .toList(),
+    competence: j['competence'] is Map<String, dynamic>
+        ? OrderCompetence.fromJson(j['competence'] as Map<String, dynamic>)
+        : null,
+    paymentSessions: (j['paymentSessions'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(PaymentSession.fromJson)
+        .toList(),
+  );
 }
+
+typedef OrderDetail = OrderSummary;
 
 class CreateOrderItem {
   const CreateOrderItem({required this.variantId, required this.quantity});
-
   final String variantId;
   final int quantity;
-
   Map<String, dynamic> toJson() => {
     'variantId': variantId,
     'quantity': quantity,
@@ -180,97 +269,12 @@ class CreateOrderItem {
 }
 
 class CreateOrderRequest {
-  const CreateOrderRequest({required this.items, this.notes});
-
+  const CreateOrderRequest({required this.items, this.notes, this.couponCode});
   final List<CreateOrderItem> items;
-  final String? notes;
-
-  Map<String, dynamic> toJson() {
-    final trimmedNotes = notes?.trim();
-
-    return {
-      'items': items.map((item) => item.toJson()).toList(),
-      if (trimmedNotes != null && trimmedNotes.isNotEmpty)
-        'notes': trimmedNotes,
-    };
-  }
-}
-
-class CreateOrderResponse {
-  const CreateOrderResponse({
-    required this.orderNumber,
-    required this.status,
-    required this.reviewStatus,
-    required this.message,
-  });
-
-  final String orderNumber;
-  final String status;
-  final String reviewStatus;
-  final String message;
-
-  factory CreateOrderResponse.fromJson(Map<String, dynamic> json) {
-    return CreateOrderResponse(
-      orderNumber: _readString(json, ['orderNumber', 'order_number']),
-      status: _readString(json, ['status'], fallback: 'draft'),
-      reviewStatus: _readString(json, [
-        'reviewStatus',
-        'review_status',
-      ], fallback: 'under_review'),
-      message: _readString(json, [
-        'message',
-      ], fallback: 'Pedido enviado para análise.'),
-    );
-  }
-}
-
-List<OrderItem> _readItems(Object? value) {
-  if (value is List) {
-    return value
-        .whereType<Map<String, dynamic>>()
-        .map(OrderItem.fromJson)
-        .toList();
-  }
-
-  return const [];
-}
-
-int _readInt(Object? value) {
-  if (value is int) {
-    return value;
-  }
-
-  if (value is num) {
-    return value.toInt();
-  }
-
-  if (value is String) {
-    return int.tryParse(value) ?? 0;
-  }
-
-  return 0;
-}
-
-String _readString(
-  Map<String, dynamic> json,
-  List<String> keys, {
-  String fallback = '',
-}) {
-  return _readNullableString(json, keys) ?? fallback;
-}
-
-String? _readNullableString(Map<String, dynamic> json, List<String> keys) {
-  for (final key in keys) {
-    final value = json[key];
-    if (value == null) {
-      continue;
-    }
-
-    final text = value.toString().trim();
-    if (text.isNotEmpty) {
-      return text;
-    }
-  }
-
-  return null;
+  final String? notes, couponCode;
+  Map<String, dynamic> toJson() => {
+    'items': items.map((i) => i.toJson()).toList(),
+    if (notes?.trim().isNotEmpty == true) 'notes': notes!.trim(),
+    if (couponCode?.trim().isNotEmpty == true) 'couponCode': couponCode!.trim(),
+  };
 }

@@ -161,7 +161,7 @@ class ProductSummary {
         (type != null && type != 'Comum');
     final badges = [
       status.label,
-      if (specialLabel != null) specialLabel,
+      ?specialLabel,
       if (type != null && type != 'Comum') type,
       ...tags.take(2),
       if (isSpecial &&

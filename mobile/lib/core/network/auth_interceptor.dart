@@ -67,8 +67,7 @@ class AuthInterceptor extends Interceptor {
 
   bool _requiresAuth(String path) {
     final normalizedPath = _normalizedPath(path);
-    return normalizedPath == '/api/v1/me' ||
-        normalizedPath.startsWith('/api/v1/me/');
+    return requiresApiAuthentication(normalizedPath);
   }
 
   bool _isPublic(String path) {
@@ -80,4 +79,11 @@ class AuthInterceptor extends Interceptor {
     final uri = Uri.tryParse(path);
     return uri?.path ?? path;
   }
+}
+
+bool requiresApiAuthentication(String path) {
+  return path == '/api/v1/me' ||
+      path.startsWith('/api/v1/me/') ||
+      path == '/api/v1/mobile' ||
+      path.startsWith('/api/v1/mobile/');
 }

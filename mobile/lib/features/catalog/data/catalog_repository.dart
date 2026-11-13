@@ -68,7 +68,7 @@ class CatalogRepository {
               'q': request.search!.trim(),
             if (request.category != null && request.category!.trim().isNotEmpty)
               'category': request.category!.trim(),
-            if (filter != null) 'filter': filter,
+            'filter': ?filter,
             'page': request.page,
             'pageSize': request.pageSize,
             if (request.sort != null && request.sort!.trim().isNotEmpty)

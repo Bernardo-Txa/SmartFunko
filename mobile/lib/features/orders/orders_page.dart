@@ -15,7 +15,6 @@ import '../../shared/widgets/smart_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'data/order_models.dart';
 import 'data/orders_repository.dart';
-import 'domain/order_status_mapper.dart';
 
 class OrdersPage extends ConsumerWidget {
   const OrdersPage({super.key});
@@ -117,11 +116,6 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = mapOrderStatus(
-      context,
-      status: order.status,
-      reviewStatus: order.reviewStatus,
-    );
 
     return SmartCard(
       onTap: () => context.go('/pedidos/${order.orderNumber}'),
@@ -130,7 +124,10 @@ class _OrderCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(status.icon, color: status.color),
+              Icon(
+                Icons.receipt_long_rounded,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -149,9 +146,16 @@ class _OrderCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               StatusBadge(
-                label: status.label,
-                icon: status.icon,
-                color: status.color,
+                label: order.approvalStatus.label,
+                icon: Icons.fact_check_outlined,
+              ),
+              StatusBadge(
+                label: order.paymentStatus.label,
+                icon: Icons.payments_outlined,
+              ),
+              StatusBadge(
+                label: order.fulfillmentStatus.label,
+                icon: Icons.local_shipping_outlined,
               ),
               StatusBadge(
                 label: DateFormatter.dayMonthYear(order.createdAt),

@@ -15,6 +15,7 @@ class MemoryCacheEntry<T> {
 class MemoryCache {
   final Map<String, MemoryCacheEntry<Object?>> _entries = {};
   final Map<String, Future<Object?>> _inFlightRequests = {};
+  int _generation = 0;
 
   T? get<T>(String key) {
     final entry = _entries[key];
@@ -76,8 +77,9 @@ class MemoryCache {
     final stopwatch = Stopwatch()..start();
     _logApi(debugLabel, cacheHit: false, tokenPresent: tokenPresent);
 
+    final generation = _generation;
     final future = loader().then<Object?>((value) {
-      set<T>(key, value, ttl);
+      if (generation == _generation) set<T>(key, value, ttl);
       return value;
     });
 
@@ -102,11 +104,13 @@ class MemoryCache {
   }
 
   void invalidatePrefix(String prefix) {
+    _generation += 1;
     _entries.removeWhere((key, value) => key.startsWith(prefix));
     _inFlightRequests.removeWhere((key, value) => key.startsWith(prefix));
   }
 
   void clear() {
+    _generation += 1;
     _entries.clear();
     _inFlightRequests.clear();
   }

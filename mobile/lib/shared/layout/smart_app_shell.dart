@@ -127,12 +127,6 @@ class _SmartBottomNavigation extends StatelessWidget {
       path: '/catalogo',
     ),
     _NavItem(
-      label: 'Rifas',
-      icon: Icons.confirmation_number_outlined,
-      selectedIcon: Icons.confirmation_number_rounded,
-      path: '/rifas',
-    ),
-    _NavItem(
       label: 'Pedidos',
       icon: Icons.receipt_long_outlined,
       selectedIcon: Icons.receipt_long_rounded,
@@ -186,12 +180,9 @@ class _SmartBottomNavigation extends StatelessWidget {
     if (location.startsWith('/catalogo') || location.startsWith('/produto')) {
       return 1;
     }
-    if (location.startsWith('/rifas') || location.startsWith('/minhas-rifas')) {
-      return 2;
-    }
-    if (location.startsWith('/pedidos')) return 3;
-    if (location.startsWith('/perfil') || location.startsWith('/wishlist')) {
-      return 4;
+    if (location.startsWith('/pedidos')) return 2;
+    if (location.startsWith('/perfil')) {
+      return 3;
     }
     return 0;
   }

@@ -28,6 +28,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
   final _notesController = TextEditingController();
   bool _isSubmitting = false;
   String? _error;
+  String? _orderIdempotencyKey;
 
   @override
   void dispose() {
@@ -289,7 +290,11 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
         items: orderItems,
       );
       _logDebug('[Checkout] calling create order endpoint...');
-      final response = await ordersRepository.createOrder(request);
+      _orderIdempotencyKey ??= ordersRepository.newIdempotencyKey('order');
+      final response = await ordersRepository.createOrder(
+        request,
+        idempotencyKey: _orderIdempotencyKey!,
+      );
 
       messenger.showSnackBar(
         const SnackBar(content: Text('Pedido enviado para análise.')),
@@ -302,6 +307,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
       ref.invalidate(ordersProvider);
       _logDebug('[Checkout] clearing cart...');
       cartNotifier.clearAfterOrderCreated();
+      _orderIdempotencyKey = null;
       final encodedOrderNumber = Uri.encodeComponent(orderNumber);
       final route = encodedOrderNumber.isEmpty
           ? '/pedidos'

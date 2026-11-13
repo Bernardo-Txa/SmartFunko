@@ -13,7 +13,6 @@ import '../../shared/widgets/smart_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'data/order_models.dart';
 import 'data/orders_repository.dart';
-import 'domain/order_status_mapper.dart';
 
 class OrderDetailPage extends ConsumerWidget {
   const OrderDetailPage({required this.orderNumber, super.key});
@@ -48,23 +47,17 @@ class OrderDetailPage extends ConsumerWidget {
   }
 }
 
-class _OrderDetailContent extends StatelessWidget {
+class _OrderDetailContent extends ConsumerWidget {
   const _OrderDetailContent({required this.order});
 
   final OrderDetail order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final status = mapOrderStatus(
-      context,
-      status: order.status,
-      reviewStatus: order.reviewStatus,
-    );
     final reviewMessage = order.rejectedReason ?? order.reviewNotes;
     final customerName = order.customerName;
     final notes = order.notes;
-    final paymentUrl = order.paymentUrl;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,11 +68,15 @@ class _OrderDetailContent extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(status.icon, color: status.color, size: 32),
+                  Icon(
+                    Icons.receipt_long_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 32,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      status.label,
+                      'Status do pedido',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
@@ -88,17 +85,23 @@ class _OrderDetailContent extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              StatusBadge(
-                label: status.label,
-                icon: status.icon,
-                color: status.color,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                status.description,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  StatusBadge(
+                    label: order.approvalStatus.label,
+                    icon: Icons.fact_check_outlined,
+                  ),
+                  StatusBadge(
+                    label: order.paymentStatus.label,
+                    icon: Icons.payments_outlined,
+                  ),
+                  StatusBadge(
+                    label: order.fulfillmentStatus.label,
+                    icon: Icons.local_shipping_outlined,
+                  ),
+                ],
               ),
               if (reviewMessage != null) ...[
                 const SizedBox(height: 10),
@@ -155,18 +158,124 @@ class _OrderDetailContent extends StatelessWidget {
             ],
           ),
         ),
-        if (paymentUrl != null) ...[
+        if (order.paymentEligible) ...[
           const SizedBox(height: 16),
-          PrimaryButton(
-            label: 'Abrir pagamento',
-            icon: Icons.open_in_new_rounded,
-            fullWidth: true,
-            onPressed: () => openPaymentUrl(context, paymentUrl),
-          ),
+          _PaymentAction(order: order),
         ],
       ],
     );
   }
+}
+
+class _PaymentAction extends ConsumerStatefulWidget {
+  const _PaymentAction({required this.order});
+  final OrderDetail order;
+  @override
+  ConsumerState<_PaymentAction> createState() => _PaymentActionState();
+}
+
+class _PaymentActionState extends ConsumerState<_PaymentAction>
+    with WidgetsBindingObserver {
+  PaymentSession? _session;
+  bool _busy = false;
+  bool _waitingForReturn = false;
+  String? _error;
+  String? _paymentIdempotencyKey;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _waitingForReturn &&
+        _session != null) {
+      _waitingForReturn = false;
+      _sync();
+    }
+  }
+
+  Future<void> _pay() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final repository = ref.read(ordersRepositoryProvider);
+      _paymentIdempotencyKey ??= repository.newIdempotencyKey('payment');
+      final session =
+          _session ??
+          await repository.createPaymentSession([
+            widget.order.id,
+          ], idempotencyKey: _paymentIdempotencyKey!);
+      final url = session.paymentLinkUrl;
+      if (url == null || url.isEmpty) {
+        throw StateError('Link de pagamento indisponível.');
+      }
+      _session = session;
+      _waitingForReturn = true;
+      if (mounted) await openPaymentUrl(context, url);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Não foi possível abrir o pagamento.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _sync() async {
+    final session = _session;
+    if (session == null || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(ordersRepositoryProvider).syncPaymentSession(session.id);
+      ref.invalidate(ordersProvider);
+      ref.invalidate(orderDetailProvider(widget.order.orderNumber));
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error = 'Pagamento ainda não confirmado. Tente atualizar.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      PrimaryButton(
+        label: 'Pagar com InfinitePay',
+        icon: Icons.open_in_new_rounded,
+        fullWidth: true,
+        isLoading: _busy,
+        onPressed: _pay,
+      ),
+      if (_session != null)
+        TextButton.icon(
+          onPressed: _busy ? null : _sync,
+          icon: const Icon(Icons.sync_rounded),
+          label: const Text('Sincronizar pagamento'),
+        ),
+      if (_error != null)
+        Text(
+          _error!,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+    ],
+  );
 }
 
 class _OrderItemTile extends StatelessWidget {

@@ -9,17 +9,12 @@ import '../features/auth/login_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/catalog/catalog_page.dart';
 import '../features/checkout/checkout_review_page.dart';
-import '../features/club/club_page.dart';
 import '../features/home/home_page.dart';
 import '../features/orders/order_detail_page.dart';
 import '../features/orders/orders_page.dart';
 import '../features/product/product_detail_page.dart';
 import '../features/profile/profile_page.dart';
-import '../features/raffles/my_raffles_page.dart';
-import '../features/raffles/raffle_detail_page.dart';
-import '../features/raffles/raffles_page.dart';
 import '../features/splash/splash_page.dart';
-import '../features/wishlist/presentation/wishlist_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
@@ -105,33 +100,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/rifas',
-        pageBuilder: (context, state) => _buildPage(state, const RafflesPage()),
-      ),
-      GoRoute(
-        path: '/minhas-rifas',
-        pageBuilder: (context, state) =>
-            _buildPage(state, const MyRafflesPage()),
-      ),
-      GoRoute(
-        path: '/rifas/:slug',
-        pageBuilder: (context, state) => _buildPage(
-          state,
-          RaffleDetailPage(slug: state.pathParameters['slug'] ?? 'demo'),
-        ),
-      ),
-      GoRoute(
-        path: '/clube',
-        pageBuilder: (context, state) => _buildPage(state, const ClubPage()),
-      ),
-      GoRoute(
         path: '/perfil',
         pageBuilder: (context, state) => _buildPage(state, const ProfilePage()),
-      ),
-      GoRoute(
-        path: '/wishlist',
-        pageBuilder: (context, state) =>
-            _buildPage(state, const WishlistPage()),
       ),
     ],
   );

@@ -23,9 +23,6 @@ import '../catalog/data/product_models.dart';
 import '../orders/data/order_models.dart';
 import '../orders/data/orders_repository.dart';
 import '../orders/domain/order_status_mapper.dart';
-import '../raffles/data/raffle_models.dart';
-import '../raffles/data/raffles_repository.dart';
-import '../raffles/domain/raffle_status_mapper.dart';
 import 'widgets/home_shortcut_card.dart';
 
 class HomePage extends ConsumerWidget {
@@ -37,7 +34,6 @@ class HomePage extends ConsumerWidget {
     final cart = ref.watch(cartControllerProvider);
     final orders = ref.watch(ordersProvider);
     final featuredProducts = ref.watch(featuredProductsProvider);
-    final raffles = ref.watch(rafflesListProvider);
 
     return AppScaffold(
       title: 'SmartFunko',
@@ -67,23 +63,6 @@ class HomePage extends ConsumerWidget {
                     );
                 ref.invalidate(featuredProductsProvider);
               },
-            ),
-          ),
-          raffles.when(
-            data: (items) => _ActiveRaffles(raffles: items),
-            loading: () => const Padding(
-              padding: EdgeInsets.only(top: 24),
-              child: _SectionLoading(title: 'Rifas ativas'),
-            ),
-            error: (error, stackTrace) => Padding(
-              padding: const EdgeInsets.only(top: 24),
-              child: ErrorState(
-                message: 'Não foi possível carregar as rifas ativas.',
-                onRetry: () {
-                  ref.read(rafflesRepositoryProvider).invalidateRaffles();
-                  ref.invalidate(rafflesListProvider);
-                },
-              ),
             ),
           ),
         ],
@@ -243,18 +222,6 @@ class _ShortcutGrid extends StatelessWidget {
         subtitle: 'Acompanhe status',
         icon: Icons.receipt_long_outlined,
         route: '/pedidos',
-      ),
-      const _ShortcutItem(
-        title: 'Rifas',
-        subtitle: 'Campanhas ativas',
-        icon: Icons.local_activity_outlined,
-        route: '/rifas',
-      ),
-      const _ShortcutItem(
-        title: 'Minhas rifas',
-        subtitle: 'Reservas e números',
-        icon: Icons.confirmation_number_outlined,
-        route: '/minhas-rifas',
       ),
       const _ShortcutItem(
         title: 'Perfil',
@@ -817,129 +784,22 @@ class _FeaturedProductCard extends StatelessWidget {
   }
 }
 
-class _ActiveRaffles extends StatelessWidget {
-  const _ActiveRaffles({required this.raffles});
-
-  final List<RaffleSummary> raffles;
-
-  @override
-  Widget build(BuildContext context) {
-    if (raffles.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-            title: 'Rifas ativas',
-            subtitle: 'Campanhas reais disponíveis no momento.',
-            actionLabel: 'Ver rifas',
-            onAction: () => context.go('/rifas'),
-          ),
-          const SizedBox(height: 12),
-          for (final raffle in raffles.take(3))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _RaffleListItem(raffle: raffle),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RaffleListItem extends StatelessWidget {
-  const _RaffleListItem({required this.raffle});
-
-  final RaffleSummary raffle;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = mapRaffleStatus(context, raffle.status);
-
-    return _DarkInfoPanel(
-      onTap: () => context.go('/rifas/${raffle.slug}'),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            child: SizedBox(
-              height: 64,
-              width: 64,
-              child: _NetworkThumb(
-                imageUrl: raffle.imageUrl,
-                fallbackIcon: Icons.confirmation_number_rounded,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  raffle.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${raffle.pricePerNumber.formatted} por número',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.accent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                StatusBadge(
-                  label: status.label,
-                  icon: status.icon,
-                  color: status.color,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.textSecondary,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _NetworkThumb extends StatelessWidget {
-  const _NetworkThumb({this.imageUrl, this.fallbackIcon});
+  const _NetworkThumb({this.imageUrl});
 
   final String? imageUrl;
-  final IconData? fallbackIcon;
 
   @override
   Widget build(BuildContext context) {
     final fallback = ColoredBox(
       color: AppColors.primary.withValues(alpha: 0.10),
       child: Center(
-        child: fallbackIcon == null
-            ? const SmartFunkoLogo(
-                variant: SmartFunkoLogoVariant.square,
-                width: 34,
-                height: 34,
-                excludeFromSemantics: true,
-              )
-            : Icon(fallbackIcon, color: AppColors.primary, size: 30),
+        child: const SmartFunkoLogo(
+          variant: SmartFunkoLogoVariant.square,
+          width: 34,
+          height: 34,
+          excludeFromSemantics: true,
+        ),
       ),
     );
     final resolvedUrl = resolveImageUrl(imageUrl);

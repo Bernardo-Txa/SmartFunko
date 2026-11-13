@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/cache/memory_cache.dart';
 import '../../../core/network/api_client.dart';
@@ -13,29 +13,17 @@ final ordersRepositoryProvider = Provider<OrdersRepository>(
     cache: ref.watch(memoryCacheProvider),
   ),
 );
-
-final ordersProvider = FutureProvider<List<OrderSummary>>((ref) {
-  final auth = ref.watch(authControllerProvider);
-  if (auth.isLoading && !auth.isAuthenticated) {
-    return const <OrderSummary>[];
-  }
-  if (!auth.isAuthenticated) {
-    return const <OrderSummary>[];
-  }
-
-  return ref.watch(ordersRepositoryProvider).getOrders();
-});
-
+final ordersProvider = FutureProvider<List<OrderSummary>>(
+  (ref) => ref.watch(ordersRepositoryProvider).getOrders(),
+);
 final orderDetailProvider = FutureProvider.family<OrderDetail, String>((
   ref,
-  orderNumber,
+  identifier,
 ) {
-  final auth = ref.watch(authControllerProvider);
-  if (!auth.isAuthenticated) {
+  if (!ref.watch(authControllerProvider).isAuthenticated) {
     throw const OrdersUnauthenticatedException();
   }
-
-  return ref.watch(ordersRepositoryProvider).getOrderByNumber(orderNumber);
+  return ref.watch(ordersRepositoryProvider).getOrder(identifier);
 });
 
 class OrdersRepository {
@@ -44,150 +32,110 @@ class OrdersRepository {
     required MemoryCache cache,
   }) : _apiClient = apiClient,
        _cache = cache;
-
   final ApiClient _apiClient;
   final MemoryCache _cache;
 
-  static const Duration _ordersTtl = Duration(seconds: 45);
-  static const Duration _orderDetailTtl = Duration(seconds: 45);
-
   Future<List<OrderSummary>> getOrders({bool forceRefresh = false}) {
-    final userId = _currentUserId;
-    if (userId == null || userId.isEmpty) {
-      return Future.value(const <OrderSummary>[]);
-    }
-
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return Future.value(const []);
     return _cache.getOrLoad<List<OrderSummary>>(
-      key: _ordersCacheKey(userId),
-      debugLabel: 'GET /api/v1/me/orders',
-      ttl: _ordersTtl,
+      key: 'user:$userId:orders-v2',
+      debugLabel: 'GET mobile orders-v2',
+      ttl: const Duration(seconds: 30),
       forceRefresh: forceRefresh,
       tokenPresent: _tokenPresent,
       loader: () async {
         final response = await _apiClient.get<Map<String, dynamic>>(
-          '/api/v1/me/orders',
+          '/api/v1/mobile/orders-v2',
         );
-        final rawData = response.data?['data'] ?? response.data;
-
-        if (rawData is List) {
-          return rawData
-              .whereType<Map<String, dynamic>>()
-              .map(OrderSummary.fromJson)
-              .toList();
-        }
-
-        throw const OrdersShapeException();
+        final data = response.data?['data'];
+        if (data is! List) throw const OrdersShapeException();
+        return data
+            .whereType<Map<String, dynamic>>()
+            .map(OrderSummary.fromJson)
+            .toList();
       },
     );
   }
 
-  Future<OrderDetail> getOrderByNumber(
-    String orderNumber, {
+  Future<OrderDetail> getOrder(
+    String identifier, {
     bool forceRefresh = false,
-  }) {
-    final userId = _currentUserId;
-    if (userId == null || userId.isEmpty) {
-      throw const OrdersUnauthenticatedException();
-    }
-
+  }) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) throw const OrdersUnauthenticatedException();
     return _cache.getOrLoad<OrderDetail>(
-      key: _orderDetailCacheKey(userId, orderNumber),
-      debugLabel: 'GET /api/v1/me/orders/$orderNumber',
-      ttl: _orderDetailTtl,
+      key: 'user:$userId:order-v2:$identifier',
+      debugLabel: 'GET mobile order-v2',
+      ttl: const Duration(seconds: 30),
       forceRefresh: forceRefresh,
       tokenPresent: _tokenPresent,
       loader: () async {
         final response = await _apiClient.get<Map<String, dynamic>>(
-          '/api/v1/me/orders/$orderNumber',
+          '/api/v1/mobile/orders-v2/${Uri.encodeComponent(identifier)}',
         );
-        final rawData = response.data?['data'] ?? response.data;
-
-        if (rawData is Map<String, dynamic>) {
-          return OrderDetail.fromJson(rawData);
-        }
-
-        throw const OrdersShapeException();
+        final data = response.data?['data'];
+        if (data is! Map<String, dynamic>) throw const OrdersShapeException();
+        return OrderSummary.fromJson(data);
       },
     );
   }
 
-  Future<CreateOrderResponse> createOrder(CreateOrderRequest request) async {
-    if (kDebugMode) {
-      debugPrint('[OrdersRepository] POST /api/v1/me/orders');
-    }
-
+  Future<OrderDetail> createOrder(
+    CreateOrderRequest request, {
+    required String idempotencyKey,
+  }) async {
     final response = await _apiClient.post<Map<String, dynamic>>(
-      '/api/v1/me/orders',
+      '/api/v1/mobile/orders-v2',
       data: request.toJson(),
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
-
-    if (kDebugMode) {
-      final data = response.data;
-      final keys = data == null ? '<null>' : data.keys.join(',');
-      debugPrint('[OrdersRepository] response status=${response.statusCode}');
-      debugPrint('[OrdersRepository] response data keys=$keys');
-    }
-
-    final rawData = response.data?['data'] ?? response.data;
-
-    if (rawData is Map<String, dynamic>) {
-      final parsed = CreateOrderResponse.fromJson(rawData);
-      invalidateOrders();
-      if (parsed.orderNumber.trim().isNotEmpty) {
-        invalidateOrderByNumber(parsed.orderNumber);
-      }
-      return parsed;
-    }
-
-    throw const OrdersShapeException();
+    final data = response.data?['data'];
+    if (data is! Map<String, dynamic>) throw const OrdersShapeException();
+    final order = OrderSummary.fromJson(data);
+    invalidateOrders();
+    return order;
   }
 
-  void invalidateOrders([String? userId]) {
-    final resolvedUserId = userId ?? _currentUserId;
-    if (resolvedUserId == null || resolvedUserId.isEmpty) {
+  Future<PaymentSession> createPaymentSession(
+    List<String> orderIds, {
+    required String idempotencyKey,
+  }) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/api/v1/mobile/orders-v2/payment-sessions',
+      data: {'orderIds': orderIds},
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    final data = response.data?['data'];
+    if (data is! Map<String, dynamic>) throw const OrdersShapeException();
+    invalidateOrders();
+    return PaymentSession.fromJson(data);
+  }
+
+  Future<bool> syncPaymentSession(String id) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/api/v1/mobile/orders-v2/payment-sessions/${Uri.encodeComponent(id)}/sync',
+    );
+    invalidateOrders();
+    return response.data?['data']?['paid'] == true;
+  }
+
+  String newIdempotencyKey(String scope) =>
+      '$scope-${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}';
+  void invalidateOrders([String? _]) => _cache.invalidatePrefix('user:');
+  void invalidateOrderByNumber(String identifier, [String? userId]) =>
       _cache.invalidatePrefix('user:');
-      return;
-    }
-
-    _cache.invalidate(_ordersCacheKey(resolvedUserId));
-  }
-
-  void invalidateOrderByNumber(String orderNumber, [String? userId]) {
-    final resolvedUserId = userId ?? _currentUserId;
-    if (resolvedUserId == null || resolvedUserId.isEmpty) {
-      return;
-    }
-
-    _cache.invalidate(_orderDetailCacheKey(resolvedUserId, orderNumber));
-  }
-
-  String _ordersCacheKey(String userId) {
-    return 'user:$userId:orders';
-  }
-
-  String _orderDetailCacheKey(String userId, String orderNumber) {
-    return 'user:$userId:order:${orderNumber.trim()}';
-  }
-
-  String? get _currentUserId => Supabase.instance.client.auth.currentUser?.id;
-
-  bool get _tokenPresent {
-    final token = Supabase.instance.client.auth.currentSession?.accessToken
-        .trim();
-    return token != null && token.isNotEmpty;
-  }
+  bool get _tokenPresent =>
+      Supabase.instance.client.auth.currentSession?.accessToken
+          .trim()
+          .isNotEmpty ??
+      false;
 }
 
 class OrdersShapeException implements Exception {
   const OrdersShapeException();
-
-  @override
-  String toString() => 'A API retornou um formato inesperado de pedidos.';
 }
 
 class OrdersUnauthenticatedException implements Exception {
   const OrdersUnauthenticatedException();
-
-  @override
-  String toString() => 'Entre para ver seus pedidos.';
 }

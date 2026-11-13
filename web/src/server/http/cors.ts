@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 
 const allowedMethods = "GET,POST,PATCH,PUT,DELETE,OPTIONS";
-const allowedHeaders = "Content-Type, Authorization, X-Requested-With";
+const allowedHeaders = "Content-Type, Authorization, Idempotency-Key, X-Requested-With";
 const maxAge = "86400";
 const productionOrigin = "https://smartfunko.com.br";
 
