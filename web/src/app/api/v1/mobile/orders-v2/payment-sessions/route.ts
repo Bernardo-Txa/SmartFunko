@@ -2,7 +2,7 @@ import { forbidden } from "@/server/http/errors";
 import { requireUser } from "@/server/auth/require-user";
 import { corsPreflightResponse, withCors } from "@/server/http/cors";
 import { handleApi, jsonCreated } from "@/server/http/responses";
-import { idempotencyFingerprint, requireIdempotencyKey, runIdempotent } from "@/server/http/idempotency";
+import { idempotencyFingerprint, requireIdempotencyKey } from "@/server/http/idempotency";
 import { createMobilePaymentSessionSchema, mobileIdempotencyKeySchema, toMobilePaymentSessionDto } from "@/server/mobile/orders-v2-mobile-contract";
 import { OrderV2Service } from "@/server/orders-v2/order-v2-service";
 import { parseJsonBody } from "@/server/validation/parse-json";
@@ -13,8 +13,9 @@ export async function POST(request: Request) {
     if (!customer) throw forbidden("Cliente nao vinculado ao usuario");
     const key = requireIdempotencyKey(request, (value) => mobileIdempotencyKeySchema.parse(value));
     const input = await parseJsonBody(request, createMobilePaymentSessionSchema);
-    const session = await runIdempotent(`mobile-payment:${customer.id}`, key, idempotencyFingerprint(input), () =>
-      new OrderV2Service().createCustomerPaymentSession(customer.id, input, profile.id));
+    const session = await new OrderV2Service().createMobileCustomerPaymentSession(
+      customer.id, input, profile.id, key, idempotencyFingerprint(input),
+    );
     return jsonCreated(toMobilePaymentSessionDto(session));
   }));
 }

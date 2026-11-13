@@ -26,6 +26,15 @@ final orderDetailProvider = FutureProvider.family<OrderDetail, String>((
   return ref.watch(ordersRepositoryProvider).getOrder(identifier);
 });
 
+List<T> appendUniqueById<T>(
+  List<T> current,
+  Iterable<T> next,
+  String Function(T) idOf,
+) {
+  final seen = current.map(idOf).toSet();
+  return [...current, ...next.where((item) => seen.add(idOf(item)))];
+}
+
 class OrdersRepository {
   const OrdersRepository({
     required ApiClient apiClient,
@@ -45,15 +54,27 @@ class OrdersRepository {
       forceRefresh: forceRefresh,
       tokenPresent: _tokenPresent,
       loader: () async {
-        final response = await _apiClient.get<Map<String, dynamic>>(
-          '/api/v1/mobile/orders-v2',
-        );
-        final data = response.data?['data'];
-        if (data is! List) throw const OrdersShapeException();
-        return data
-            .whereType<Map<String, dynamic>>()
-            .map(OrderSummary.fromJson)
-            .toList();
+        final orders = <OrderSummary>[];
+        String? cursor;
+        do {
+          final response = await _apiClient.get<Map<String, dynamic>>(
+            '/api/v1/mobile/orders-v2',
+            queryParameters: {'limit': 50, 'cursor': ?cursor},
+          );
+          final data = response.data?['data'];
+          if (data is! Map<String, dynamic> || data['items'] is! List) {
+            throw const OrdersShapeException();
+          }
+          final page = (data['items'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(OrderSummary.fromJson);
+          final merged = appendUniqueById(orders, page, (order) => order.id);
+          orders
+            ..clear()
+            ..addAll(merged);
+          cursor = data['nextCursor'] as String?;
+        } while (cursor != null && orders.length < 1000);
+        return orders;
       },
     );
   }

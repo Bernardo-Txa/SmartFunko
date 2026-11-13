@@ -3,7 +3,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { couponCodeSchema, DiscountCouponService } from "@/server/coupons/discount-coupon-service";
 import { TemporaryCustomerService } from "@/server/customers/temporary-customer-service";
-import { badRequest, conflict, notFound } from "@/server/http/errors";
+import { badRequest, conflict, internalError, notFound } from "@/server/http/errors";
 import {
   checkInfinitePayPaymentStatus,
   createInfinitePayCheckout,
@@ -349,6 +349,19 @@ function escapeIlike(value: string) {
 
 function uniqueValues(values: string[]) {
   return Array.from(new Set(values));
+}
+
+function throwMobileRpcError(error: { message?: string } | null, fallback: string): never {
+  if (error?.message?.includes("idempotency_payload_mismatch")) {
+    throw conflict("Idempotency-Key reutilizada com payload diferente");
+  }
+  if (error?.message?.includes("orders_not_payable") || error?.message?.includes("payment_session_not_found")) {
+    throw notFound("Pedido ou checkout nao encontrado para este cliente");
+  }
+  if (error?.message?.includes("mixed_competencies")) {
+    throw badRequest("Selecione pedidos de uma unica competencia por checkout");
+  }
+  throwQueryError(error as never, fallback);
 }
 
 function chunkValues<T>(values: T[], size: number) {
@@ -766,6 +779,19 @@ export class OrderV2Service {
     return data ?? [];
   }
 
+  async getMobileCustomerOrdersPage(customerId: string, limit: number, cursor?: { createdAt: string; id: string } | null) {
+    let query = this.supabase.from("v2_orders").select(orderSelect())
+      .eq("customer_id", customerId).eq("customer_visible", true)
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1);
+    if (cursor) {
+      query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+    }
+    const { data, error } = await query;
+    if (error) throwQueryError(error, "Falha ao listar pedidos mobile V2");
+    const rows = data ?? [];
+    return { items: rows.slice(0, limit), hasMore: rows.length > limit };
+  }
+
   async createAdminWhatsAppOrders(input: CreateV2AdminOrderBatchInput) {
     const customer = input.customerId ? await this.getActiveCustomer(input.customerId) : null;
     const temporaryCustomer = input.temporaryCustomerId
@@ -897,6 +923,43 @@ export class OrderV2Service {
     }
 
     return order;
+  }
+
+  async createMobileCustomerSiteOrderFromCart(
+    customerId: string,
+    input: CreateCustomerV2OrderRequestInput,
+    actorProfileId: string,
+    idempotencyKey: string,
+    payloadHash: string,
+  ) {
+    const variantIds = uniqueValues(input.items.map((item) => item.variantId));
+    const { data: variants, error: variantsError } = await this.supabase
+      .from("product_variants")
+      .select("id,sku,sale_price,status,products(id,name,supplier_id)")
+      .in("id", variantIds);
+    if (variantsError) throwQueryError(variantsError, "Falha ao validar produtos do carrinho V2");
+    const variantById = new Map((variants as unknown as Array<VariantCartRow & { products?: { id?: string; name?: string; supplier_id?: string | null } | Array<{ id?: string; name?: string; supplier_id?: string | null }> }>).map((variant) => [variant.id, variant]));
+    const items = input.items.map((item) => {
+      const variant = variantById.get(item.variantId);
+      if (!variant || variant.status === "hidden" || variant.status === "sold_out") throw conflict("Produto indisponivel");
+      const product = firstRelation(variant.products) as { id?: string; name?: string | null; supplier_id?: string | null } | null;
+      return { itemContext: product?.supplier_id ? "supplier" : "general", productId: product?.id ?? null,
+        productName: product?.name ?? variant.sku, productSku: variant.sku, productVariantId: variant.id,
+        quantity: item.quantity, supplierId: product?.supplier_id ?? null, unitPrice: Number(variant.sale_price) };
+    });
+    const subtotal = roundMoney(items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
+    const coupon = input.couponCode
+      ? await new DiscountCouponService(this.supabase, actorProfileId).validateCoupon(input.couponCode, subtotal)
+      : null;
+    const { data, error } = await this.supabase.rpc("mobile_create_v2_order_idempotent", {
+      p_actor_profile_id: actorProfileId, p_coupon_code: coupon?.code ?? null,
+      p_coupon_id: coupon?.couponId ?? null, p_customer_id: customerId,
+      p_idempotency_key: idempotencyKey, p_items: items, p_notes: input.notes ?? null, p_payload_hash: payloadHash,
+    });
+    if (error) throwMobileRpcError(error, "Falha ao criar pedido mobile V2 idempotente");
+    const resourceId = (data as { resourceId?: string } | null)?.resourceId;
+    if (!resourceId) throw internalError("Pedido mobile criado sem identificador");
+    return this.getAdminOrderById(resourceId);
   }
 
   async approveOrder(orderId: string, actorProfileId = this.actorId) {
@@ -1342,6 +1405,51 @@ export class OrderV2Service {
       await this.supabase.from("v2_orders").update({ payment_status: "nao_pago" }).in("id", orderIds);
       throw error;
     }
+  }
+
+  async createMobileCustomerPaymentSession(
+    customerId: string,
+    input: CreateV2PaymentSessionInput,
+    actorProfileId: string,
+    idempotencyKey: string,
+    payloadHash: string,
+  ) {
+    const orderIds = uniqueValues(input.orderIds);
+    const orders = await this.getOrdersForPayment(orderIds);
+    if (orders.length !== orderIds.length || orders.some((order) => order.customer_id !== customerId)) {
+      throw notFound("Um ou mais pedidos nao foram encontrados");
+    }
+    const { data: startData, error: startError } = await this.supabase.rpc(
+      "mobile_start_v2_payment_session_idempotent",
+      { p_actor_profile_id: actorProfileId, p_customer_id: customerId, p_idempotency_key: idempotencyKey,
+        p_order_ids: orderIds, p_payload_hash: payloadHash },
+    );
+    if (startError) throwMobileRpcError(startError, "Falha ao iniciar checkout mobile V2 idempotente");
+    const start = startData as { leaseToken?: string; resourceId?: string; shouldCreateProvider?: boolean } | null;
+    if (!start?.resourceId) throw internalError("Checkout mobile criado sem identificador");
+    const current = await this.getPaymentSessionById(start.resourceId);
+    if (!start.shouldCreateProvider) {
+      if ((current as { payment_link_url?: string | null }).payment_link_url) return current;
+      throw conflict("Checkout em processamento. Tente novamente em instantes.");
+    }
+    if (!start.leaseToken) throw internalError("Checkout mobile sem lease de provedor");
+    const customer = firstRelation(orders[0].customers);
+    const amount = roundMoney(orders.reduce((sum, order) => sum + Number(order.total), 0));
+    const checkoutNumber = (current as unknown as { checkout_number: string }).checkout_number;
+    const checkout = await createInfinitePayCheckout({
+      amountCents: Math.round(amount * 100), customerEmail: customer?.email ?? null,
+      customerName: customer?.name ?? "Cliente Smart Funkos", customerPhone: customer?.phone ?? null,
+      debugOrderId: start.resourceId, items: this.createInfinitePayItems(orders), kind: "order_v2",
+      orderNumber: checkoutNumber, redirectUrl: `${env.siteUrl}/conta/pedidos-v2?checkout=${start.resourceId}`,
+      webhookUrl: `${env.siteUrl}/api/v1/webhooks/infinitepay`,
+    });
+    const { error: completeError } = await this.supabase.rpc("mobile_complete_v2_payment_session_idempotent", {
+      p_customer_id: customerId, p_idempotency_key: idempotencyKey, p_invoice_slug: checkout.providerReference !== checkoutNumber ? checkout.providerReference : null,
+      p_lease_token: start.leaseToken, p_payload_hash: payloadHash, p_payment_link_url: checkout.checkoutUrl,
+      p_provider_reference: checkout.providerReference, p_request_payload: checkout.requestPayload, p_session_id: start.resourceId,
+    });
+    if (completeError) throwMobileRpcError(completeError, "Falha ao concluir checkout mobile V2 idempotente");
+    return this.getPaymentSessionById(start.resourceId);
   }
 
   async getPaymentSessionById(id: string) {

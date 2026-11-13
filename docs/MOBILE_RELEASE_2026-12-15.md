@@ -794,3 +794,32 @@ incorridos continuam sujeitos ao ciclo normal de faturamento.
   consumidores Next.js e criados testes de regressão para os contratos atuais.
 - Nenhuma alteração em produção está autorizada. Alterações futuras continuam
   limitadas à branch e a ambientes isolados aprovados explicitamente.
+
+## 21. Sequência autorizável de produção e bloqueio de backup
+
+A sequência candidata para uma futura autorização de produção contém nove
+migrations, obrigatoriamente nesta ordem:
+
+1. `20261112220637_preorder_rls_hardening.sql`;
+2. `20261112220803_catalog_views_security_invoker.sql`;
+3. `20261112220943_security_definer_function_privileges.sql`;
+4. `20261112235807_preorder_rls_customer_lookup_grant.sql`;
+5. `20261113000103_catalog_views_public_base_column_grants.sql`;
+6. `20261113000158_catalog_category_options_exclude_rare_collectibles.sql`;
+7. `20261113000439_v2_backend_explicit_table_grants.sql`;
+8. `20261113005521_mobile_v2_persistent_idempotency.sql`;
+9. `20261113012619_fix_mobile_v2_payment_competence_uuid_aggregate.sql`.
+
+A migration 9 corrige exclusivamente a agregação inválida `min(uuid)` da RPC
+de sessão de pagamento e deve ser aplicada imediatamente após a migration 8,
+antes de qualquer uso dos endpoints mobile. A migration 8 permanece intacta,
+com SHA-256
+`e826b59656928d81559cd6aa68962ffce74a8f7f9fbe425f562324959f98b8a3`.
+
+Produção permanece bloqueada. Antes de qualquer escrita, é obrigatória uma
+evidência verificável em `SmartFunko → Database → Backups` mostrando o projeto,
+backup mais recente ou restore point, data e hora, tipo de recuperação e
+retenção quando disponível. Depois dessa evidência, ainda será necessário
+confirmar o project ref `sufppaxdxmxdcfkuvanm`, refazer advisors, locks,
+transações longas e concorrência administrativa, conferir os checksums das nove
+migrations, apresentar o preflight e obter nova autorização explícita.

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_funkos/features/orders/data/order_models.dart';
+import 'package:smart_funkos/features/orders/data/orders_repository.dart';
 
 void main() {
   test('parses independent V2 statuses and payment eligibility', () {
@@ -78,4 +79,13 @@ void main() {
       );
     },
   );
+
+  test('pagination appends new orders without duplicates or gaps', () {
+    expect(appendUniqueById(['a', 'b'], ['b', 'c', 'd'], (item) => item), [
+      'a',
+      'b',
+      'c',
+      'd',
+    ]);
+  });
 }
