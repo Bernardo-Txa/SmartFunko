@@ -41,10 +41,17 @@ class _SmartSkeletonState extends State<SmartSkeleton>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final base =
-        widget.baseColor ?? AppColors.darkSurfaceHighest.withValues(alpha: 0.5);
+        widget.baseColor ??
+        (isDark
+            ? AppColors.darkSurfaceHighest
+            : AppColors.lightSurfaceElevated);
     final highlight =
-        widget.highlightColor ?? AppColors.primary.withValues(alpha: 0.14);
+        widget.highlightColor ??
+        (isDark
+            ? AppColors.brandSky.withValues(alpha: 0.20)
+            : AppColors.lightSurface);
 
     return AnimatedBuilder(
       animation: _controller,
@@ -209,7 +216,11 @@ class SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: color ?? AppColors.darkSurfaceHighest.withValues(alpha: 0.8),
+        color:
+            color ??
+            (Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkSurfaceHighest
+                : AppColors.lightSurfaceElevated),
         borderRadius: BorderRadius.circular(radius),
       ),
     );

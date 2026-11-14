@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/branding/smart_funko_brand.dart';
 import '../../shared/theme/app_colors.dart';
-import '../../shared/widgets/loading_state.dart';
+import '../../shared/widgets/smart_progress.dart';
 
 class SplashPage extends StatelessWidget {
   const SplashPage({super.key});
@@ -10,33 +11,39 @@ class SplashPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF091226), AppColors.darkBackground],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 10 * (1 - value)),
-                    child: child,
+      body: SafeArea(
+        child: Center(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 8 * (1 - value)),
+                  child: child,
+                ),
+              );
+            },
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SmartFunkoLogo(
+                  variant: SmartFunkoLogoVariant.horizontalWhite,
+                  width: 220,
+                ),
+                SizedBox(height: 28),
+                SmartSpinner(size: 28, strokeWidth: 2.5),
+                SizedBox(height: 14),
+                Text(
+                  'Preparando sua coleção',
+                  style: TextStyle(
+                    color: AppColors.darkTextSecondary,
+                    fontWeight: FontWeight.w600,
                   ),
-                );
-              },
-              child: const LoadingState(
-                message: 'Preparando sua experiência...',
-                showLogo: true,
-              ),
+                ),
+              ],
             ),
           ),
         ),

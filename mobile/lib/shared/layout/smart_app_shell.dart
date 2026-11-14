@@ -63,16 +63,8 @@ class SmartAppShell extends StatelessWidget {
       bottomNavigationBar: showBottomNavigation
           ? const _SmartBottomNavigation()
           : null,
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: theme.brightness == Brightness.dark
-                ? [AppColors.darkBackgroundAlt, AppColors.darkBackground]
-                : [AppColors.lightBackground, AppColors.lightSurfaceElevated],
-          ),
-        ),
+      body: ColoredBox(
+        color: theme.scaffoldBackgroundColor,
         child: SafeArea(
           top: !showHeader,
           child: LayoutBuilder(
@@ -83,7 +75,7 @@ class SmartAppShell extends StatelessWidget {
                     AppSpacing.lg,
                     AppSpacing.md,
                     AppSpacing.lg,
-                    showBottomNavigation ? 132 : 32,
+                    showBottomNavigation ? 116 : 32,
                   );
               final scrollView = SingleChildScrollView(
                 keyboardDismissBehavior:
@@ -127,6 +119,12 @@ class _SmartBottomNavigation extends StatelessWidget {
       path: '/catalogo',
     ),
     _NavItem(
+      label: 'Carrinho',
+      icon: Icons.shopping_bag_outlined,
+      selectedIcon: Icons.shopping_bag_rounded,
+      path: '/carrinho',
+    ),
+    _NavItem(
       label: 'Pedidos',
       icon: Icons.receipt_long_outlined,
       selectedIcon: Icons.receipt_long_rounded,
@@ -148,14 +146,12 @@ class _SmartBottomNavigation extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.10),
-              ),
+              border: Border.all(color: AppColors.lightBorder),
             ),
             child: NavigationBar(
               selectedIndex: selectedIndex,
@@ -180,9 +176,12 @@ class _SmartBottomNavigation extends StatelessWidget {
     if (location.startsWith('/catalogo') || location.startsWith('/produto')) {
       return 1;
     }
-    if (location.startsWith('/pedidos')) return 2;
+    if (location.startsWith('/carrinho') || location.startsWith('/checkout')) {
+      return 2;
+    }
+    if (location.startsWith('/pedidos')) return 3;
     if (location.startsWith('/perfil')) {
-      return 3;
+      return 4;
     }
     return 0;
   }

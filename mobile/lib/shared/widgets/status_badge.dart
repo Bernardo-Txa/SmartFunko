@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_radius.dart';
+import '../theme/app_colors.dart';
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge({required this.label, this.icon, this.color, super.key});
@@ -12,7 +13,10 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final effectiveColor = color ?? theme.colorScheme.primary;
+    final effectiveColor = color ?? AppColors.info;
+    final foregroundColor = effectiveColor == AppColors.brandYellow
+        ? AppColors.brandNavy
+        : effectiveColor;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -26,7 +30,7 @@ class StatusBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 14, color: effectiveColor),
+              Icon(icon, size: 14, color: foregroundColor),
               const SizedBox(width: 6),
             ],
             Text(
@@ -34,7 +38,7 @@ class StatusBadge extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelSmall?.copyWith(
-                color: effectiveColor,
+                color: foregroundColor,
                 fontWeight: FontWeight.w800,
               ),
             ),

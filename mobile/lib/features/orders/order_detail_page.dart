@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/url/open_payment_url.dart';
 import '../../core/utils/date_formatter.dart';
+import '../../shared/theme/app_colors.dart';
 import '../../shared/branding/smart_funko_brand.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/error_state.dart';
@@ -13,6 +14,7 @@ import '../../shared/widgets/smart_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'data/order_models.dart';
 import 'data/orders_repository.dart';
+import 'order_status_presentation.dart';
 
 class OrderDetailPage extends ConsumerWidget {
   const OrderDetailPage({required this.orderNumber, super.key});
@@ -92,14 +94,17 @@ class _OrderDetailContent extends ConsumerWidget {
                   StatusBadge(
                     label: order.approvalStatus.label,
                     icon: Icons.fact_check_outlined,
+                    color: approvalStatusColor(order.approvalStatus),
                   ),
                   StatusBadge(
                     label: order.paymentStatus.label,
                     icon: Icons.payments_outlined,
+                    color: paymentStatusColor(order.paymentStatus),
                   ),
                   StatusBadge(
                     label: order.fulfillmentStatus.label,
                     icon: Icons.local_shipping_outlined,
+                    color: fulfillmentStatusColor(order.fulfillmentStatus),
                   ),
                 ],
               ),
@@ -112,6 +117,7 @@ class _OrderDetailContent extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         SmartCard(
+          tone: SmartCardTone.sky,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -288,6 +294,7 @@ class _OrderItemTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SmartCard(
+      tone: SmartCardTone.sky,
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
@@ -295,7 +302,7 @@ class _OrderItemTile extends StatelessWidget {
             height: 54,
             width: 54,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              color: AppColors.imageSurfaceStrong,
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Center(
@@ -315,14 +322,15 @@ class _OrderItemTile extends StatelessWidget {
                 Text(
                   item.name,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
+                    color: AppColors.brandNavy,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${item.quantity} x ${item.unitPrice.formatted}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: AppColors.brandNavy.withValues(alpha: 0.72),
                   ),
                 ),
               ],
@@ -331,8 +339,8 @@ class _OrderItemTile extends StatelessWidget {
           Text(
             item.totalPrice.formatted,
             style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.secondary,
-              fontWeight: FontWeight.w900,
+              color: AppColors.brandNavy,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],

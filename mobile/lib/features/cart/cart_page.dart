@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/network/image_url_resolver.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../shared/branding/smart_funko_brand.dart';
+import '../../shared/theme/app_colors.dart';
+import '../../shared/theme/app_sizes.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/price_tag.dart';
@@ -45,7 +47,7 @@ class CartPage extends ConsumerWidget {
                   '${cart.totalQuantity} item(ns) no carrinho',
                   style: Theme.of(
                     context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 14),
                 for (final item in cart.items)
@@ -72,6 +74,7 @@ class _CartItemTile extends ConsumerWidget {
     final controller = ref.read(cartControllerProvider.notifier);
 
     return SmartCard(
+      tone: SmartCardTone.sky,
       padding: const EdgeInsets.all(12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,7 +97,8 @@ class _CartItemTile extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
+                    color: AppColors.brandNavy,
+                    fontWeight: FontWeight.w700,
                     height: 1.2,
                   ),
                 ),
@@ -102,15 +106,15 @@ class _CartItemTile extends ConsumerWidget {
                 Text(
                   item.status?.label ?? item.category ?? 'Smart Funkos',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: AppColors.brandNavy.withValues(alpha: 0.72),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   item.price.formatted,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontWeight: FontWeight.w900,
+                    color: AppColors.brandNavy,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -126,7 +130,8 @@ class _CartItemTile extends ConsumerWidget {
                         '${item.quantity}',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
+                          color: AppColors.brandNavy,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -146,7 +151,7 @@ class _CartItemTile extends ConsumerWidget {
                 Text(
                   'Subtotal ${CurrencyFormatter.brl(item.subtotal)}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: AppColors.brandNavy.withValues(alpha: 0.72),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -266,7 +271,7 @@ class _QuantityButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 34,
+      dimension: AppSizes.minimumTouchTarget,
       child: IconButton.filledTonal(
         padding: EdgeInsets.zero,
         onPressed: onPressed,

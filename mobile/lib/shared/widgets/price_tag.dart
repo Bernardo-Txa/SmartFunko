@@ -21,9 +21,11 @@ class PriceTag extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.10),
+        color: AppColors.brandYellow.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.28)),
+        border: Border.all(
+          color: AppColors.brandYellow.withValues(alpha: 0.44),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -34,8 +36,8 @@ class PriceTag extends StatelessWidget {
             Text(
               label,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w900,
+                color: AppColors.brandNavy,
+                fontWeight: FontWeight.w800,
               ),
             ),
             if (subtitle != null) ...[
@@ -43,7 +45,7 @@ class PriceTag extends StatelessWidget {
               Text(
                 subtitle!,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: AppColors.brandNavy.withValues(alpha: 0.72),
                 ),
               ),
             ],

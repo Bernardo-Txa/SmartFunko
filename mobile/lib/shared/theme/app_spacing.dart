@@ -7,4 +7,8 @@ class AppSpacing {
   static const double lg = 16;
   static const double xl = 24;
   static const double xxl = 32;
+  static const double xxxl = 40;
+
+  static const double pageHorizontal = 20;
+  static const double section = 32;
 }

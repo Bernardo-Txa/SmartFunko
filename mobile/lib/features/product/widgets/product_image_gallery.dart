@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/image_url_resolver.dart';
 import '../../../shared/branding/smart_funko_brand.dart';
+import '../../../shared/theme/app_colors.dart';
 import '../../catalog/data/product_models.dart';
 
 class ProductImageGallery extends StatefulWidget {
@@ -86,9 +87,8 @@ class _ImageFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final fallback = ColoredBox(
-      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+      color: AppColors.imageSurface,
       child: Center(
         child: SmartFunkoLogo(
           variant: SmartFunkoLogoVariant.square,
@@ -108,13 +108,19 @@ class _ImageFrame extends StatelessWidget {
       return fallback;
     }
 
-    return CachedNetworkImage(
-      imageUrl: resolvedUrl,
-      fit: BoxFit.cover,
-      memCacheWidth: 900,
-      memCacheHeight: 900,
-      placeholder: (context, url) => fallback,
-      errorWidget: (context, url, error) => fallback,
+    return ColoredBox(
+      color: AppColors.imageSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: CachedNetworkImage(
+          imageUrl: resolvedUrl,
+          fit: BoxFit.contain,
+          memCacheWidth: 900,
+          memCacheHeight: 900,
+          placeholder: (context, url) => fallback,
+          errorWidget: (context, url, error) => fallback,
+        ),
+      ),
     );
   }
 }

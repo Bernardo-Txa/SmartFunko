@@ -13,9 +13,12 @@ class SmartFunkosTheme {
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
       primary: AppColors.primary,
-      secondary: AppColors.accent,
+      onPrimary: AppColors.brandNavy,
+      secondary: AppColors.brandSky,
       tertiary: AppColors.success,
       surface: AppColors.darkSurface,
+      onSurface: AppColors.darkTextPrimary,
+      onSurfaceVariant: AppColors.darkTextSecondary,
       error: AppColors.danger,
       outlineVariant: AppColors.darkBorder,
       surfaceContainerHighest: AppColors.darkSurfaceHighest,
@@ -39,22 +42,22 @@ class SmartFunkosTheme {
       cardColor: AppColors.darkSurface,
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.darkSurface.withValues(alpha: 0.96),
-        indicatorColor: AppColors.primary.withValues(alpha: 0.18),
+        indicatorColor: AppColors.brandYellow,
         elevation: 0,
         height: 72,
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
             color: states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : AppColors.textSecondary,
+                ? AppColors.brandNavy
+                : AppColors.darkTextSecondary,
             size: 23,
           ),
         ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             color: states.contains(WidgetState.selected)
-                ? AppColors.primary
-                : AppColors.textSecondary,
+                ? AppColors.brandYellow
+                : AppColors.darkTextSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
@@ -63,39 +66,9 @@ class SmartFunkosTheme {
     );
   }
 
-  static ThemeData get light {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: Brightness.light,
-      primary: AppColors.primary,
-      secondary: AppColors.accent,
-      tertiary: AppColors.success,
-      surface: AppColors.lightSurface,
-      error: AppColors.danger,
-    );
-
-    return _base(scheme).copyWith(
-      scaffoldBackgroundColor: AppColors.lightBackground,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.lightBackground,
-        foregroundColor: Color(0xFF102033),
-        centerTitle: false,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: AppColors.darkBackground,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-          systemNavigationBarColor: AppColors.darkBackground,
-          systemNavigationBarIconBrightness: Brightness.light,
-        ),
-      ),
-      cardColor: AppColors.lightSurface,
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.lightSurface,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-      ),
-    );
-  }
+  // The product currently has one official blue theme. Keeping this alias
+  // prevents accidental fallback to a generic white Material theme.
+  static ThemeData get light => dark;
 
   static ThemeData _base(ColorScheme scheme) {
     return ThemeData(
@@ -136,6 +109,14 @@ class SmartFunkosTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
+          foregroundColor: scheme.brightness == Brightness.dark
+              ? AppColors.brandYellow
+              : AppColors.brandNavy,
+          side: BorderSide(
+            color: scheme.brightness == Brightness.dark
+                ? AppColors.darkTextSecondary
+                : AppColors.brandNavy,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
@@ -145,12 +126,21 @@ class SmartFunkosTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
-          backgroundColor: scheme.primary,
-          foregroundColor: const Color(0xFF041018),
+          backgroundColor: AppColors.brandYellow,
+          foregroundColor: AppColors.brandNavy,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: scheme.brightness == Brightness.dark
+              ? AppColors.brandYellow
+              : AppColors.brandNavy,
+          minimumSize: const Size(48, 48),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       cardTheme: CardThemeData(
@@ -174,8 +164,8 @@ class SmartFunkosTheme {
         backgroundColor: scheme.brightness == Brightness.dark
             ? AppColors.darkSurfaceElevated
             : scheme.inverseSurface,
-        contentTextStyle: TextStyle(color: scheme.onSurface),
-        actionTextColor: scheme.primary,
+        contentTextStyle: const TextStyle(color: AppColors.darkTextPrimary),
+        actionTextColor: AppColors.brandYellow,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),

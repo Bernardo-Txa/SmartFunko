@@ -13,7 +13,7 @@ class AppScaffold extends StatelessWidget {
     this.showBackButton = false,
     this.showBottomNavigation = true,
     this.showCartAction = true,
-    this.showFloatingCartButton = true,
+    this.showFloatingCartButton = false,
     this.showSearch = false,
     this.showDrawerButton = false,
     this.showProfileAction = true,
@@ -46,7 +46,7 @@ class AppScaffold extends StatelessWidget {
     return SmartAppShell(
       title: title,
       subtitle: subtitle,
-      showHeader: showHeader ?? showAppBar,
+      showHeader: showHeader ?? (showAppBar || showBackButton),
       showBackButton: showBackButton,
       showSearch: showSearch,
       showDrawerButton: showDrawerButton,

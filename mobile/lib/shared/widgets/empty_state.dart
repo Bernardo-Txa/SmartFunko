@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import 'primary_button.dart';
 import 'smart_card.dart';
 
@@ -28,7 +29,8 @@ class SmartEmptyState extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 460),
         child: SmartCard(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+          tone: SmartCardTone.sky,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -37,20 +39,21 @@ class SmartEmptyState extends StatelessWidget {
                 width: 62,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.24),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.26),
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.5),
                   ),
                 ),
-                child: Icon(icon, color: theme.colorScheme.primary, size: 34),
+                child: Icon(icon, color: AppColors.brandNavy, size: 34),
               ),
               const SizedBox(height: 16),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  color: AppColors.brandNavy,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 8),
@@ -58,7 +61,7 @@ class SmartEmptyState extends StatelessWidget {
                 message,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: AppColors.brandNavy.withValues(alpha: 0.74),
                   height: 1.35,
                 ),
               ),

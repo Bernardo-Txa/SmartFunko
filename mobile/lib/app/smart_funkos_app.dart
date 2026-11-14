@@ -32,7 +32,7 @@ class SmartFunkosApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'SmartFunko',
       debugShowCheckedModeBanner: false,
-      theme: SmartFunkosTheme.light,
+      theme: SmartFunkosTheme.dark,
       darkTheme: SmartFunkosTheme.dark,
       themeMode: themeMode,
       locale: const Locale('pt', 'BR'),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/theme/app_colors.dart';
+import '../../../shared/theme/app_radius.dart';
 import '../../catalog/data/product_models.dart';
 
 class ProductPriceBlock extends StatelessWidget {
@@ -18,10 +20,10 @@ class ProductPriceBlock extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.secondary.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.brandYellow.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
-          color: theme.colorScheme.secondary.withValues(alpha: 0.22),
+          color: AppColors.brandYellow.withValues(alpha: 0.50),
         ),
       ),
       child: Padding(
@@ -35,8 +37,8 @@ class ProductPriceBlock extends StatelessWidget {
                   Text(
                     price.formatted,
                     style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: theme.colorScheme.secondary,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.brandNavy,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -49,7 +51,7 @@ class ProductPriceBlock extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.verified_rounded, color: theme.colorScheme.secondary),
+            const Icon(Icons.verified_rounded, color: AppColors.brandNavy),
           ],
         ),
       ),

@@ -10,20 +10,17 @@ import '../../shared/theme/app_colors.dart';
 import '../../shared/theme/app_radius.dart';
 import '../../shared/branding/smart_funko_brand.dart';
 import '../../shared/widgets/app_scaffold.dart';
-import '../../shared/widgets/cart_floating_button.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/smart_progress.dart';
 import '../../shared/widgets/status_badge.dart';
-import '../cart/data/cart_controller.dart';
 import '../catalog/data/catalog_repository.dart';
 import '../catalog/data/product_models.dart';
 import '../orders/data/order_models.dart';
 import '../orders/data/orders_repository.dart';
 import '../orders/domain/order_status_mapper.dart';
-import 'widgets/home_shortcut_card.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -31,20 +28,16 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
-    final cart = ref.watch(cartControllerProvider);
     final orders = ref.watch(ordersProvider);
     final featuredProducts = ref.watch(featuredProductsProvider);
 
     return AppScaffold(
       title: 'SmartFunko',
       showAppBar: false,
-      floatingActionButton: const CartFloatingButton(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _HomeHero(auth: auth),
-          const SizedBox(height: 22),
-          _ShortcutGrid(cart: cart),
           const SizedBox(height: 24),
           _AccountStatus(authenticated: auth.isAuthenticated, orders: orders),
           const SizedBox(height: 24),
@@ -86,28 +79,17 @@ class _HomeHero extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF101D33), Color(0xFF07101F)],
-        ),
+        color: AppColors.darkSurfaceElevated,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.darkBorder),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.12),
-            blurRadius: 28,
-            offset: const Offset(0, 18),
-          ),
-        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 64,
+              height: 52,
               width: double.infinity,
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -115,18 +97,18 @@ class _HomeHero extends StatelessWidget {
                   offset: const Offset(-5, 0),
                   child: const SmartFunkoLogo(
                     variant: SmartFunkoLogoVariant.horizontalWhite,
-                    width: 198,
+                    width: 166,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               greeting,
               style: const TextStyle(
                 color: AppColors.primarySoft,
                 fontSize: 13,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
@@ -134,14 +116,14 @@ class _HomeHero extends StatelessWidget {
               'Sua coleção começa aqui',
               style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 27,
+                fontSize: 25,
                 height: 1.06,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 10),
             const Text(
-              'Funkos, colecionáveis, pré-vendas e rifas em um só lugar, com pedido em análise e pagamento por link.',
+              'Colecionáveis selecionados, pedidos organizados e pagamento seguro.',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
@@ -149,20 +131,21 @@ class _HomeHero extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             LayoutBuilder(
               builder: (context, constraints) {
-                final inline = constraints.maxWidth >= 520;
+                final inline = constraints.maxWidth >= 320;
                 final primaryButton = PrimaryButton(
-                  label: 'Ver catálogo',
+                  label: inline ? 'Catálogo' : 'Ver catálogo',
                   icon: Icons.manage_search_rounded,
                   fullWidth: true,
                   onPressed: () => context.go('/catalogo'),
                 );
                 final secondaryButton = PrimaryButton(
-                  label: 'Meus pedidos',
+                  label: inline ? 'Pedidos' : 'Meus pedidos',
                   icon: Icons.receipt_long_rounded,
                   variant: PrimaryButtonVariant.outlined,
+                  foregroundColor: AppColors.brandYellow,
                   fullWidth: true,
                   onPressed: () => context.go('/pedidos'),
                 );
@@ -192,103 +175,6 @@ class _HomeHero extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ShortcutGrid extends StatelessWidget {
-  const _ShortcutGrid({required this.cart});
-
-  final CartState cart;
-
-  @override
-  Widget build(BuildContext context) {
-    final cartBadge = cart.totalQuantity > 0 ? '${cart.totalQuantity}' : null;
-    final items = [
-      _ShortcutItem(
-        title: 'Catálogo',
-        subtitle: 'Ver produtos',
-        icon: Icons.inventory_2_outlined,
-        route: '/catalogo',
-        highlighted: true,
-      ),
-      _ShortcutItem(
-        title: 'Carrinho',
-        subtitle: 'Seu pedido',
-        icon: Icons.shopping_cart_outlined,
-        route: '/carrinho',
-        badgeText: cartBadge,
-      ),
-      const _ShortcutItem(
-        title: 'Meus pedidos',
-        subtitle: 'Acompanhe status',
-        icon: Icons.receipt_long_outlined,
-        route: '/pedidos',
-      ),
-      const _ShortcutItem(
-        title: 'Perfil',
-        subtitle: 'Sua conta',
-        icon: Icons.person_outline_rounded,
-        route: '/perfil',
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionHeader(
-          title: 'Acesse rapidamente',
-          subtitle: 'Atalhos reais para as principais áreas do app.',
-        ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 720 ? 3 : 2;
-
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                mainAxisExtent: 150,
-              ),
-              itemBuilder: (context, index) {
-                final item = items[index];
-
-                return HomeShortcutCard(
-                  title: item.title,
-                  subtitle: item.subtitle,
-                  icon: item.icon,
-                  badgeText: item.badgeText,
-                  highlighted: item.highlighted,
-                  onTap: () => context.go(item.route),
-                );
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _ShortcutItem {
-  const _ShortcutItem({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.route,
-    this.badgeText,
-    this.highlighted = false,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final String route;
-  final String? badgeText;
-  final bool highlighted;
 }
 
 class _AccountStatus extends StatelessWidget {
@@ -374,7 +260,7 @@ class _VisitorPrompt extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Pedidos, rifas e dados da conta ficam vinculados ao seu login.',
+                  'Pedidos e dados da conta ficam vinculados ao seu login.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
@@ -728,12 +614,12 @@ class _FeaturedProductCard extends StatelessWidget {
           onTap: () => context.go('/produto/${product.slug}'),
           child: Ink(
             decoration: BoxDecoration(
-              color: AppColors.darkSurfaceElevated,
+              color: AppColors.brandSky,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
                 color: product.special
                     ? AppColors.accent.withValues(alpha: 0.42)
-                    : AppColors.darkBorder.withValues(alpha: 0.72),
+                    : AppColors.brandNavy.withValues(alpha: 0.20),
               ),
             ),
             child: Padding(
@@ -757,21 +643,33 @@ class _FeaturedProductCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: AppColors.textPrimary,
+                      color: AppColors.brandNavy,
                       fontSize: 13,
                       height: 1.18,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    product.price.formatted,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.accent,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.brandYellow,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        product.price.formatted,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.brandNavy,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -792,7 +690,7 @@ class _NetworkThumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fallback = ColoredBox(
-      color: AppColors.primary.withValues(alpha: 0.10),
+      color: AppColors.imageSurface,
       child: Center(
         child: const SmartFunkoLogo(
           variant: SmartFunkoLogoVariant.square,
@@ -808,13 +706,19 @@ class _NetworkThumb extends StatelessWidget {
       return fallback;
     }
 
-    return CachedNetworkImage(
-      imageUrl: resolvedUrl,
-      fit: BoxFit.cover,
-      memCacheWidth: 240,
-      memCacheHeight: 240,
-      placeholder: (context, url) => fallback,
-      errorWidget: (context, url, error) => fallback,
+    return ColoredBox(
+      color: AppColors.imageSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: CachedNetworkImage(
+          imageUrl: resolvedUrl,
+          fit: BoxFit.contain,
+          memCacheWidth: 240,
+          memCacheHeight: 240,
+          placeholder: (context, url) => fallback,
+          errorWidget: (context, url, error) => fallback,
+        ),
+      ),
     );
   }
 }

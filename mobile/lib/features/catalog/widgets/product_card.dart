@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/network/image_url_resolver.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_radius.dart';
+import '../../../shared/theme/app_shadows.dart';
 import '../../../shared/widgets/pressable_scale.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/smart_progress.dart';
@@ -32,49 +33,43 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final borderColor = product.special
-        ? AppColors.accent.withValues(alpha: 0.44)
-        : AppColors.darkBorder.withValues(alpha: 0.72);
+        ? AppColors.brandYellow
+        : AppColors.brandNavy.withValues(alpha: 0.20);
 
     return PressableScale(
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           onTap: onDetails,
           splashColor: AppColors.primary.withValues(alpha: 0.06),
           highlightColor: AppColors.primary.withValues(alpha: 0.04),
           child: Ink(
             decoration: BoxDecoration(
-              color: AppColors.darkSurfaceElevated,
-              borderRadius: BorderRadius.circular(AppRadius.md),
+              color: AppColors.brandSky,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: borderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 18,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+              boxShadow: AppShadows.card,
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(10),
                     child: AspectRatio(
-                      aspectRatio: 1.08,
+                      // Keep enough vertical room for two-line product names and
+                      // the accessible CTA at the widest two-column phone size.
+                      aspectRatio: 1.16,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadius.sm),
-                            child: _ProductImage(
-                              imageUrl: product.imageUrl,
-                              special: product.special,
-                            ),
+                            child: _ProductImage(imageUrl: product.imageUrl),
                           ),
                           Positioned(
                             left: 8,
@@ -112,10 +107,9 @@ class ProductCard extends StatelessWidget {
                             product.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: AppColors.lightTextPrimary,
+                              fontWeight: FontWeight.w700,
                               height: 1.15,
                             ),
                           ),
@@ -126,21 +120,30 @@ class ProductCard extends StatelessWidget {
                                 'SmartFunko',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.lightTextSecondary,
                             ),
                           ),
                           const SizedBox(height: 9),
-                          Text(
-                            product.price.formatted,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: AppColors.brandYellow,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
+                              child: Text(
+                                product.price.formatted,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: AppColors.brandNavy,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
                           ),
                           const Spacer(),
@@ -183,10 +186,10 @@ class _WishlistIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isWishlisted ? AppColors.danger : AppColors.textPrimary;
+    final color = isWishlisted ? AppColors.danger : AppColors.brandNavy;
 
     return Material(
-      color: AppColors.darkSurface.withValues(alpha: 0.92),
+      color: AppColors.imageSurface.withValues(alpha: 0.96),
       shape: const CircleBorder(),
       elevation: 4,
       child: SizedBox.square(
@@ -214,35 +217,25 @@ class _WishlistIconButton extends StatelessWidget {
 }
 
 class _ProductImage extends StatelessWidget {
-  const _ProductImage({required this.imageUrl, required this.special});
+  const _ProductImage({required this.imageUrl});
 
   final String? imageUrl;
-  final bool special;
 
   @override
   Widget build(BuildContext context) {
     final fallback = DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary.withValues(alpha: special ? 0.22 : 0.12),
-            AppColors.darkSurfaceHighest,
-          ],
-        ),
-      ),
+      decoration: const BoxDecoration(color: AppColors.imageSurface),
       child: const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.image_outlined, color: AppColors.primary, size: 32),
+            Icon(Icons.image_outlined, color: AppColors.brandSky, size: 32),
             SizedBox(height: 8),
             Text(
               'Imagem em breve',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: AppColors.lightTextSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
@@ -261,13 +254,19 @@ class _ProductImage extends StatelessWidget {
       return fallback;
     }
 
-    return CachedNetworkImage(
-      imageUrl: resolvedUrl,
-      fit: BoxFit.contain,
-      memCacheWidth: 420,
-      memCacheHeight: 520,
-      placeholder: (context, url) => fallback,
-      errorWidget: (context, url, error) => fallback,
+    return ColoredBox(
+      color: AppColors.imageSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: CachedNetworkImage(
+          imageUrl: resolvedUrl,
+          fit: BoxFit.contain,
+          memCacheWidth: 420,
+          memCacheHeight: 520,
+          placeholder: (context, url) => fallback,
+          errorWidget: (context, url, error) => fallback,
+        ),
+      ),
     );
   }
 }
@@ -283,21 +282,21 @@ class _InlinePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.14),
+        color: AppColors.brandYellow.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(AppRadius.pill),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.28)),
+        border: Border.all(color: AppColors.brandYellow),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.accent, size: 13),
+          Icon(icon, color: AppColors.brandNavy, size: 13),
           const SizedBox(width: 4),
           Text(
             label,
             style: const TextStyle(
-              color: AppColors.accent,
+              color: AppColors.brandNavy,
               fontSize: 11,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/network/api_error.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../shared/theme/app_colors.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_state.dart';
@@ -102,6 +103,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SmartCard(
+            tone: SmartCardTone.sky,
             child: Row(
               children: [
                 Icon(
@@ -113,6 +115,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                   child: Text(
                     'O pedido será enviado para análise da equipe Smart Funkos.',
                     style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.brandNavy,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -132,6 +135,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: SmartCard(
+                tone: SmartCardTone.sky,
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
@@ -142,14 +146,17 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                           Text(
                             item.name,
                             style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
+                              color: AppColors.brandNavy,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${item.quantity} x ${item.price.formatted}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                              color: AppColors.brandNavy.withValues(
+                                alpha: 0.72,
+                              ),
                             ),
                           ),
                         ],
@@ -158,8 +165,8 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                     Text(
                       CurrencyFormatter.brl(item.subtotal),
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.secondary,
-                        fontWeight: FontWeight.w900,
+                        color: AppColors.brandNavy,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],

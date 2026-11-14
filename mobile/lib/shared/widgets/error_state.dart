@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'primary_button.dart';
-import 'smart_card.dart';
 
 class SmartErrorState extends StatelessWidget {
   const SmartErrorState({
@@ -24,8 +23,8 @@ class SmartErrorState extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 460),
-        child: SmartCard(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -52,7 +51,7 @@ class SmartErrorState extends StatelessWidget {
                 title,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 8),

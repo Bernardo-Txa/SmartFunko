@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_breakpoints.dart';
+
 double responsiveMaxWidth(BuildContext context) {
   final width = MediaQuery.sizeOf(context).width;
-  if (width >= 1240) return 760;
+  if (width >= AppBreakpoints.desktop) return 760;
   if (width >= 900) return 720;
-  if (width >= 720) return 680;
+  if (width >= AppBreakpoints.tablet) return 680;
   return width;
 }
 

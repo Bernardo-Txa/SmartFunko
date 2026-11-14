@@ -22,16 +22,16 @@ class CartFloatingButton extends ConsumerWidget {
     return FloatingActionButton(
       heroTag: 'cart-floating-button',
       tooltip: 'Ver carrinho',
-      backgroundColor: AppColors.primary,
-      foregroundColor: const Color(0xFF041018),
+      backgroundColor: AppColors.brandYellow,
+      foregroundColor: AppColors.brandNavy,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       onPressed: () => context.go('/carrinho'),
       child: Badge.count(
         count: quantity,
-        backgroundColor: AppColors.accent,
-        textColor: const Color(0xFF041018),
+        backgroundColor: AppColors.brandNavy,
+        textColor: AppColors.darkTextPrimary,
         child: const Icon(Icons.shopping_bag_outlined),
       ),
     );

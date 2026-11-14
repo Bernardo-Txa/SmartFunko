@@ -13,8 +13,6 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/smart_skeleton.dart';
 import '../cart/data/cart_controller.dart';
-import '../../core/auth/auth_controller.dart';
-import '../wishlist/application/wishlist_controller.dart';
 import 'data/catalog_repository.dart';
 import 'data/product_models.dart';
 import 'widgets/product_card.dart';
@@ -214,11 +212,7 @@ class _CatalogHero extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF101D33), Color(0xFF07101F)],
-        ),
+        color: AppColors.brandNavy,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.darkBorder),
       ),
@@ -242,7 +236,7 @@ class _CatalogHero extends StatelessWidget {
                   ),
                   SizedBox(height: 5),
                   Text(
-                    'Funkos, pré-vendas, encomendas e specials no mesmo lugar.',
+                    'Funkos e colecionáveis selecionados em um só lugar.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
@@ -279,15 +273,38 @@ class _CatalogSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      style: const TextStyle(color: AppColors.brandNavy),
+      cursorColor: AppColors.brandNavy,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
+        filled: true,
+        fillColor: AppColors.brandSky,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(
+            color: AppColors.brandNavy.withValues(alpha: 0.24),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: const BorderSide(color: AppColors.brandYellow, width: 2),
+        ),
         hintText: 'Buscar Funko, anime, personagem...',
-        prefixIcon: const Icon(Icons.search_rounded),
+        hintStyle: TextStyle(
+          color: AppColors.brandNavy.withValues(alpha: 0.64),
+        ),
+        prefixIcon: const Icon(
+          Icons.search_rounded,
+          color: AppColors.brandNavy,
+        ),
         suffixIcon: search.isEmpty
             ? null
             : IconButton(
                 tooltip: 'Limpar busca',
-                icon: const Icon(Icons.close_rounded),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.brandNavy,
+                ),
                 onPressed: onClear,
               ),
       ),
@@ -314,9 +331,6 @@ class _CatalogContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authControllerProvider);
-    final wishlist = ref.watch(wishlistControllerProvider);
-
     if (products.isEmpty) {
       return EmptyState(
         icon: Icons.manage_search_rounded,
@@ -354,12 +368,12 @@ class _CatalogContent extends ConsumerWidget {
                 ? 2
                 : 1;
             final itemExtent = columns == 1
-                ? 410.0
+                ? 390.0
                 : columns == 2
-                ? 392.0
+                ? 368.0
                 : columns == 3
-                ? 374.0
-                : 356.0;
+                ? 350.0
+                : 340.0;
 
             return GridView.builder(
               shrinkWrap: true,
@@ -378,14 +392,6 @@ class _CatalogContent extends ConsumerWidget {
                   onDetails: () => context.push('/produto/${product.slug}'),
                   onAddToCart: () => onAddToCart(product),
                   onConsult: () => onConsult(product),
-                  isWishlisted: wishlist.isWishlisted(product.id),
-                  isWishlistUpdating: wishlist.isUpdating(product.id),
-                  onToggleWishlist: () => _toggleWishlist(
-                    context,
-                    ref,
-                    product,
-                    isAuthenticated: auth.isAuthenticated,
-                  ),
                 );
               },
             );
@@ -393,50 +399,6 @@ class _CatalogContent extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _toggleWishlist(
-    BuildContext context,
-    WidgetRef ref,
-    ProductSummary product, {
-    required bool isAuthenticated,
-  }) async {
-    final messenger = ScaffoldMessenger.of(context);
-    if (!isAuthenticated) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Text('Entre para salvar favoritos.'),
-          action: SnackBarAction(
-            label: 'Entrar',
-            onPressed: () => context.go('/login?from=/catalogo'),
-          ),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final added = await ref
-          .read(wishlistControllerProvider.notifier)
-          .toggle(product.id);
-      if (!context.mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            added ? 'Adicionado à wishlist.' : 'Removido da wishlist.',
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!context.mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Não foi possível atualizar a wishlist.')),
-      );
-    }
   }
 }
 
@@ -468,7 +430,20 @@ class _CatalogFilters extends StatelessWidget {
             children: [
               ChoiceChip(
                 label: const Text('Todos'),
-                avatar: const Icon(Icons.apps_rounded, size: 18),
+                avatar: Icon(
+                  Icons.apps_rounded,
+                  size: 18,
+                  color: status == null
+                      ? AppColors.brandNavy
+                      : AppColors.brandSky,
+                ),
+                selectedColor: AppColors.brandYellow,
+                backgroundColor: AppColors.darkSurfaceElevated,
+                labelStyle: TextStyle(
+                  color: status == null
+                      ? AppColors.brandNavy
+                      : AppColors.darkTextPrimary,
+                ),
                 showCheckmark: false,
                 selected: status == null,
                 onSelected: (_) {
@@ -481,7 +456,20 @@ class _CatalogFilters extends StatelessWidget {
               for (final filter in statusFilters) ...[
                 ChoiceChip(
                   label: Text(filter.label),
-                  avatar: const Icon(Icons.sell_rounded, size: 18),
+                  avatar: Icon(
+                    Icons.sell_rounded,
+                    size: 18,
+                    color: status == filter.value
+                        ? AppColors.brandNavy
+                        : AppColors.brandSky,
+                  ),
+                  selectedColor: AppColors.brandYellow,
+                  backgroundColor: AppColors.darkSurfaceElevated,
+                  labelStyle: TextStyle(
+                    color: status == filter.value
+                        ? AppColors.brandNavy
+                        : AppColors.darkTextPrimary,
+                  ),
                   showCheckmark: false,
                   selected: status == filter.value,
                   onSelected: (_) => onStatusTap(filter.value),

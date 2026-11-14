@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_radius.dart';
+import '../theme/app_sizes.dart';
 import 'pressable_scale.dart';
 import 'smart_progress.dart';
 
@@ -13,6 +15,7 @@ class PrimaryButton extends StatelessWidget {
     this.isLoading = false,
     this.variant = PrimaryButtonVariant.filled,
     this.fullWidth = false,
+    this.foregroundColor,
     super.key,
   });
 
@@ -22,12 +25,13 @@ class PrimaryButton extends StatelessWidget {
   final bool isLoading;
   final PrimaryButtonVariant variant;
   final bool fullWidth;
+  final Color? foregroundColor;
 
   @override
   Widget build(BuildContext context) {
     final effectiveOnPressed = isLoading ? null : onPressed;
     final child = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 180),
+      duration: AppMotion.standard,
       child: isLoading
           ? const SizedBox(
               key: ValueKey('loading'),
@@ -50,17 +54,31 @@ class PrimaryButton extends StatelessWidget {
     );
 
     final button = SizedBox(
-      height: 52,
+      height: AppSizes.buttonHeight,
       child: switch (variant) {
         PrimaryButtonVariant.outlined => OutlinedButton(
           onPressed: effectiveOnPressed,
+          style: OutlinedButton.styleFrom(
+            foregroundColor:
+                foregroundColor ??
+                (Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.brandYellow
+                    : AppColors.brandNavy),
+            side: BorderSide(
+              color:
+                  foregroundColor ??
+                  (Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.brandNavy),
+            ),
+          ),
           child: child,
         ),
         PrimaryButtonVariant.filled => FilledButton(
           onPressed: effectiveOnPressed,
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: const Color(0xFF041018),
+            backgroundColor: AppColors.brandYellow,
+            foregroundColor: AppColors.brandNavy,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),

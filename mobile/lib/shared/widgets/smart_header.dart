@@ -7,7 +7,6 @@ import '../../features/cart/data/cart_controller.dart';
 import '../branding/smart_funko_brand.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
-import '../theme/app_shadows.dart';
 
 class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
   const SmartHeader({
@@ -54,25 +53,14 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
       bottom: false,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: theme.brightness == Brightness.dark
-                ? [
-                    AppColors.darkSurfaceElevated.withValues(alpha: 0.98),
-                    AppColors.darkSurface.withValues(alpha: 0.98),
-                  ]
-                : [
-                    colorScheme.surface.withValues(alpha: 0.98),
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.92),
-                  ],
-          ),
+          color: colorScheme.surface,
           border: Border(
             bottom: BorderSide(
-              color: AppColors.primary.withValues(alpha: 0.12),
+              color: theme.brightness == Brightness.dark
+                  ? AppColors.darkBorder
+                  : AppColors.lightBorder,
             ),
           ),
-          boxShadow: AppShadows.card,
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -96,18 +84,8 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
                   height: 42,
                   width: 42,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        colorScheme.primary.withValues(alpha: 0.28),
-                        colorScheme.secondary.withValues(alpha: 0.18),
-                      ],
-                    ),
+                    color: AppColors.brandNavy,
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(
-                      color: colorScheme.primary.withValues(alpha: 0.24),
-                    ),
                   ),
                   child: const Center(
                     child: SmartFunkoLogo(
@@ -144,7 +122,7 @@ class SmartHeader extends ConsumerWidget implements PreferredSizeWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         height: 1.05,
                       ),
                     ),
@@ -226,9 +204,8 @@ class _HeaderAction extends StatelessWidget {
     final button = IconButton.filledTonal(
       tooltip: tooltip,
       style: IconButton.styleFrom(
-        backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.80,
-        ),
+        minimumSize: const Size.square(46),
+        backgroundColor: colorScheme.surfaceContainerHighest,
         foregroundColor: colorScheme.onSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -260,12 +237,12 @@ class _AvatarInitials extends StatelessWidget {
 
     return CircleAvatar(
       radius: 11,
-      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.18),
+      backgroundColor: AppColors.brandYellow,
       child: Text(
         initials,
         style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w900,
+          color: AppColors.brandNavy,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

@@ -5,17 +5,25 @@ class AppShadows {
 
   static List<BoxShadow> get card => [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.22),
+      color: const Color(0xFF141C33).withValues(alpha: 0.08),
+      blurRadius: 18,
+      offset: const Offset(0, 8),
+    ),
+  ];
+
+  static List<BoxShadow> get floating => [
+    BoxShadow(
+      color: const Color(0xFF141C33).withValues(alpha: 0.14),
       blurRadius: 24,
-      offset: const Offset(0, 14),
+      offset: const Offset(0, 10),
     ),
   ];
 
   static List<BoxShadow> glow(Color color) => [
     BoxShadow(
-      color: color.withValues(alpha: 0.16),
-      blurRadius: 30,
-      offset: const Offset(0, 16),
+      color: color.withValues(alpha: 0.12),
+      blurRadius: 20,
+      offset: const Offset(0, 8),
     ),
   ];
 }

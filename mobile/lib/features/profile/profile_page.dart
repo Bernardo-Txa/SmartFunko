@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../shared/theme/app_colors.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
+import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/smart_card.dart';
-import '../wishlist/application/wishlist_controller.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -26,7 +27,13 @@ class ProfilePage extends ConsumerWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SectionHeader(
+                  title: 'Sua conta',
+                  subtitle: 'Dados de acesso e acompanhamento dos pedidos.',
+                ),
+                const SizedBox(height: 16),
                 SmartCard(
+                  tone: SmartCardTone.sky,
                   child: Row(
                     children: [
                       CircleAvatar(
@@ -43,10 +50,18 @@ class ProfilePage extends ConsumerWidget {
                             Text(
                               auth.displayName,
                               style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w900),
+                                  ?.copyWith(
+                                    color: AppColors.brandNavy,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                             const SizedBox(height: 4),
-                            Text(user.email ?? 'E-mail não informado'),
+                            Text(
+                              user.email ?? 'E-mail não informado',
+                              style: const TextStyle(
+                                color: AppColors.brandNavy,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -55,22 +70,10 @@ class ProfilePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 18),
                 _ProfileActionCard(
-                  title: 'Minha wishlist',
-                  subtitle: 'Veja e remova produtos salvos como favoritos.',
-                  icon: Icons.favorite_rounded,
-                  onTap: () => context.go('/wishlist'),
-                ),
-                _ProfileActionCard(
                   title: 'Meus pedidos',
                   subtitle: 'Acompanhe pedidos e links de pagamento liberados.',
                   icon: Icons.receipt_long_rounded,
                   onTap: () => context.go('/pedidos'),
-                ),
-                _ProfileActionCard(
-                  title: 'Minhas rifas',
-                  subtitle: 'Veja reservas e campanhas vinculadas à sua conta.',
-                  icon: Icons.confirmation_number_rounded,
-                  onTap: () => context.go('/minhas-rifas'),
                 ),
                 const SizedBox(height: 6),
                 PrimaryButton(
@@ -79,7 +82,6 @@ class ProfilePage extends ConsumerWidget {
                   variant: PrimaryButtonVariant.outlined,
                   fullWidth: true,
                   onPressed: () async {
-                    ref.read(wishlistControllerProvider.notifier).clear();
                     await ref.read(authControllerProvider.notifier).signOut();
                     if (context.mounted) {
                       context.go('/login');
@@ -93,7 +95,8 @@ class ProfilePage extends ConsumerWidget {
                 const EmptyState(
                   icon: Icons.person_outline_rounded,
                   title: 'Você está como visitante',
-                  message: 'Entre para ver perfil, pedidos e suas rifas.',
+                  message:
+                      'Entre para ver seu perfil e acompanhar seus pedidos.',
                 ),
                 const SizedBox(height: 18),
                 PrimaryButton(
