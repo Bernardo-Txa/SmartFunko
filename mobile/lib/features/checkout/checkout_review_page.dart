@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../core/config/app_config.dart';
 import '../../core/network/api_error.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../shared/theme/app_colors.dart';
@@ -215,11 +216,15 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
           ),
           const SizedBox(height: 16),
           PrimaryButton(
-            label: 'Enviar pedido',
+            label: AppConfig.mobileWritesEnabled
+                ? 'Enviar pedido'
+                : 'Envio desativado nesta versão',
             icon: Icons.send_rounded,
             isLoading: _isSubmitting,
             fullWidth: true,
-            onPressed: cart.isEmpty ? null : _submit,
+            onPressed: cart.isEmpty || !AppConfig.mobileWritesEnabled
+                ? null
+                : _submit,
           ),
         ],
       ),

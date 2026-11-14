@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/cache/memory_cache.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import 'order_models.dart';
 
@@ -106,6 +107,7 @@ class OrdersRepository {
     CreateOrderRequest request, {
     required String idempotencyKey,
   }) async {
+    _requireMobileWritesEnabled();
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v1/mobile/orders-v2',
       data: request.toJson(),
@@ -122,6 +124,7 @@ class OrdersRepository {
     List<String> orderIds, {
     required String idempotencyKey,
   }) async {
+    _requireMobileWritesEnabled();
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v1/mobile/orders-v2/payment-sessions',
       data: {'orderIds': orderIds},
@@ -134,6 +137,7 @@ class OrdersRepository {
   }
 
   Future<bool> syncPaymentSession(String id) async {
+    _requireMobileWritesEnabled();
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v1/mobile/orders-v2/payment-sessions/${Uri.encodeComponent(id)}/sync',
     );
@@ -151,6 +155,19 @@ class OrdersRepository {
           .trim()
           .isNotEmpty ??
       false;
+
+  void _requireMobileWritesEnabled() {
+    if (!AppConfig.mobileWritesEnabled) {
+      throw const MobileWritesDisabledException();
+    }
+  }
+}
+
+class MobileWritesDisabledException implements Exception {
+  const MobileWritesDisabledException();
+
+  @override
+  String toString() => 'Operações de escrita estão desativadas neste build.';
 }
 
 class OrdersShapeException implements Exception {

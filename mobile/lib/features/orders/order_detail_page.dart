@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/url/open_payment_url.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../shared/theme/app_colors.dart';
@@ -263,11 +264,13 @@ class _PaymentActionState extends ConsumerState<_PaymentAction>
   Widget build(BuildContext context) => Column(
     children: [
       PrimaryButton(
-        label: 'Pagar com InfinitePay',
+        label: AppConfig.mobileWritesEnabled
+            ? 'Pagar com InfinitePay'
+            : 'Pagamento desativado nesta versão',
         icon: Icons.open_in_new_rounded,
         fullWidth: true,
         isLoading: _busy,
-        onPressed: _pay,
+        onPressed: AppConfig.mobileWritesEnabled ? _pay : null,
       ),
       if (_session != null)
         TextButton.icon(

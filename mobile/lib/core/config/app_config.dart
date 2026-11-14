@@ -15,6 +15,10 @@ class AppConfig {
     'SUPABASE_ANON_KEY',
     defaultValue: '',
   );
+  static const mobileWritesEnabled = bool.fromEnvironment(
+    'ENABLE_MOBILE_WRITES',
+    defaultValue: false,
+  );
 
   static List<String> get missingVariables {
     final missing = <String>[];
