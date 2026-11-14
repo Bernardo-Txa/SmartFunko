@@ -8,6 +8,15 @@ test("cursor round-trips the stable created-at and id boundary", () => {
   assert.deepEqual(decodeMobileOrderCursor(encodeMobileOrderCursor(boundary)), boundary);
 });
 
+test("cursor accepts PostgreSQL timestamps with an explicit UTC offset", () => {
+  const boundary = {
+    createdAt: "2026-07-09T18:14:18.423223+00:00",
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  };
+
+  assert.deepEqual(decodeMobileOrderCursor(encodeMobileOrderCursor(boundary)), boundary);
+});
+
 test("page size has a safe upper bound and malformed cursors fail", () => {
   assert.equal(mobileOrderPageLimitSchema.parse("50"), 50);
   assert.equal(mobileOrderPageLimitSchema.safeParse("51").success, false);

@@ -780,7 +780,9 @@ async function getCatalogProductsPageUncached(
     const from = (page - 1) * filters.pageSize;
     let query = supabase
       .from("catalog_product_cards")
-      .select(catalogCardSelect, { count: "exact" })
+      // Pagination only needs a stable estimate. An exact count forces the
+      // complete catalog view to be evaluated before every small page.
+      .select(catalogCardSelect, { count: "planned" })
       .eq("has_visible_variant", true)
       .not("sku", "ilike", "RARO-%")
       .not("sku", "ilike", "ACERVO-%")

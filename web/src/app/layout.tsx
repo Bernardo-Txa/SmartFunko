@@ -13,6 +13,11 @@ import {
 } from "@/lib/seo";
 import "./globals.css";
 
+// The global header is session-aware and loads live navigation options. Keep
+// the tree server-rendered per request instead of repeating those database
+// reads across every route during static generation.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
   applicationName: SITE_NAME,

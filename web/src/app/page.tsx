@@ -14,6 +14,11 @@ import {
 } from "@/lib/catalog";
 import { getPublicHomeBanners } from "@/server/home-banners/home-banner-service";
 
+// The storefront depends on live catalog availability. Rendering it per request
+// preserves server-rendered SEO while keeping production database calls out of
+// the deployment build, where parallel prerenders can exhaust the API pool.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: {
     absolute: "Smart Funkos — Colecionáveis, Funkos e comunidade geek",

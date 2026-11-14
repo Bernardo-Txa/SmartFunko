@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-const cursorPayloadSchema = z.object({ createdAt: z.string().datetime(), id: z.string().uuid() });
+const cursorPayloadSchema = z.object({
+  createdAt: z.string().datetime({ offset: true }),
+  id: z.string().uuid(),
+});
 export type MobileOrderCursor = z.infer<typeof cursorPayloadSchema>;
 
 export function encodeMobileOrderCursor(cursor: MobileOrderCursor) {
