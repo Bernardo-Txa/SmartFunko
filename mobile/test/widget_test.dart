@@ -2,6 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_funkos/main.dart';
 
 void main() {
+  test('provider retry is bounded to one delayed attempt', () {
+    final error = StateError('offline');
+    expect(appProviderRetry(0, error), const Duration(seconds: 1));
+    expect(appProviderRetry(1, error), isNull);
+  });
+
   testWidgets('shows clear config error when dart defines are missing', (
     tester,
   ) async {

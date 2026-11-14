@@ -20,4 +20,25 @@ void main() {
       expect(cache.get<String>('user:a:orders-v2'), isNull);
     },
   );
+
+  test('failed loads are not cached and can be retried', () async {
+    final cache = MemoryCache();
+    var attempts = 0;
+
+    Future<String> load() => cache.getOrLoad<String>(
+      key: 'public:products',
+      debugLabel: 'GET /api/v1/public/products',
+      ttl: const Duration(minutes: 1),
+      loader: () async {
+        attempts += 1;
+        if (attempts == 1) throw StateError('network unavailable');
+        return 'ok';
+      },
+    );
+
+    await expectLater(load(), throwsStateError);
+    expect(cache.get<String>('public:products'), isNull);
+    expect(await load(), 'ok');
+    expect(attempts, 2);
+  });
 }

@@ -87,15 +87,25 @@ class MemoryCache {
 
     try {
       final value = await future;
-      return value as T;
-    } finally {
       stopwatch.stop();
-      _inFlightRequests.remove(key);
       _logPerf(
         debugLabel,
         milliseconds: stopwatch.elapsedMilliseconds,
         cacheHit: false,
+        succeeded: true,
       );
+      return value as T;
+    } catch (error) {
+      stopwatch.stop();
+      _logPerf(
+        debugLabel,
+        milliseconds: stopwatch.elapsedMilliseconds,
+        cacheHit: false,
+        succeeded: false,
+      );
+      rethrow;
+    } finally {
+      _inFlightRequests.remove(key);
     }
   }
 
@@ -136,13 +146,17 @@ class MemoryCache {
     String debugLabel, {
     required int milliseconds,
     required bool cacheHit,
+    bool succeeded = true,
   }) {
     if (!kDebugMode) {
       return;
     }
 
     final label = _perfLabel(debugLabel);
-    debugPrint('[Perf] $label loaded in ${milliseconds}ms cacheHit=$cacheHit');
+    final outcome = succeeded ? 'loaded' : 'failed';
+    debugPrint(
+      '[Perf] $label $outcome in ${milliseconds}ms cacheHit=$cacheHit',
+    );
   }
 
   String _perfLabel(String debugLabel) {

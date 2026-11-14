@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -98,6 +99,12 @@ class ApiClient {
     try {
       return await action();
     } on DioException catch (error) {
+      if (kDebugMode) {
+        debugPrint(
+          '[HTTP] ${error.requestOptions.method} ${error.requestOptions.path} '
+          'failed type=${error.type.name} status=${error.response?.statusCode}',
+        );
+      }
       throw ApiError.fromDio(error);
     } catch (error) {
       throw ApiError(

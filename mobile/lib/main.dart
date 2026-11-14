@@ -6,17 +6,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/smart_funkos_app.dart';
 import 'core/config/app_config.dart';
+import 'shared/theme/app_colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Color(0xFF020817),
+      statusBarColor: AppColors.darkBackground,
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
-      systemNavigationBarColor: Color(0xFF020817),
+      systemNavigationBarColor: AppColors.darkBackground,
       systemNavigationBarIconBrightness: Brightness.light,
-      systemNavigationBarDividerColor: Color(0xFF020817),
+      systemNavigationBarDividerColor: AppColors.darkBorder,
     ),
   );
   await initializeDateFormatting('pt_BR', null);
@@ -28,7 +29,16 @@ Future<void> main() async {
     );
   }
 
-  runApp(const ProviderScope(child: SmartFunkosBootstrap()));
+  runApp(
+    const ProviderScope(retry: appProviderRetry, child: SmartFunkosBootstrap()),
+  );
+}
+
+Duration? appProviderRetry(int retryCount, Object error) {
+  // One delayed retry covers brief connectivity changes without trapping the
+  // user in Riverpod's default retry sequence. A visible retry remains
+  // available after the second failure.
+  return retryCount == 0 ? const Duration(seconds: 1) : null;
 }
 
 class SmartFunkosBootstrap extends StatelessWidget {
@@ -43,7 +53,7 @@ class SmartFunkosBootstrap extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF22D3EE),
+            seedColor: AppColors.brandYellow,
             brightness: Brightness.dark,
           ),
         ),

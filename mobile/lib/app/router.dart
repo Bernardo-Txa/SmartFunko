@@ -15,18 +15,24 @@ import '../features/orders/orders_page.dart';
 import '../features/product/product_detail_page.dart';
 import '../features/profile/profile_page.dart';
 import '../features/splash/splash_page.dart';
+import '../shared/theme/app_motion.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authControllerProvider);
+  final auth = ValueNotifier(ref.read(authControllerProvider));
+  ref
+    ..listen(authControllerProvider, (_, next) => auth.value = next)
+    ..onDispose(auth.dispose);
 
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: auth,
     redirect: (context, state) {
+      final authState = auth.value;
       final path = state.uri.path;
       final isLogin = path == '/login';
       final isSplash = path == '/splash';
 
-      if (auth.status == AuthStatus.loading) {
+      if (authState.status == AuthStatus.loading) {
         return isSplash ? null : '/splash';
       }
 
@@ -34,7 +40,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/';
       }
 
-      if (auth.isAuthenticated && isLogin) {
+      if (authState.isAuthenticated && isLogin) {
         final redirect =
             state.uri.queryParameters['redirect'] ??
             state.uri.queryParameters['from'];
@@ -115,8 +121,8 @@ CustomTransitionPage<void> _buildPage(
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: const Duration(milliseconds: 180),
-    reverseTransitionDuration: const Duration(milliseconds: 140),
+    transitionDuration: AppMotion.standard,
+    reverseTransitionDuration: AppMotion.quick,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(
         parent: animation,
