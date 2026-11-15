@@ -15,9 +15,17 @@ class AppConfig {
     'SUPABASE_ANON_KEY',
     defaultValue: '',
   );
-  static const mobileWritesEnabled = bool.fromEnvironment(
-    'ENABLE_MOBILE_WRITES',
+  static const mobileOrderCreationEnabled = bool.fromEnvironment(
+    'ENABLE_MOBILE_ORDER_CREATION',
     defaultValue: false,
+  );
+  static const mobilePaymentsEnabled = bool.fromEnvironment(
+    'ENABLE_MOBILE_PAYMENTS',
+    defaultValue: false,
+  );
+  static const mobileFeatures = MobileFeatureFlags(
+    orderCreation: mobileOrderCreationEnabled,
+    payments: mobilePaymentsEnabled,
   );
 
   static List<String> get missingVariables {
@@ -29,4 +37,16 @@ class AppConfig {
   }
 
   static bool get isComplete => missingVariables.isEmpty;
+}
+
+class MobileFeatureFlags {
+  const MobileFeatureFlags({
+    required this.orderCreation,
+    required this.payments,
+  });
+
+  final bool orderCreation;
+  final bool payments;
+  bool get canCreateOrder => orderCreation;
+  bool get canPay => payments;
 }

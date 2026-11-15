@@ -264,13 +264,13 @@ class _PaymentActionState extends ConsumerState<_PaymentAction>
   Widget build(BuildContext context) => Column(
     children: [
       PrimaryButton(
-        label: AppConfig.mobileWritesEnabled
+        label: AppConfig.mobilePaymentsEnabled
             ? 'Pagar com InfinitePay'
             : 'Pagamento desativado nesta versão',
         icon: Icons.open_in_new_rounded,
         fullWidth: true,
         isLoading: _busy,
-        onPressed: AppConfig.mobileWritesEnabled ? _pay : null,
+        onPressed: AppConfig.mobilePaymentsEnabled ? _pay : null,
       ),
       if (_session != null)
         TextButton.icon(

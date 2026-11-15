@@ -92,6 +92,8 @@ Sem as três variáveis, o app abre uma tela de erro clara em desenvolvimento.
 Variáveis permitidas no app via `--dart-define`:
 
 - `API_BASE_URL`
+- `ENABLE_MOBILE_ORDER_CREATION` (opcional; padrão `false`)
+- `ENABLE_MOBILE_PAYMENTS` (opcional; padrão `false`)
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 

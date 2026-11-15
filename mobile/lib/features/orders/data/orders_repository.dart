@@ -140,7 +140,7 @@ class OrdersRepository {
     CreateOrderRequest request, {
     required String idempotencyKey,
   }) async {
-    _requireMobileWritesEnabled();
+    _requireOrderCreationEnabled();
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v1/mobile/orders-v2',
       data: request.toJson(),
@@ -157,7 +157,7 @@ class OrdersRepository {
     List<String> orderIds, {
     required String idempotencyKey,
   }) async {
-    _requireMobileWritesEnabled();
+    _requirePaymentsEnabled();
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v1/mobile/orders-v2/payment-sessions',
       data: {'orderIds': orderIds},
@@ -170,7 +170,7 @@ class OrdersRepository {
   }
 
   Future<bool> syncPaymentSession(String id) async {
-    _requireMobileWritesEnabled();
+    _requirePaymentsEnabled();
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v1/mobile/orders-v2/payment-sessions/${Uri.encodeComponent(id)}/sync',
     );
@@ -189,9 +189,15 @@ class OrdersRepository {
           .isNotEmpty ??
       false;
 
-  void _requireMobileWritesEnabled() {
-    if (!AppConfig.mobileWritesEnabled) {
-      throw const MobileWritesDisabledException();
+  void _requireOrderCreationEnabled() {
+    if (!AppConfig.mobileOrderCreationEnabled) {
+      throw const MobileFeatureDisabledException('criação de pedidos');
+    }
+  }
+
+  void _requirePaymentsEnabled() {
+    if (!AppConfig.mobilePaymentsEnabled) {
+      throw const MobileFeatureDisabledException('pagamentos');
     }
   }
 }
@@ -271,11 +277,13 @@ class OrdersFeedController extends StateNotifier<OrdersFeedState> {
   }
 }
 
-class MobileWritesDisabledException implements Exception {
-  const MobileWritesDisabledException();
+class MobileFeatureDisabledException implements Exception {
+  const MobileFeatureDisabledException(this.feature);
+
+  final String feature;
 
   @override
-  String toString() => 'Operações de escrita estão desativadas neste build.';
+  String toString() => '$feature está desativada neste build.';
 }
 
 class OrdersShapeException implements Exception {

@@ -214,13 +214,13 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
           ),
           const SizedBox(height: 16),
           PrimaryButton(
-            label: AppConfig.mobileWritesEnabled
+            label: AppConfig.mobileOrderCreationEnabled
                 ? 'Enviar pedido'
-                : 'Envio desativado nesta versão',
+                : 'Criação de pedido desativada nesta versão',
             icon: Icons.send_rounded,
             isLoading: _isSubmitting,
             fullWidth: true,
-            onPressed: cart.isEmpty || !AppConfig.mobileWritesEnabled
+            onPressed: cart.isEmpty || !AppConfig.mobileOrderCreationEnabled
                 ? null
                 : _submit,
           ),

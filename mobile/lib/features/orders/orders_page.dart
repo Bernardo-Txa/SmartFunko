@@ -569,7 +569,7 @@ class _PaymentSummary extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         PrimaryButton(
-          label: AppConfig.mobileWritesEnabled
+          label: AppConfig.mobilePaymentsEnabled
               ? 'Pagar selecionados'
               : 'Pagamento indisponível nesta versão',
           icon: Icons.lock_outline_rounded,
