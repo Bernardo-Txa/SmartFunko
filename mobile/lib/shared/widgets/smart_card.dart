@@ -28,20 +28,20 @@ class SmartCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isSky = tone == SmartCardTone.sky;
     final skyScheme = theme.colorScheme.copyWith(
-      primary: AppColors.brandNavy,
-      onPrimary: AppColors.darkTextPrimary,
-      surface: AppColors.brandSky,
-      onSurface: AppColors.brandNavy,
-      onSurfaceVariant: AppColors.brandNavy.withValues(alpha: 0.74),
-      outline: AppColors.brandNavy.withValues(alpha: 0.22),
-      outlineVariant: AppColors.brandNavy.withValues(alpha: 0.16),
+      primary: AppColors.brandYellow,
+      onPrimary: AppColors.brandNavy,
+      surface: AppColors.surfaceElevated,
+      onSurface: AppColors.darkTextPrimary,
+      onSurfaceVariant: AppColors.darkTextSecondary,
+      outline: AppColors.border,
+      outlineVariant: AppColors.border,
     );
     final themedChild = isSky
         ? Theme(
             data: theme.copyWith(
               colorScheme: skyScheme,
               textTheme: AppTextStyles.build(skyScheme),
-              iconTheme: const IconThemeData(color: AppColors.brandNavy),
+              iconTheme: const IconThemeData(color: AppColors.darkTextPrimary),
             ),
             child: child,
           )
@@ -49,14 +49,14 @@ class SmartCard extends StatelessWidget {
     final card = DecoratedBox(
       decoration: BoxDecoration(
         color: isSky
-            ? AppColors.brandSky
+            ? AppColors.surfaceElevated
             : isDark
-            ? AppColors.darkSurfaceElevated
+            ? AppColors.surfacePrimary
             : theme.cardColor,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: isSky
-              ? AppColors.brandNavy.withValues(alpha: 0.20)
+              ? AppColors.border
               : isDark
               ? AppColors.darkBorder
               : AppColors.lightBorder,
@@ -88,8 +88,8 @@ class SmartCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           onTap: onTap,
-          splashColor: AppColors.brandSky.withValues(alpha: 0.16),
-          highlightColor: AppColors.brandSky.withValues(alpha: 0.10),
+          splashColor: AppColors.brandYellow.withValues(alpha: 0.12),
+          highlightColor: AppColors.brandYellow.withValues(alpha: 0.06),
           child: content,
         ),
       ),

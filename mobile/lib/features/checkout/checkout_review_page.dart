@@ -116,7 +116,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                   child: Text(
                     'O pedido será enviado para análise da equipe Smart Funkos.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.brandNavy,
+                      color: AppColors.darkTextPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -147,7 +147,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                           Text(
                             item.name,
                             style: theme.textTheme.titleSmall?.copyWith(
-                              color: AppColors.brandNavy,
+                              color: AppColors.darkTextPrimary,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -155,9 +155,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                           Text(
                             '${item.quantity} x ${item.price.formatted}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.brandNavy.withValues(
-                                alpha: 0.72,
-                              ),
+                              color: AppColors.darkTextSecondary,
                             ),
                           ),
                         ],
@@ -166,7 +164,7 @@ class _CheckoutReviewPageState extends ConsumerState<CheckoutReviewPage> {
                     Text(
                       CurrencyFormatter.brl(item.subtotal),
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: AppColors.brandNavy,
+                        color: AppColors.brandYellow,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

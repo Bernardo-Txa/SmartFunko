@@ -38,7 +38,7 @@ class ProductPriceBlock extends StatelessWidget {
                     price.formatted,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.brandNavy,
+                      color: AppColors.brandYellow,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -51,7 +51,7 @@ class ProductPriceBlock extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.verified_rounded, color: AppColors.brandNavy),
+            const Icon(Icons.verified_rounded, color: AppColors.brandYellow),
           ],
         ),
       ),

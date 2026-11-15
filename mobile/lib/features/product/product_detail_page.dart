@@ -251,7 +251,7 @@ class _ProductFacts extends StatelessWidget {
                   Text(
                     fact.label,
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: AppColors.brandNavy.withValues(alpha: 0.70),
+                      color: AppColors.darkTextSecondary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -259,7 +259,7 @@ class _ProductFacts extends StatelessWidget {
                   Text(
                     fact.value,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.brandNavy,
+                      color: AppColors.darkTextPrimary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),

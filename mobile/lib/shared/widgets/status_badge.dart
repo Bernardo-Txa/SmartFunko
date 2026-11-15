@@ -14,9 +14,7 @@ class StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final effectiveColor = color ?? AppColors.info;
-    final foregroundColor = effectiveColor == AppColors.brandYellow
-        ? AppColors.brandNavy
-        : effectiveColor;
+    final foregroundColor = effectiveColor;
 
     return DecoratedBox(
       decoration: BoxDecoration(

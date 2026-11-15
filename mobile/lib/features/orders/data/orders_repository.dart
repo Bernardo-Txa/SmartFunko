@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/auth/auth_controller.dart';
 import '../../../core/cache/memory_cache.dart';
@@ -17,6 +19,17 @@ final ordersRepositoryProvider = Provider<OrdersRepository>(
 final ordersProvider = FutureProvider<List<OrderSummary>>(
   (ref) => ref.watch(ordersRepositoryProvider).getOrders(),
 );
+
+final ordersFeedProvider =
+    StateNotifierProvider.autoDispose<OrdersFeedController, OrdersFeedState>((
+      ref,
+    ) {
+      final auth = ref.watch(authControllerProvider);
+      return OrdersFeedController(
+        repository: ref.watch(ordersRepositoryProvider),
+        userId: auth.effectiveUser?.id,
+      );
+    });
 final orderDetailProvider = FutureProvider.family<OrderDetail, String>((
   ref,
   identifier,
@@ -44,6 +57,26 @@ class OrdersRepository {
        _cache = cache;
   final ApiClient _apiClient;
   final MemoryCache _cache;
+
+  Future<OrdersPageData> getOrdersPage({String? cursor, int limit = 50}) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return const OrdersPageData(items: []);
+    final response = await _apiClient.get<Map<String, dynamic>>(
+      '/api/v1/mobile/orders-v2',
+      queryParameters: {'limit': limit, 'cursor': ?cursor},
+    );
+    final data = response.data?['data'];
+    if (data is! Map<String, dynamic> || data['items'] is! List) {
+      throw const OrdersShapeException();
+    }
+    return OrdersPageData(
+      items: (data['items'] as List)
+          .whereType<Map<String, dynamic>>()
+          .map(OrderSummary.fromJson)
+          .toList(),
+      nextCursor: data['nextCursor'] as String?,
+    );
+  }
 
   Future<List<OrderSummary>> getOrders({bool forceRefresh = false}) {
     final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -159,6 +192,81 @@ class OrdersRepository {
   void _requireMobileWritesEnabled() {
     if (!AppConfig.mobileWritesEnabled) {
       throw const MobileWritesDisabledException();
+    }
+  }
+}
+
+class OrdersPageData {
+  const OrdersPageData({required this.items, this.nextCursor});
+  final List<OrderSummary> items;
+  final String? nextCursor;
+}
+
+class OrdersFeedState {
+  const OrdersFeedState({
+    this.items = const [],
+    this.nextCursor,
+    this.loading = false,
+    this.loadingMore = false,
+    this.error,
+  });
+  final List<OrderSummary> items;
+  final String? nextCursor;
+  final bool loading, loadingMore;
+  final Object? error;
+  bool get hasMore => nextCursor != null;
+
+  OrdersFeedState copyWith({
+    List<OrderSummary>? items,
+    String? nextCursor,
+    bool clearCursor = false,
+    bool? loading,
+    bool? loadingMore,
+    Object? error,
+    bool clearError = false,
+  }) => OrdersFeedState(
+    items: items ?? this.items,
+    nextCursor: clearCursor ? null : nextCursor ?? this.nextCursor,
+    loading: loading ?? this.loading,
+    loadingMore: loadingMore ?? this.loadingMore,
+    error: clearError ? null : error ?? this.error,
+  );
+}
+
+class OrdersFeedController extends StateNotifier<OrdersFeedState> {
+  OrdersFeedController({required this.repository, required this.userId})
+    : super(const OrdersFeedState()) {
+    if (userId != null) unawaited(refresh());
+  }
+
+  final OrdersRepository repository;
+  final String? userId;
+
+  Future<void> refresh() async {
+    if (userId == null) return;
+    state = state.copyWith(loading: true, clearError: true, clearCursor: true);
+    try {
+      final page = await repository.getOrdersPage();
+      state = OrdersFeedState(items: page.items, nextCursor: page.nextCursor);
+    } catch (error) {
+      state = state.copyWith(loading: false, error: error);
+    }
+  }
+
+  Future<void> loadMore() async {
+    final cursor = state.nextCursor;
+    if (cursor == null || state.loading || state.loadingMore) return;
+    state = state.copyWith(loadingMore: true, clearError: true);
+    try {
+      final page = await repository.getOrdersPage(cursor: cursor);
+      state = state.copyWith(
+        items: appendUniqueById(state.items, page.items, (order) => order.id),
+        nextCursor: page.nextCursor,
+        clearCursor: page.nextCursor == null,
+        loadingMore: false,
+      );
+    } catch (error) {
+      state = state.copyWith(loadingMore: false, error: error);
     }
   }
 }

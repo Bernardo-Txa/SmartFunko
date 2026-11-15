@@ -34,9 +34,6 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderColor = product.special
-        ? AppColors.brandYellow
-        : AppColors.brandNavy.withValues(alpha: 0.20);
 
     return PressableScale(
       child: Material(
@@ -48,9 +45,9 @@ class ProductCard extends StatelessWidget {
           highlightColor: AppColors.primary.withValues(alpha: 0.04),
           child: Ink(
             decoration: BoxDecoration(
-              color: AppColors.brandSky,
+              color: AppColors.surfacePrimary,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: borderColor),
+              border: Border.all(color: AppColors.border),
               boxShadow: AppShadows.card,
             ),
             child: ClipRRect(
@@ -229,7 +226,11 @@ class _ProductImage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.image_outlined, color: AppColors.brandSky, size: 32),
+            Icon(
+              Icons.image_outlined,
+              color: AppColors.surfacePrimary,
+              size: 32,
+            ),
             SizedBox(height: 8),
             Text(
               'Imagem em breve',
@@ -284,17 +285,19 @@ class _InlinePill extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.brandYellow.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(AppRadius.pill),
-        border: Border.all(color: AppColors.brandYellow),
+        border: Border.all(
+          color: AppColors.brandYellow.withValues(alpha: 0.58),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.brandNavy, size: 13),
+          Icon(icon, color: AppColors.brandYellow, size: 13),
           const SizedBox(width: 4),
           Text(
             label,
             style: const TextStyle(
-              color: AppColors.brandNavy,
+              color: AppColors.brandYellow,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),

@@ -10,6 +10,7 @@ import '../../shared/theme/app_colors.dart';
 import '../../shared/theme/app_radius.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/editorial_hero.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/smart_skeleton.dart';
 import '../cart/data/cart_controller.dart';
@@ -87,7 +88,18 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CatalogHero(),
+          const EditorialHero(
+            title: 'Catálogo único',
+            highlight: 'único',
+            subtitle: 'Funkos e colecionáveis selecionados em um só lugar.',
+            compact: true,
+            layout: EditorialHeroLayout.leadingCentered,
+            image: Icon(
+              Icons.storefront_rounded,
+              color: AppColors.brandYellow,
+              size: 62,
+            ),
+          ),
           const SizedBox(height: 16),
           _CatalogSearchField(
             controller: _searchController,
@@ -205,55 +217,6 @@ class _CatalogPageState extends ConsumerState<CatalogPage> {
   }
 }
 
-class _CatalogHero extends StatelessWidget {
-  const _CatalogHero();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.brandNavy,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.darkBorder),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.all(18),
-        child: Row(
-          children: [
-            Icon(Icons.storefront_rounded, color: AppColors.primary, size: 34),
-            SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Catálogo único',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    'Funkos e colecionáveis selecionados em um só lugar.',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _CatalogSearchField extends StatelessWidget {
   const _CatalogSearchField({
     required this.controller,
@@ -273,29 +236,25 @@ class _CatalogSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: AppColors.brandNavy),
-      cursorColor: AppColors.brandNavy,
+      style: const TextStyle(color: AppColors.darkTextPrimary),
+      cursorColor: AppColors.brandYellow,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         filled: true,
-        fillColor: AppColors.brandSky,
+        fillColor: AppColors.surfacePrimary,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(
-            color: AppColors.brandNavy.withValues(alpha: 0.24),
-          ),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: const BorderSide(color: AppColors.brandYellow, width: 2),
         ),
         hintText: 'Buscar Funko, anime, personagem...',
-        hintStyle: TextStyle(
-          color: AppColors.brandNavy.withValues(alpha: 0.64),
-        ),
+        hintStyle: TextStyle(color: AppColors.darkTextSecondary),
         prefixIcon: const Icon(
           Icons.search_rounded,
-          color: AppColors.brandNavy,
+          color: AppColors.darkTextPrimary,
         ),
         suffixIcon: search.isEmpty
             ? null
@@ -303,7 +262,7 @@ class _CatalogSearchField extends StatelessWidget {
                 tooltip: 'Limpar busca',
                 icon: const Icon(
                   Icons.close_rounded,
-                  color: AppColors.brandNavy,
+                  color: AppColors.darkTextPrimary,
                 ),
                 onPressed: onClear,
               ),
@@ -435,10 +394,10 @@ class _CatalogFilters extends StatelessWidget {
                   size: 18,
                   color: status == null
                       ? AppColors.brandNavy
-                      : AppColors.brandSky,
+                      : AppColors.darkTextSecondary,
                 ),
                 selectedColor: AppColors.brandYellow,
-                backgroundColor: AppColors.darkSurfaceElevated,
+                backgroundColor: AppColors.surfaceIntermediate,
                 labelStyle: TextStyle(
                   color: status == null
                       ? AppColors.brandNavy
@@ -461,10 +420,10 @@ class _CatalogFilters extends StatelessWidget {
                     size: 18,
                     color: status == filter.value
                         ? AppColors.brandNavy
-                        : AppColors.brandSky,
+                        : AppColors.darkTextSecondary,
                   ),
                   selectedColor: AppColors.brandYellow,
-                  backgroundColor: AppColors.darkSurfaceElevated,
+                  backgroundColor: AppColors.surfaceIntermediate,
                   labelStyle: TextStyle(
                     color: status == filter.value
                         ? AppColors.brandNavy

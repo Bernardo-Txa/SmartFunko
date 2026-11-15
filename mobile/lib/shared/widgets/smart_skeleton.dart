@@ -50,7 +50,7 @@ class _SmartSkeletonState extends State<SmartSkeleton>
     final highlight =
         widget.highlightColor ??
         (isDark
-            ? AppColors.brandSky.withValues(alpha: 0.20)
+            ? AppColors.surfaceElevated.withValues(alpha: 0.20)
             : AppColors.lightSurface);
 
     return AnimatedBuilder(

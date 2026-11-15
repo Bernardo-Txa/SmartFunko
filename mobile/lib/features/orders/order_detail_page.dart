@@ -325,7 +325,7 @@ class _OrderItemTile extends StatelessWidget {
                 Text(
                   item.name,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.brandNavy,
+                    color: AppColors.darkTextPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -333,7 +333,7 @@ class _OrderItemTile extends StatelessWidget {
                 Text(
                   '${item.quantity} x ${item.unitPrice.formatted}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.brandNavy.withValues(alpha: 0.72),
+                    color: AppColors.darkTextSecondary,
                   ),
                 ),
               ],
@@ -342,7 +342,7 @@ class _OrderItemTile extends StatelessWidget {
           Text(
             item.totalPrice.formatted,
             style: theme.textTheme.titleSmall?.copyWith(
-              color: AppColors.brandNavy,
+              color: AppColors.brandYellow,
               fontWeight: FontWeight.w800,
             ),
           ),

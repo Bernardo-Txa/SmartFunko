@@ -36,7 +36,7 @@ class PriceTag extends StatelessWidget {
             Text(
               label,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.brandNavy,
+                color: AppColors.brandYellow,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -45,7 +45,7 @@ class PriceTag extends StatelessWidget {
               Text(
                 subtitle!,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.brandNavy.withValues(alpha: 0.72),
+                  color: AppColors.darkTextSecondary,
                 ),
               ),
             ],

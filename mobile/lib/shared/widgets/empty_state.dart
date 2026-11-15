@@ -45,14 +45,14 @@ class SmartEmptyState extends StatelessWidget {
                     color: theme.colorScheme.secondary.withValues(alpha: 0.5),
                   ),
                 ),
-                child: Icon(icon, color: AppColors.brandNavy, size: 34),
+                child: Icon(icon, color: AppColors.brandYellow, size: 34),
               ),
               const SizedBox(height: 16),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: AppColors.brandNavy,
+                  color: AppColors.darkTextPrimary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -61,7 +61,7 @@ class SmartEmptyState extends StatelessWidget {
                 message,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.brandNavy.withValues(alpha: 0.74),
+                  color: AppColors.darkTextSecondary,
                   height: 1.35,
                 ),
               ),

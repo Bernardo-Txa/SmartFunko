@@ -3,6 +3,7 @@ import '../../../core/utils/currency_formatter.dart';
 class OrderMoney {
   const OrderMoney(this.value);
   final double value;
+  int get cents => (value * 100).round();
   factory OrderMoney.fromJson(Object? value) {
     final parsed = value is num ? value.toDouble() : double.tryParse('$value');
     if (parsed == null || !parsed.isFinite || parsed < 0) {
@@ -155,6 +156,16 @@ class OrderItem {
   );
 }
 
+class OrderTracking {
+  const OrderTracking({this.code, this.url});
+  final String? code, url;
+
+  factory OrderTracking.fromJson(Map<String, dynamic> json) => OrderTracking(
+    code: json['code'] is String ? json['code'] as String : null,
+    url: json['url'] is String ? json['url'] as String : null,
+  );
+}
+
 class PaymentSession {
   const PaymentSession({
     required this.id,
@@ -199,6 +210,7 @@ class OrderSummary {
     required this.paymentEligible,
     this.competence,
     this.paymentSessions = const [],
+    this.tracking,
   });
   final String id, orderNumber, orderDate;
   final OrderApprovalStatus approvalStatus;
@@ -210,6 +222,7 @@ class OrderSummary {
   final bool paymentEligible;
   final OrderCompetence? competence;
   final List<PaymentSession> paymentSessions;
+  final OrderTracking? tracking;
   int get itemsCount => items.fold(0, (sum, item) => sum + item.quantity);
   String get status => fulfillmentStatus.name;
   String get reviewStatus => approvalStatus.name;
@@ -253,6 +266,9 @@ class OrderSummary {
         .whereType<Map<String, dynamic>>()
         .map(PaymentSession.fromJson)
         .toList(),
+    tracking: j['tracking'] is Map<String, dynamic>
+        ? OrderTracking.fromJson(j['tracking'] as Map<String, dynamic>)
+        : null,
   );
 }
 

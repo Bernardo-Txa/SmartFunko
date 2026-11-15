@@ -18,12 +18,10 @@ class ProductBadges extends StatelessWidget {
         for (final badge in badges)
           Chip(
             label: Text(badge),
-            backgroundColor: AppColors.brandSky,
-            side: BorderSide(
-              color: AppColors.brandNavy.withValues(alpha: 0.20),
-            ),
+            backgroundColor: AppColors.surfaceIntermediate,
+            side: const BorderSide(color: AppColors.border),
             labelStyle: theme.textTheme.labelMedium?.copyWith(
-              color: AppColors.brandNavy,
+              color: AppColors.darkTextPrimary,
               fontWeight: FontWeight.w800,
             ),
           ),

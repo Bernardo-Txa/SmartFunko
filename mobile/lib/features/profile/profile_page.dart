@@ -6,9 +6,9 @@ import '../../core/auth/auth_controller.dart';
 import '../../shared/theme/app_colors.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/editorial_hero.dart';
 import '../../shared/widgets/loading_state.dart';
 import '../../shared/widgets/primary_button.dart';
-import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/smart_card.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -27,9 +27,25 @@ class ProfilePage extends ConsumerWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionHeader(
-                  title: 'Sua conta',
-                  subtitle: 'Dados de acesso e acompanhamento dos pedidos.',
+                EditorialHero(
+                  title: 'Minha conta',
+                  highlight: 'conta',
+                  subtitle:
+                      'Dados de acesso e acompanhamento dos seus pedidos.',
+                  compact: true,
+                  layout: EditorialHeroLayout.leadingCentered,
+                  image: CircleAvatar(
+                    radius: 42,
+                    backgroundColor: AppColors.brandYellow,
+                    child: Text(
+                      (user.email ?? 'S').substring(0, 1).toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.onAction,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SmartCard(
@@ -38,8 +54,13 @@ class ProfilePage extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: 28,
+                        backgroundColor: AppColors.surfaceIntermediate,
                         child: Text(
                           (user.email ?? 'S').substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            color: AppColors.brandYellow,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -51,7 +72,7 @@ class ProfilePage extends ConsumerWidget {
                               auth.displayName,
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
-                                    color: AppColors.brandNavy,
+                                    color: AppColors.darkTextPrimary,
                                     fontWeight: FontWeight.w800,
                                   ),
                             ),
@@ -59,7 +80,7 @@ class ProfilePage extends ConsumerWidget {
                             Text(
                               user.email ?? 'E-mail não informado',
                               style: const TextStyle(
-                                color: AppColors.brandNavy,
+                                color: AppColors.darkTextSecondary,
                               ),
                             ),
                           ],

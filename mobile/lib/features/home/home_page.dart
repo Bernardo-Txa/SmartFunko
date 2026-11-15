@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
-import '../../core/auth/auth_state.dart';
 import '../../core/network/image_url_resolver.dart';
 import '../../shared/theme/app_colors.dart';
 import '../../shared/theme/app_radius.dart';
 import '../../shared/branding/smart_funko_brand.dart';
 import '../../shared/widgets/app_scaffold.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/editorial_hero.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/section_header.dart';
@@ -37,7 +37,35 @@ class HomePage extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _HomeHero(auth: auth),
+          EditorialHero(
+            title: 'Sua coleção começa aqui',
+            highlight: 'coleção',
+            eyebrow: auth.isAuthenticated
+                ? 'Olá, ${auth.displayName}'
+                : 'Bem-vindo à SmartFunko',
+            subtitle:
+                'Colecionáveis selecionados, pedidos organizados e atendimento seguro.',
+            actions: [
+              SizedBox(
+                width: 138,
+                child: PrimaryButton(
+                  label: 'Catálogo',
+                  icon: Icons.manage_search_rounded,
+                  onPressed: () => context.go('/catalogo'),
+                ),
+              ),
+              SizedBox(
+                width: 138,
+                child: PrimaryButton(
+                  label: 'Pedidos',
+                  icon: Icons.receipt_long_rounded,
+                  variant: PrimaryButtonVariant.outlined,
+                  foregroundColor: AppColors.brandYellow,
+                  onPressed: () => context.go('/pedidos'),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
           _AccountStatus(authenticated: auth.isAuthenticated, orders: orders),
           const SizedBox(height: 24),
@@ -59,119 +87,6 @@ class HomePage extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _HomeHero extends StatelessWidget {
-  const _HomeHero({required this.auth});
-
-  final AuthState auth;
-
-  @override
-  Widget build(BuildContext context) {
-    final isAuthenticated = auth.isAuthenticated == true;
-    final greeting = isAuthenticated
-        ? 'Olá, ${auth.displayName}'
-        : 'Bem-vindo à SmartFunko';
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.darkSurfaceElevated,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.darkBorder),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 52,
-              width: double.infinity,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Transform.translate(
-                  offset: const Offset(-5, 0),
-                  child: const SmartFunkoLogo(
-                    variant: SmartFunkoLogoVariant.horizontalWhite,
-                    width: 166,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              greeting,
-              style: const TextStyle(
-                color: AppColors.primarySoft,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Sua coleção começa aqui',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 25,
-                height: 1.06,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Colecionáveis selecionados, pedidos organizados e pagamento seguro.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-                height: 1.45,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final inline = constraints.maxWidth >= 320;
-                final primaryButton = PrimaryButton(
-                  label: inline ? 'Catálogo' : 'Ver catálogo',
-                  icon: Icons.manage_search_rounded,
-                  fullWidth: true,
-                  onPressed: () => context.go('/catalogo'),
-                );
-                final secondaryButton = PrimaryButton(
-                  label: inline ? 'Pedidos' : 'Meus pedidos',
-                  icon: Icons.receipt_long_rounded,
-                  variant: PrimaryButtonVariant.outlined,
-                  foregroundColor: AppColors.brandYellow,
-                  fullWidth: true,
-                  onPressed: () => context.go('/pedidos'),
-                );
-
-                if (inline) {
-                  return Row(
-                    children: [
-                      Expanded(child: primaryButton),
-                      const SizedBox(width: 10),
-                      Expanded(child: secondaryButton),
-                    ],
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    primaryButton,
-                    const SizedBox(height: 10),
-                    secondaryButton,
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -509,7 +424,7 @@ class _StepCard extends StatelessWidget {
             child: Text(
               step.number,
               style: const TextStyle(
-                color: Color(0xFF07111F),
+                color: AppColors.onAction,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -614,12 +529,12 @@ class _FeaturedProductCard extends StatelessWidget {
           onTap: () => context.go('/produto/${product.slug}'),
           child: Ink(
             decoration: BoxDecoration(
-              color: AppColors.brandSky,
+              color: AppColors.surfacePrimary,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
                 color: product.special
                     ? AppColors.accent.withValues(alpha: 0.42)
-                    : AppColors.brandNavy.withValues(alpha: 0.20),
+                    : AppColors.border,
               ),
             ),
             child: Padding(
@@ -643,7 +558,7 @@ class _FeaturedProductCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: AppColors.brandNavy,
+                      color: AppColors.darkTextPrimary,
                       fontSize: 13,
                       height: 1.18,
                       fontWeight: FontWeight.w900,

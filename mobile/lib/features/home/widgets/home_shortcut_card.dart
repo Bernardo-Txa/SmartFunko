@@ -88,7 +88,7 @@ class HomeShortcutCard extends StatelessWidget {
                             badgeText!,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              color: Color(0xFF07111F),
+                              color: AppColors.onAction,
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
                             ),

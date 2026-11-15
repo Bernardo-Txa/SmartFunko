@@ -97,7 +97,7 @@ class _CartItemTile extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.brandNavy,
+                    color: AppColors.darkTextPrimary,
                     fontWeight: FontWeight.w700,
                     height: 1.2,
                   ),
@@ -106,14 +106,14 @@ class _CartItemTile extends ConsumerWidget {
                 Text(
                   item.status?.label ?? item.category ?? 'Smart Funkos',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.brandNavy.withValues(alpha: 0.72),
+                    color: AppColors.darkTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   item.price.formatted,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.brandNavy,
+                    color: AppColors.brandYellow,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -130,7 +130,7 @@ class _CartItemTile extends ConsumerWidget {
                         '${item.quantity}',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleSmall?.copyWith(
-                          color: AppColors.brandNavy,
+                          color: AppColors.darkTextPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -151,7 +151,7 @@ class _CartItemTile extends ConsumerWidget {
                 Text(
                   'Subtotal ${CurrencyFormatter.brl(item.subtotal)}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.brandNavy.withValues(alpha: 0.72),
+                    color: AppColors.darkTextSecondary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

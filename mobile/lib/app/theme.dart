@@ -14,7 +14,7 @@ class SmartFunkosTheme {
       brightness: Brightness.dark,
       primary: AppColors.primary,
       onPrimary: AppColors.brandNavy,
-      secondary: AppColors.brandSky,
+      secondary: AppColors.surfaceElevated,
       tertiary: AppColors.success,
       surface: AppColors.darkSurface,
       onSurface: AppColors.darkTextPrimary,
@@ -41,7 +41,7 @@ class SmartFunkosTheme {
       ),
       cardColor: AppColors.darkSurface,
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.darkSurface.withValues(alpha: 0.96),
+        backgroundColor: AppColors.navigationSurface.withValues(alpha: 0.98),
         indicatorColor: AppColors.brandYellow,
         elevation: 0,
         height: 72,
@@ -78,7 +78,7 @@ class SmartFunkosTheme {
       visualDensity: VisualDensity.standard,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.52),
+        fillColor: AppColors.surfacePrimary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
@@ -150,8 +150,8 @@ class SmartFunkosTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: scheme.primary.withValues(alpha: 0.11),
-        side: BorderSide(color: scheme.primary.withValues(alpha: 0.22)),
+        backgroundColor: AppColors.surfaceIntermediate,
+        side: const BorderSide(color: AppColors.border),
         labelStyle: TextStyle(
           color: scheme.onSurface,
           fontWeight: FontWeight.w800,
