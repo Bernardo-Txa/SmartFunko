@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarClock } from "lucide-react";
+import { ArrowRight, CalendarClock, Search, X } from "lucide-react";
 import { PreorderSelectionPanel } from "@/components/preorders/preorder-selection-panel";
 import { ogImages } from "@/lib/seo";
 import { getCurrentUser } from "@/server/auth/get-current-user";
@@ -31,10 +31,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function PreordersPage() {
+export default async function PreordersPage({ searchParams }: { searchParams: Promise<{ franchise?: string; q?: string }> }) {
+  const params = await searchParams;
+  const filters = {
+    franchise: params.franchise?.trim() || undefined,
+    q: params.q?.trim() || undefined,
+  };
   const [currentUser, itemsResult] = await Promise.allSettled([
     getCurrentUser(),
-    new PreorderService().listPublicPreorderItems(),
+    new PreorderService().listPublicPreorderItems(filters),
   ]);
   const current = currentUser.status === "fulfilled" ? currentUser.value : null;
   const items = itemsResult.status === "fulfilled" ? itemsResult.value : [] as PreorderItem[];
@@ -98,6 +103,32 @@ export default async function PreordersPage() {
           </p>
         </div>
 
+        <form className="mb-6 grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:grid-cols-[minmax(0,1fr)_220px_auto]">
+          <label className="relative block">
+            <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" aria-hidden="true" />
+            <input
+              name="q"
+              defaultValue={params.q ?? ""}
+              placeholder="Buscar produto ou codigo"
+              className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] pl-10 pr-3 text-sm outline-none focus:border-[var(--accent)]"
+            />
+          </label>
+          <input
+            name="franchise"
+            defaultValue={params.franchise ?? ""}
+            placeholder="Franquia ou linha"
+            className="h-11 rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--accent)]"
+          />
+          <div className="flex gap-2">
+            <button className="h-11 flex-1 rounded-md bg-[var(--accent)] px-5 text-sm font-black text-slate-950 hover:brightness-110">Buscar</button>
+            {filters.q || filters.franchise ? (
+              <Link href="/pre-vendas#pre-vendas" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--surface-strong)]" aria-label="Limpar pesquisa">
+                <X size={17} aria-hidden="true" />
+              </Link>
+            ) : null}
+          </div>
+        </form>
+
         {loadError ? (
           <p className="rounded-lg border border-red-300/25 bg-red-500/10 p-4 text-sm font-semibold text-red-200">
             Nao foi possivel carregar as pre-vendas agora.
@@ -109,9 +140,10 @@ export default async function PreordersPage() {
             loginHref={loginHref}
           />
         ) : (
-          <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--muted)]">
-            Nenhuma pre-venda aberta no momento.
-          </p>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--muted)]">
+            <p>{filters.q || filters.franchise ? "Nenhuma pre-venda encontrada com esses filtros." : "Nenhuma pre-venda aberta no momento."}</p>
+            {filters.q || filters.franchise ? <Link href="/pre-vendas#pre-vendas" className="mt-3 inline-flex font-bold text-[var(--accent)] hover:underline">Limpar pesquisa</Link> : null}
+          </div>
         )}
       </section>
     </div>

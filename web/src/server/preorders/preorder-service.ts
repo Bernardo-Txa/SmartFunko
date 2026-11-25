@@ -406,12 +406,23 @@ export class PreorderService {
     return rows.map((row) => mapItem(row, stats.get(row.id) ?? emptyStats()));
   }
 
-  async listPublicPreorderItems() {
-    const { data, error } = await this.supabase
+  async listPublicPreorderItems(filters: { franchise?: string; q?: string } = {}) {
+    let query = this.supabase
       .from("preorder_items")
       .select(itemSelect())
       .eq("status", "open")
       .order("created_at", { ascending: false });
+
+    if (filters.franchise?.trim()) {
+      query = query.ilike("franchise_name", `%${filters.franchise.trim().replaceAll("%", "\\%").replaceAll("_", "\\_")}%`);
+    }
+
+    if (filters.q?.trim()) {
+      const search = filters.q.trim().replaceAll("%", "\\%").replaceAll("_", "\\_");
+      query = query.or(`title.ilike.%${search}%,code.ilike.%${search}%,franchise_name.ilike.%${search}%`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throwQueryError(error, "Falha ao listar pre-vendas publicas");
