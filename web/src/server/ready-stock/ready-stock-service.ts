@@ -32,6 +32,15 @@ export const createReadyStockItemSchema = z.object({
   title: z.string().trim().min(2, "Informe o nome do produto"),
 });
 
+export const updateReadyStockItemSchema = createReadyStockItemSchema.omit({ quantity: true }).partial().refine(
+  (input) => Object.keys(input).length > 0,
+  "Informe ao menos um campo para atualizar",
+);
+
+export const adjustReadyStockQuantitySchema = z.object({
+  quantity: z.coerce.number().int().refine((value) => value !== 0, "Informe uma quantidade diferente de zero"),
+});
+
 export const createReadyStockCheckoutSchema = z.object({
   items: z.array(z.object({
     itemId: z.string().uuid(),
@@ -41,6 +50,7 @@ export const createReadyStockCheckoutSchema = z.object({
 });
 
 export type CreateReadyStockItemInput = z.infer<typeof createReadyStockItemSchema>;
+export type UpdateReadyStockItemInput = z.infer<typeof updateReadyStockItemSchema>;
 export type CreateReadyStockCheckoutInput = z.infer<typeof createReadyStockCheckoutSchema>;
 export type ReadyStockStatus = z.infer<typeof readyStockStatusSchema>;
 
@@ -199,6 +209,53 @@ export class ReadyStockService {
       updated_by: this.actorId ?? null,
     }).select(itemSelect).single();
     if (error) throwQueryError(error, "Falha ao criar produto de pronta entrega");
+    revalidatePath("/pronta-entrega");
+    revalidatePath("/admin/estoque");
+    return mapItem(data as unknown as ItemRow);
+  }
+
+  async updateItem(itemId: string, input: UpdateReadyStockItemInput) {
+    const changes: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+      updated_by: this.actorId ?? null,
+    };
+    if (input.categoryName !== undefined) changes.category_name = input.categoryName;
+    if (input.code !== undefined) changes.code = input.code;
+    if (input.description !== undefined) changes.description = input.description;
+    if (input.franchiseName !== undefined) changes.franchise_name = input.franchiseName;
+    if (input.mainImageUrl !== undefined) changes.main_image_url = input.mainImageUrl;
+    if (input.maxPerCustomer !== undefined) changes.max_per_customer = input.maxPerCustomer;
+    if (input.price !== undefined) changes.price = roundMoney(input.price);
+    if (input.status !== undefined) changes.status = input.status;
+    if (input.title !== undefined) changes.title = input.title;
+
+    const { data, error } = await this.supabase.from("ready_stock_items")
+      .update(changes).eq("id", itemId).select(itemSelect).maybeSingle();
+    if (error) throwQueryError(error, "Falha ao atualizar produto de pronta entrega");
+    if (!data) throw badRequest("Produto de pronta entrega nao encontrado");
+    revalidatePath("/pronta-entrega");
+    revalidatePath("/admin/estoque");
+    return mapItem(data as unknown as ItemRow);
+  }
+
+  async adjustQuantity(itemId: string, adjustment: number) {
+    const { data: current, error: currentError } = await this.supabase.from("ready_stock_items")
+      .select(itemSelect).eq("id", itemId).maybeSingle();
+    if (currentError) throwQueryError(currentError, "Falha ao carregar estoque atual");
+    if (!current) throw badRequest("Produto de pronta entrega nao encontrado");
+    const item = current as unknown as ItemRow;
+    const nextQuantity = item.quantity + adjustment;
+    if (nextQuantity < item.reserved_quantity) {
+      throw conflict(`Nao e possivel reduzir abaixo das ${item.reserved_quantity} unidade(s) reservada(s)`);
+    }
+
+    const { data, error } = await this.supabase.from("ready_stock_items").update({
+      quantity: nextQuantity,
+      updated_at: new Date().toISOString(),
+      updated_by: this.actorId ?? null,
+    }).eq("id", itemId).eq("quantity", item.quantity).select(itemSelect).maybeSingle();
+    if (error) throwQueryError(error, "Falha ao ajustar estoque");
+    if (!data) throw conflict("O estoque mudou durante o ajuste. Atualize a pagina e tente novamente");
     revalidatePath("/pronta-entrega");
     revalidatePath("/admin/estoque");
     return mapItem(data as unknown as ItemRow);
