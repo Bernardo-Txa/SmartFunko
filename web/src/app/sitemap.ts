@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getCatalogProducts, getCatalogSuppliers } from "@/lib/catalog";
 import { isPopFlixEnabled, isRafflesEnabled } from "@/lib/env";
 import { canonicalUrl } from "@/lib/seo";
+import { readyStockCampaign } from "@/lib/ready-stock-campaign";
 import { RaffleService } from "@/server/raffles/raffle-service";
 import { RareCollectibleService } from "@/server/rare-collectibles/rare-collectible-service";
 import type { RaffleCampaign } from "@/components/raffles/raffle-types";
@@ -42,10 +43,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/catalogo", { changeFrequency: "daily", priority: 0.9 }),
     entry("/fornecedores", { changeFrequency: "weekly", priority: 0.7 }),
     entry("/pre-vendas", { changeFrequency: "daily", priority: 0.75 }),
+    entry("/pronta-entrega", { changeFrequency: "daily", priority: 1 }),
     entry("/acervo-raro", { changeFrequency: "weekly", priority: 0.8 }),
     entry("/privacidade", { changeFrequency: "yearly", priority: 0.35 }),
     entry("/termos-de-uso", { changeFrequency: "yearly", priority: 0.35 }),
   ];
+
+  if (readyStockCampaign.exclusiveMode) {
+    return routes.filter((route) =>
+      ["/pronta-entrega", "/privacidade", "/termos-de-uso"].some((path) =>
+        route.url.endsWith(path),
+      ),
+    );
+  }
 
   if (isPopFlixEnabled()) {
     routes.push(

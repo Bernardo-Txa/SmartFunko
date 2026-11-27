@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { sanitizeNextPath } from "@/lib/auth/redirect";
 import { env, hasSupabasePublicEnv } from "@/lib/env";
+import { readyStockCampaign } from "@/lib/ready-stock-campaign";
 
 const AUTH_QUERY_PARAMS = [
   "access_token",
@@ -57,6 +58,36 @@ function redirectWithCookies(request: NextRequest, response: NextResponse, path:
 }
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isPageRequest = !pathname.startsWith("/api/");
+  const isAccountRoute = pathname === "/conta" || pathname.startsWith("/conta/");
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isEssentialPublicRoute = [
+    "/pronta-entrega",
+    "/login",
+    "/cadastro",
+    "/esqueci-senha",
+    "/redefinir-senha",
+    "/reenviar-confirmacao",
+    "/auth/confirmado",
+    "/pedido",
+    "/privacidade",
+    "/termos-de-uso",
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
+
+  if (
+    readyStockCampaign.exclusiveMode &&
+    isPageRequest &&
+    !isAccountRoute &&
+    !isAdminRoute &&
+    !isEssentialPublicRoute
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/pronta-entrega";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   if (!hasSupabasePublicEnv()) {
     return NextResponse.next({
       request,
@@ -81,6 +112,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (!isAccountRoute && !isAdminRoute) {
+    return response;
+  }
+
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -97,11 +132,6 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-
-  const pathname = request.nextUrl.pathname;
-  const isPageRequest = !pathname.startsWith("/api/");
-  const isAccountRoute = pathname === "/conta" || pathname.startsWith("/conta/");
-  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
 
   if (isPageRequest && isAccountRoute && request.nextUrl.searchParams.has("code")) {
     const { error } = await supabase.auth.exchangeCodeForSession(

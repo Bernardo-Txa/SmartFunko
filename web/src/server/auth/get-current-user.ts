@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   createSupabaseServerClient,
@@ -13,7 +14,7 @@ export type CurrentUserContext = {
   customer: AuthCustomer | null;
 };
 
-export async function getCurrentUser(): Promise<CurrentUserContext | null> {
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<CurrentUserContext | null> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -52,4 +53,4 @@ export async function getCurrentUser(): Promise<CurrentUserContext | null> {
     profile,
     customer,
   };
-}
+});

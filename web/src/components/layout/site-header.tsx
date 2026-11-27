@@ -11,8 +11,8 @@ import { getCurrentUser } from "@/server/auth/get-current-user";
 export async function SiteHeader() {
   const [currentUserResult, categoriesResult, franchisesResult] = await Promise.allSettled([
     getCurrentUser(),
-    getCatalogCategories(),
-    getCatalogFranchises(),
+    readyStockCampaign.exclusiveMode ? Promise.resolve([]) : getCatalogCategories(),
+    readyStockCampaign.exclusiveMode ? Promise.resolve([]) : getCatalogFranchises(),
   ]);
   const currentUser = currentUserResult.status === "fulfilled" ? currentUserResult.value : null;
   const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
@@ -26,11 +26,15 @@ export async function SiteHeader() {
     ...(!readyStockCampaign.hidden
       ? [{ href: "/pronta-entrega", label: readyStockCampaign.menuLabel }]
       : []),
-    { href: "/fornecedores", label: "Collabs" },
-    { href: "/pre-vendas", label: "Pre-vendas" },
-    { href: "/acervo-raro", label: "Acervo Raro" },
-    ...(isPopFlixEnabled() ? [{ href: "/popflix", label: "PopFlix" }] : []),
-    ...(isRafflesEnabled() ? [{ href: "/rifas", label: "Rifas" }] : []),
+    ...(!readyStockCampaign.exclusiveMode
+      ? [
+          { href: "/fornecedores", label: "Collabs" },
+          { href: "/pre-vendas", label: "Pre-vendas" },
+          { href: "/acervo-raro", label: "Acervo Raro" },
+          ...(isPopFlixEnabled() ? [{ href: "/popflix", label: "PopFlix" }] : []),
+          ...(isRafflesEnabled() ? [{ href: "/rifas", label: "Rifas" }] : []),
+        ]
+      : []),
     { href: ordersHref, label: "Meus pedidos" },
   ];
 
