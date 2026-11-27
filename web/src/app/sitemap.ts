@@ -6,6 +6,20 @@ import { RaffleService } from "@/server/raffles/raffle-service";
 import { RareCollectibleService } from "@/server/rare-collectibles/rare-collectible-service";
 import type { RaffleCampaign } from "@/components/raffles/raffle-types";
 
+const SITEMAP_SOURCE_TIMEOUT_MS = 5_000;
+
+function withTimeout<T>(promise: Promise<T>, source: string): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout>;
+  const deadline = new Promise<T>((_, reject) => {
+    timeout = setTimeout(
+      () => reject(new Error(`Sitemap source timed out: ${source}`)),
+      SITEMAP_SOURCE_TIMEOUT_MS,
+    );
+  });
+
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timeout));
+}
+
 function entry(
   path: string,
   options: {
@@ -40,8 +54,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
   }
 
-  try {
-    const suppliers = await getCatalogSuppliers();
+  const [suppliersResult, productsResult, rareItemsResult] = await Promise.allSettled([
+    withTimeout(getCatalogSuppliers(), "suppliers"),
+    withTimeout(getCatalogProducts({ pageSize: 60, sort: "newest" }), "products"),
+    withTimeout(new RareCollectibleService().listPublicRareCollectibles(), "rare collectibles"),
+  ]);
+
+  if (suppliersResult.status === "fulfilled") {
+    const suppliers = suppliersResult.value;
 
     routes.push(
       ...suppliers.map((supplier) =>
@@ -51,15 +71,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }),
       ),
     );
-  } catch (error) {
-    console.error("Failed to load suppliers for sitemap", error);
+  } else {
+    console.error("Failed to load suppliers for sitemap", suppliersResult.reason);
   }
 
-  try {
-    const products = await getCatalogProducts({
-      pageSize: 60,
-      sort: "newest",
-    });
+  if (productsResult.status === "fulfilled") {
+    const products = productsResult.value;
 
     routes.push(
       ...products.map((product) =>
@@ -70,12 +87,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }),
       ),
     );
-  } catch (error) {
-    console.error("Failed to load products for sitemap", error);
+  } else {
+    console.error("Failed to load products for sitemap", productsResult.reason);
   }
 
-  try {
-    const rareItems = await new RareCollectibleService().listPublicRareCollectibles();
+  if (rareItemsResult.status === "fulfilled") {
+    const rareItems = rareItemsResult.value;
 
     routes.push(
       ...rareItems.all.map((item) =>
@@ -86,15 +103,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }),
       ),
     );
-  } catch (error) {
-    console.error("Failed to load rare collectibles for sitemap", error);
+  } else {
+    console.error("Failed to load rare collectibles for sitemap", rareItemsResult.reason);
   }
 
   if (isRafflesEnabled()) {
     routes.push(entry("/rifas", { changeFrequency: "daily", priority: 0.7 }));
 
     try {
-      const raffles = (await new RaffleService().listPublicRaffleCampaigns()) as unknown as RaffleCampaign[];
+      const raffles = (await withTimeout(
+        new RaffleService().listPublicRaffleCampaigns(),
+        "raffles",
+      )) as unknown as RaffleCampaign[];
       const publicRaffles = raffles.filter((raffle) => raffle.status !== "cancelled");
 
       routes.push(

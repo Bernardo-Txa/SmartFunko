@@ -13,7 +13,10 @@ export const metadata: Metadata = {
 
 export default async function ReadyStockPage({ searchParams }: { searchParams: Promise<{ category?: string; franchise?: string; q?: string }> }) {
   const params = await searchParams;
-  const [currentUser, items] = await Promise.all([getCurrentUser(), new ReadyStockService().listPublicItems(params)]);
+  const [currentUser, items] = await Promise.all([
+    getCurrentUser().catch(() => null),
+    new ReadyStockService().listPublicItems(params),
+  ]);
   return <div>
     <section className="relative overflow-hidden border-b border-rose-500/30 bg-[radial-gradient(circle_at_top_left,rgba(225,29,72,0.28),transparent_38%),linear-gradient(135deg,#050505_0%,#16030a_55%,#050505_100%)]">
       <div aria-hidden="true" className="absolute -right-20 -top-32 h-80 w-80 rounded-full bg-rose-500/15 blur-3xl" />

@@ -9,11 +9,14 @@ import { readyStockCampaign } from "@/lib/ready-stock-campaign";
 import { getCurrentUser } from "@/server/auth/get-current-user";
 
 export async function SiteHeader() {
-  const [currentUser, categories, franchises] = await Promise.all([
+  const [currentUserResult, categoriesResult, franchisesResult] = await Promise.allSettled([
     getCurrentUser(),
     getCatalogCategories(),
     getCatalogFranchises(),
   ]);
+  const currentUser = currentUserResult.status === "fulfilled" ? currentUserResult.value : null;
+  const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
+  const franchises = franchisesResult.status === "fulfilled" ? franchisesResult.value : [];
   const isOwner = currentUser?.profile.role === "owner";
   const accountLabel = currentUser
     ? currentUser.profile.name || currentUser.profile.email || currentUser.authUser.email || "Minha conta"

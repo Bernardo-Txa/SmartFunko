@@ -158,7 +158,6 @@ export class ReadyStockService {
   ) {}
 
   async listPublicItems(filters: { category?: string; franchise?: string; q?: string } = {}) {
-    await this.expirePendingOrders();
     let query = this.supabase.from("ready_stock_items").select(itemSelect).eq("status", "open")
       .order("created_at", { ascending: false });
 
