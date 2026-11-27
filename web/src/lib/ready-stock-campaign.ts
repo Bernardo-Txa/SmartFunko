@@ -3,7 +3,7 @@ export const readyStockCampaign = {
   description:
     "Produtos da Pronta Entrega com estoque real, condições especiais e checkout imediato pela InfinitePay.",
   headline: "A Black Friday mais colecionável do ano.",
-  hidden: true,
+  hidden: false,
   menuLabel: "Black Friday",
   pageTitle: "Black Friday Smart Funkos",
 } as const;

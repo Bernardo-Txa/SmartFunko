@@ -171,7 +171,7 @@ export class ReadyStockService {
 
     const { data, error } = await query;
     if (error) throwQueryError(error, "Falha ao listar pronta entrega");
-    return ((data ?? []) as unknown as ItemRow[]).map(mapItem).filter((item) => item.availableQuantity > 0);
+    return ((data ?? []) as unknown as ItemRow[]).map(mapItem);
   }
 
   async listAdminItems(filters: { q?: string; status?: string } = {}) {

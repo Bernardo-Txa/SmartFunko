@@ -18,7 +18,10 @@ export function ReadyStockSelectionPanel({ canBuy, items, loginHref }: { canBuy:
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const selected = useMemo(() => items.map((item) => ({ item, quantity: quantities[item.id] ?? 0 })).filter(({ quantity }) => quantity > 0), [items, quantities]);
+  const selected = useMemo(() => items.map((item) => ({
+    item,
+    quantity: Math.min(quantities[item.id] ?? 0, item.availableQuantity, item.maxPerCustomer ?? item.availableQuantity),
+  })).filter(({ quantity }) => quantity > 0), [items, quantities]);
   const total = selected.reduce((sum, { item, quantity }) => sum + item.price * quantity, 0);
   const count = selected.reduce((sum, { quantity }) => sum + quantity, 0);
 
@@ -51,20 +54,22 @@ export function ReadyStockSelectionPanel({ canBuy, items, loginHref }: { canBuy:
   return <>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((item) => {
-        const quantity = quantities[item.id] ?? 0;
-        return <article key={item.id} className={`flex min-h-full flex-col overflow-hidden rounded-lg border bg-[var(--surface)] transition ${quantity ? "border-yellow-300/70 shadow-[0_0_0_1px_rgba(250,204,21,0.22)]" : "border-[var(--border)] hover:border-[var(--accent)]/70"}`}>
+        const quantity = Math.min(quantities[item.id] ?? 0, item.availableQuantity, item.maxPerCustomer ?? item.availableQuantity);
+        const isSoldOut = item.availableQuantity === 0;
+        return <article key={item.id} className={`flex min-h-full flex-col overflow-hidden rounded-lg border bg-[var(--surface)] transition ${quantity ? "border-yellow-300/70 shadow-[0_0_0_1px_rgba(250,204,21,0.22)]" : isSoldOut ? "border-[var(--border)] opacity-75" : "border-[var(--border)] hover:border-[var(--accent)]/70"}`}>
           <div className="relative aspect-[4/3] bg-[#f8fafc]">
             {item.mainImageUrl ? <Image src={item.mainImageUrl} alt={item.title} fill sizes="(max-width: 768px) 50vw, 22vw" className="object-contain p-2" /> : <span className="flex h-full items-center justify-center bg-slate-950/70"><PackageCheck className="text-[var(--accent)]" size={28} /></span>}
             <span className="absolute left-2 top-2 rounded-full bg-emerald-300 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-slate-950 shadow-lg">Pronta entrega</span>
             {quantity ? <span className="absolute right-2 top-2 rounded-full border border-emerald-300/40 bg-emerald-400/90 px-2.5 py-1 text-[9px] font-black uppercase text-slate-950">{quantity}x</span> : null}
+            {isSoldOut ? <span className="absolute right-2 top-2 rounded-full border border-red-300/40 bg-red-500/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white">Esgotado</span> : null}
           </div>
           <div className="flex flex-1 flex-col p-3.5">
             <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--muted)]">{item.franchiseName || item.categoryName || item.code}</p>
             <h2 className="mt-2 line-clamp-2 min-h-[44px] text-[15px] font-extrabold leading-[22px] text-[var(--foreground)]">{item.title}</h2>
-            <p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">{item.description || "Disponivel para envio imediato."}</p>
+            <p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">{item.description || (isSoldOut ? "Produto esgotado no momento." : "Disponivel para envio imediato.")}</p>
             <div className="mt-auto pt-4">
-              <div className="flex items-end justify-between gap-3"><div><span className="text-[10px] font-extrabold uppercase text-[var(--muted)]">Valor</span><p className="text-[22px] font-black text-[var(--foreground)]">{formatCurrency(item.price)}</p></div><span className="text-xs font-bold text-emerald-200">{item.availableQuantity} disponivel(is)</span></div>
-              {quantity ? <QuantityControl item={item} quantity={quantity} setQuantity={setQuantity} /> : <button type="button" onClick={() => setQuantity(item, 1)} className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-3 text-sm font-black text-[#020617] hover:brightness-110"><ShoppingCart size={16} />Adicionar</button>}
+              <div className="flex items-end justify-between gap-3"><div><span className="text-[10px] font-extrabold uppercase text-[var(--muted)]">Valor</span><p className="text-[22px] font-black text-[var(--foreground)]">{formatCurrency(item.price)}</p></div><span className={`text-xs font-bold ${isSoldOut ? "text-red-300" : "text-emerald-200"}`}>{isSoldOut ? "Sem estoque" : `${item.availableQuantity} disponivel(is)`}</span></div>
+              {quantity ? <QuantityControl item={item} quantity={quantity} setQuantity={setQuantity} /> : isSoldOut ? <button type="button" disabled className="mt-3 inline-flex h-10 w-full cursor-not-allowed items-center justify-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-strong)] px-3 text-sm font-black text-[var(--muted)]" aria-label={`${item.title} esgotado`}><ShoppingCart size={16} />Esgotado</button> : <button type="button" onClick={() => setQuantity(item, 1)} className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--yellow)] px-3 text-sm font-black text-[#020617] hover:brightness-110"><ShoppingCart size={16} />Adicionar</button>}
             </div>
           </div>
         </article>;
