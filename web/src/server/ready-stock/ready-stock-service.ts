@@ -1,5 +1,5 @@
 import "server-only";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { badRequest, conflict } from "@/server/http/errors";
@@ -115,6 +115,7 @@ type OrderItemRow = {
 };
 
 const itemSelect = "id,code,slug,title,description,main_image_url,status,price,quantity,reserved_quantity,category_name,franchise_name,max_per_customer,created_at,updated_at";
+const READY_STOCK_PUBLIC_CACHE_TAG = "ready-stock-public";
 
 function mapItem(row: ItemRow): ReadyStockItem {
   return {
@@ -135,6 +136,22 @@ function mapItem(row: ItemRow): ReadyStockItem {
     title: row.title,
     updatedAt: row.updated_at,
   };
+}
+
+const getCachedPublicItems = unstable_cache(
+  async () => {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase.from("ready_stock_items").select(itemSelect)
+      .eq("status", "open").order("created_at", { ascending: false });
+    if (error) throwQueryError(error, "Falha ao listar pronta entrega");
+    return ((data ?? []) as unknown as ItemRow[]).map(mapItem);
+  },
+  [READY_STOCK_PUBLIC_CACHE_TAG],
+  { revalidate: 10, tags: [READY_STOCK_PUBLIC_CACHE_TAG] },
+);
+
+function invalidatePublicItemsCache() {
+  revalidateTag(READY_STOCK_PUBLIC_CACHE_TAG, { expire: 0 });
 }
 
 function slugify(value: string) {
@@ -158,19 +175,18 @@ export class ReadyStockService {
   ) {}
 
   async listPublicItems(filters: { category?: string; franchise?: string; q?: string } = {}) {
-    let query = this.supabase.from("ready_stock_items").select(itemSelect).eq("status", "open")
-      .order("created_at", { ascending: false });
+    const category = filters.category?.trim();
+    const franchise = filters.franchise?.trim();
+    const search = filters.q?.trim().toLocaleLowerCase("pt-BR");
+    const items = await getCachedPublicItems();
 
-    if (filters.category?.trim()) query = query.eq("category_name", filters.category.trim());
-    if (filters.franchise?.trim()) query = query.eq("franchise_name", filters.franchise.trim());
-    if (filters.q?.trim()) {
-      const search = filters.q.trim().replaceAll("%", "\\%").replaceAll("_", "\\_");
-      query = query.or(`title.ilike.%${search}%,code.ilike.%${search}%,franchise_name.ilike.%${search}%`);
-    }
-
-    const { data, error } = await query;
-    if (error) throwQueryError(error, "Falha ao listar pronta entrega");
-    return ((data ?? []) as unknown as ItemRow[]).map(mapItem);
+    return items.filter((item) =>
+      (!category || item.categoryName === category) &&
+      (!franchise || item.franchiseName === franchise) &&
+      (!search || [item.title, item.code, item.franchiseName].some((value) =>
+        value?.toLocaleLowerCase("pt-BR").includes(search),
+      )),
+    );
   }
 
   async listAdminItems(filters: { q?: string; status?: string } = {}) {
@@ -208,6 +224,7 @@ export class ReadyStockService {
       updated_by: this.actorId ?? null,
     }).select(itemSelect).single();
     if (error) throwQueryError(error, "Falha ao criar produto de pronta entrega");
+    invalidatePublicItemsCache();
     revalidatePath("/pronta-entrega");
     revalidatePath("/admin/estoque");
     return mapItem(data as unknown as ItemRow);
@@ -232,6 +249,7 @@ export class ReadyStockService {
       .update(changes).eq("id", itemId).select(itemSelect).maybeSingle();
     if (error) throwQueryError(error, "Falha ao atualizar produto de pronta entrega");
     if (!data) throw badRequest("Produto de pronta entrega nao encontrado");
+    invalidatePublicItemsCache();
     revalidatePath("/pronta-entrega");
     revalidatePath("/admin/estoque");
     return mapItem(data as unknown as ItemRow);
@@ -255,6 +273,7 @@ export class ReadyStockService {
     }).eq("id", itemId).eq("quantity", item.quantity).select(itemSelect).maybeSingle();
     if (error) throwQueryError(error, "Falha ao ajustar estoque");
     if (!data) throw conflict("O estoque mudou durante o ajuste. Atualize a pagina e tente novamente");
+    invalidatePublicItemsCache();
     revalidatePath("/pronta-entrega");
     revalidatePath("/admin/estoque");
     return mapItem(data as unknown as ItemRow);
@@ -295,6 +314,7 @@ export class ReadyStockService {
       await this.supabase.from("ready_stock_orders").delete().eq("id", order.id);
       throw conflict(reserveError.message.includes("Estoque insuficiente") ? reserveError.message : "Estoque insuficiente ou produto indisponivel");
     }
+    invalidatePublicItemsCache();
 
     const { data: customer, error: customerError } = await this.supabase.from("customers")
       .select("name,email,phone,status").eq("id", customerId).maybeSingle();
@@ -385,6 +405,7 @@ export class ReadyStockService {
     const v2 = v2Order as unknown as { id: string; order_number: string };
     const { error: finalizeError } = await this.supabase.rpc("finalize_ready_stock_order", { p_order_id: order.id });
     if (finalizeError) throwQueryError(finalizeError, "Falha ao baixar estoque");
+    invalidatePublicItemsCache();
     await this.supabase.from("ready_stock_orders").update({
       paid_at: paidAt,
       payment_status: "paid",
@@ -406,6 +427,7 @@ export class ReadyStockService {
       if (error) throwQueryError(error, "Falha ao liberar estoque");
     }
     await this.supabase.from("ready_stock_orders").update({ payment_status: status, status, updated_at: new Date().toISOString() }).eq("id", orderId);
+    invalidatePublicItemsCache();
   }
 
   private async expirePendingOrders() {
